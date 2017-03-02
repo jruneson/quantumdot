@@ -10,15 +10,8 @@
 #include "polymer.hpp"
 #include "bias.hpp"
 #include "point.hpp"
+#include "observable.hpp"
 
-
-
-
-
-/*Force Interaction::force(Point last, Point p, Point next)
-{
-	return ext_force(p) + spring_force(last,p,next) + bias_force(p) + int_force(p);
-}*/
 
 
 int main()
@@ -35,9 +28,10 @@ int main()
  x Polymer
  * Simulation
  * Interaction, basic
+ * Observable class
  * Test
  * Interaction, several particles
- * read parameters from file
+ * read parameters from file (also functions)
  * Thermostat
  * Test
  * Bias

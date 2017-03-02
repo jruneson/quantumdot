@@ -1,4 +1,5 @@
 #include <vector>
+#include <iostream>
 
 #include "parameters.hpp"
 #include "point.hpp"
