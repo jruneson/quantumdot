@@ -15,7 +15,10 @@ Polymer::Polymer(const Parameters& params) : num_beads(params.num_beads)
 }
 
 const Point& Polymer::operator[](int bead) const
-{return coords[bead];}
+{
+	bead = (bead + num_beads) % num_beads;
+	return coords[bead];
+}
 
 Point& Polymer::operator[](int bead)
 {
