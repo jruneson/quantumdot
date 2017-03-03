@@ -1,4 +1,6 @@
 
+#include <vector>
+
 #ifndef PARAMS_HPP
 #define PARAMS_HPP
 
@@ -27,7 +29,15 @@ public:
 	//dependent parameters
 	const int num_samples = (int) num_steps / steps_per_sample;
 	const double spring_const = num_beads*mass/(hbar*hbar*beta*beta);
-
+	
+	
+	//potential
+	
+	//observables to measure
+	const std::vector<int> to_measure = {22};
+	const std::vector<int> to_print_every_sample = {22};
 };
+
+
 
 #endif

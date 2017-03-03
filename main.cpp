@@ -26,11 +26,11 @@ int main()
 /*
  x Point 
  x Polymer
- * Simulation
- * Interaction, basic
- * Observable class
+ x Simulation
+ x Interaction, basic
+ x Observable class
  * Test
- * Interaction, several particles
+ * print certain observables to separate files
  * read parameters from file (also functions)
  * Thermostat
  * Test
@@ -38,4 +38,5 @@ int main()
  * Test
  * Spline
  * Test
+ * Interaction, several particles
  */

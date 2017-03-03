@@ -8,17 +8,18 @@
 Simulation::Simulation(const Parameters& params)
 	: dt(params.dt), num_parts(params.num_parts), interac(Interaction(params)),
 	  length_scale(params.length_scale), max_blocks(params.max_blocks),
-	  num_samples(params.num_samples), steps_per_sample(params.steps_per_sample)
+	  num_samples(params.num_samples), steps_per_sample(params.steps_per_sample),
+	  to_print(params.to_print_every_sample)
 {
 	for(int n=0; n<num_parts; ++n)
 		polymers.push_back(Polymer(params));
 	finished = false;
 	block = 0;
-	//taken_samples=0;
-	
+	time = 0;
 	bar_width=70;
 	progress=0;
-	
+	for(int id : params.to_measure)
+		obs.insert(std::pair<int,Observable>(id,Observable(id)));
 }
 
 
@@ -44,20 +45,19 @@ void Simulation::setup()
 	std::time_t t = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
 	logfile.open("logfile"); //add time
 	logfile << std::ctime(&t) << std::endl;
+	logfile.precision(8);
 }
 
 void Simulation::run() 
 {
-	if(!finished)
+	while(!finished)
 		run_block();
-	else
-		stop();
+	stop();
 }
 
 void Simulation::run_block()
 {
-	std::cout << block << std::endl;
-	zero_avgs();
+	reset_obs();
 	for(int s=0; s<num_samples; ++s)
 	{
 		for(int step=0; step<steps_per_sample; ++step)
@@ -66,6 +66,7 @@ void Simulation::run_block()
 			verlet_step();
 			//thermostat
 		}
+		time += dt*steps_per_sample;
 		measure();
 	}
 	update_avgs();
@@ -89,20 +90,23 @@ void Simulation::verlet_step()
 
 }
 
-void Simulation::zero_avgs()
+void Simulation::reset_obs()
 {
-	e_pot.set_zero();
+	for(auto& ob : obs)
+		ob.second.set_zero();
 }
 
 void Simulation::measure()
 {
-	e_pot.measure(polymers);
-	//e_pot += potential_energy();
+	for(auto& pair : obs)
+		pair.second.measure(polymers,interac);
+		//add print to separate files for id:s in to_print
 }
 
 void Simulation::update_avgs()
 {
-	e_pot.update_avg(num_samples);
+	for(auto& ob : obs)
+		ob.second.update_avg(num_samples);
 }
 
 void Simulation::update_screen()
@@ -122,29 +126,24 @@ void Simulation::update_screen()
 
 void Simulation::print_to_file()
 {
-	logfile << block << "\t" << e_pot.get_avg()/block << std::endl;
+	logfile << block;
+	for(auto& ob : obs)
+		logfile <<	"\t" << ob.second.get_avg()/block;
+	logfile << std::endl;
 }
 
 
 void Simulation::stop()
 {
-	e_pot.normalize_avg(block);
-	logfile << e_pot.get_avg() << "+/-" << e_pot.std_dev(block) << std::endl;
+	logfile << "Name\t\t\tValue\t\tError" << std::endl;
+	for(auto& pair : obs)
+	{
+		Observable& ob = pair.second;
+		ob.normalize_avg(block);
+		logfile << ob.get_name() <<"\t" << ob.get_avg() << "\t" << ob.std_dev(block) << std::endl;
+	}
+	std::cout << std::endl;
 }
 	
 
 
-double Simulation::potential_energy()
-{
-	double tmp = 0;
-	for(int n=0; n<num_parts; ++n)
-	{
-		Polymer& pol = polymers[n];
-		double tmp2 = 0;
-		for(int bead=0; bead<pol.num_beads; ++bead)
-			tmp2 += interac.ext_potential(pol[bead]);
-		tmp2 /= pol.num_beads;
-		tmp += tmp2;
-	}
-	return tmp;
-}

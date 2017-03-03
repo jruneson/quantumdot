@@ -10,10 +10,10 @@ class Interaction{
 public:
 	Interaction(Parameters);
 
-	double potential(const Point&);
-	double ext_potential(const Point&);
-	double spring_potential(const Point&, const Point&, const Point&);
-	double bias_potential(const Point&);
+//	double potential(const Point&) const;
+	double ext_potential(const Point&) const;
+//	double spring_potential(const Point&, const Point&, const Point&);
+//	double bias_potential(const Point&);
 //	double int_potential(Point);
 	
 //	Force force(const Point&,const Point&,const Point&);

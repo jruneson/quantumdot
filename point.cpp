@@ -91,3 +91,10 @@ Point operator/(const Point& p, const double& c)
 	return p*(1.0/c);
 }
 
+double operator*(const Point& p1, const Point& p2)
+{
+	double tmp=0;
+	for(int d=0; d<p1.size(); ++d)
+		tmp += p1[d] * p2[d];
+	return tmp;
+}

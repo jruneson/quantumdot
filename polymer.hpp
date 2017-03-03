@@ -24,7 +24,7 @@ public:
 	std::vector<Force> forces;
 	double dt_2m;
 	double mdt;
-
+	double mass;
 };
 
 #endif

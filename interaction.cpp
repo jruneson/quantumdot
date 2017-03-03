@@ -4,17 +4,17 @@ Interaction::Interaction(Parameters params)
 	: charge(params.charge), diel_const(params.diel_const),
 	  curvature(params.curvature), spring_const(params.spring_const) {}
 
-
+/*
 double Interaction::potential(const Point& p)
 {
 	return 0;
-}
+}*/
 
-double Interaction::ext_potential(const Point& p) 
+double Interaction::ext_potential(const Point& p) const
 {
-	return 0.5 * curvature * p.sqdist0();
+	return 0.5 * curvature * p.sqdist0(); //note that this must be changed if masses are to be unequal
 }
-
+/*
 double Interaction::spring_potential(const Point& last, const Point& p, const Point& next) 
 {
 	return 0;
@@ -22,7 +22,7 @@ double Interaction::spring_potential(const Point& last, const Point& p, const Po
 double Interaction::bias_potential(const Point& p) 
 {
 	return 0;
-}
+}*/
 
 //double int_potential(Point p);
 
