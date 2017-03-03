@@ -96,7 +96,8 @@ void Simulation::zero_avgs()
 
 void Simulation::measure()
 {
-	e_pot += potential_energy();
+	e_pot.measure(polymers);
+	//e_pot += potential_energy();
 }
 
 void Simulation::update_avgs()

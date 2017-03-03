@@ -8,6 +8,12 @@ Observable::Observable()
 	value,avg,avg_sq=0;
 }
 
+void Observable::measure(const std::vector<Polymer>& pols)
+{
+	
+}
+
+
 void Observable::set_zero()
 {
 	value = 0;

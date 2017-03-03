@@ -7,6 +7,8 @@ public:
 	Observable();
 	//Observable(Parameters params);
 	
+	void measure(const std::vector<Polymer>&);
+	
 	void set_zero();
 	void update_avg(const int&);
 	void normalize_avg(const int&);
