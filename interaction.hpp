@@ -25,6 +25,8 @@ public:
 	void update_forces(std::vector<Polymer>&);
 	void update_one_pol_forces(Polymer&);
 	
+	double get_spring_const() const;
+	
 private:
 	const double curvature; //=mw^2 for a harmonic oscillator
 	const double spring_const;

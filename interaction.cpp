@@ -62,8 +62,13 @@ void Interaction::update_forces(std::vector<Polymer>& polymers)
 {
 	for(int n=0; n<polymers.size(); ++n)
 	{
-		Polymer& pol = polymers[n]; //check if this is correct code
+		Polymer& pol = polymers[n];
 		update_one_pol_forces(pol);
 		//two_pol_forces
 	}
+}
+
+double Interaction::get_spring_const() const
+{
+	return spring_const;
 }

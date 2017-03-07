@@ -5,26 +5,34 @@
 #include <chrono>
 #include <ctime>
 #include <map>
+#include <algorithm>
 
 #include "parameters.hpp"
 #include "polymer.hpp"
 #include "interaction.hpp"
 #include "bias.hpp"
 #include "observable.hpp"
+#include "GLE-OPT.hpp"
+#include "timer.hpp"
 
 #ifndef SIM_HPP
 #define SIM_HPP
+
+
 
 class Simulation{
 public:
 	Simulation(const Parameters&);
 	void setup();
+	void thermalize();
 	void run();
 	void run_block();
 	void verlet_step();
 	void reset_obs();
 	void measure();
 	void update_avgs();
+	void update_histogram();
+	int calc_bin(const double&);
 	void update_screen();
 	void print_to_file();
 	void stop();
@@ -43,21 +51,32 @@ private:
 	const double dt;
 	Interaction interac;
 	const double length_scale;
+	const double temperature;
 	bool finished;
 	double time;
 	int block;
 	const int max_blocks;
 	const int num_samples;
+	const int thermalization_steps;
 	const int steps_per_sample;	
+	const int num_bins;
+	const double hist_size;
+	GLE* gle;
+	const bool thermostat_on;
 	
-	std::map<int,Observable> obs;
-	const std::vector<int> to_print;
+	std::map<int,Observable> obs;	
+	std::vector<double> histogram; //1D probability density. If dim>1, only the first coordinate is considered.
+	std::vector<double> histogram_avg;
+	std::vector<double> histogram_sq_avg;
 	
 	int bar_width;
 	int progress;
+	Timer timer;
 	
 	std::ofstream logfile;
 
 };
+
+
 
 #endif

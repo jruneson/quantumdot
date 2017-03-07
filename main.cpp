@@ -17,6 +17,7 @@
 int main()
 {
 	Parameters params;
+	params.read_file("parameters.cfg");
 	Simulation sim(params);
 	sim.setup();
 	sim.run();
@@ -29,14 +30,26 @@ int main()
  x Simulation
  x Interaction, basic
  x Observable class
- * Test
- * print certain observables to separate files
- * read parameters from file (also functions)
- * Thermostat
+ x Test
+ x print certain observables to separate files
+ x probability distribution (1D)
+ x read parameters from file 
+ x Thermostat
+ * write project description
+ * Timer
  * Test
  * Bias
  * Test
  * Spline
  * Test
+ * read functions from file
  * Interaction, several particles
+ * histogram at 3d
  */
+ 
+ /*
+  * Note that mass must be the same of all particles. Otherwise things have to be 
+  * updated in GLE and force calculation (curvature is different)
+  * 
+  * 
+  */

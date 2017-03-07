@@ -1,7 +1,7 @@
 CC = g++
 CFLAGS =-O3 -g -std=c++11
-DEPS = simulation.hpp interaction.hpp polymer.hpp point.hpp parameters.hpp observable.hpp
-OBJS = main.o simulation.o interaction.o polymer.o point.o parameters.o observable.o
+DEPS = simulation.hpp interaction.hpp polymer.hpp point.hpp parameters.hpp observable.hpp numgen.hpp unsymmeig.hpp symmeig.hpp svd.hpp GLE-OPT.hpp timer.hpp
+OBJS = main.o simulation.o interaction.o polymer.o point.o parameters.o observable.o numgen.o unsymmeig.o symmeig.o svd.o GLE-OPT.o
 
 pimd: $(OBJS)
 	$(CC) $(CFLAGS) $(OBJS) -o $@
