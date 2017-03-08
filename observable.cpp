@@ -31,15 +31,22 @@ double Observable::get_avg() const
 	return avg;
 }
 
-void Observable::normalize_avg(const int& num_blocks)
+double Observable::get_value() const
 {
-	avg /= num_blocks;
-	avg_sq /= num_blocks;	
+	return value;
 }
 
-double Observable::std_dev(const int& n) const
+void Observable::normalize_avg(const int& num_blocks)
 {
-	return std::sqrt((avg_sq-avg*avg)/(n-1));
+	//std::cout << avg;
+	avg /= num_blocks;
+	avg_sq /= num_blocks;
+	//std::cout << "\t" << avg << std::endl;
+}
+
+double Observable::std_dev(const double& n) const
+{
+	return std::sqrt((avg_sq - avg*avg)*n/(n-1.0)); //note that avg_sq is not normalized
 }
 
 /*void Observable::operator+=(double to_add)
@@ -125,6 +132,10 @@ void Observable::print_measure(const double& measured_value, const double& time)
 {
 	file << time << "\t" << measured_value << std::endl;
 }
+
+
+
+
 
 double Observable::potential_energy(const Polymer& pol, const Interaction& interac)
 {

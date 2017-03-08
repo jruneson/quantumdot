@@ -22,7 +22,7 @@
 
 class Simulation{
 public:
-	Simulation(const Parameters&);
+	Simulation(const Parameters&, std::ofstream&);
 	void setup();
 	void thermalize();
 	void run();
@@ -74,6 +74,7 @@ private:
 	Timer timer;
 	
 	std::ofstream logfile;
+	std::ofstream& res_file;
 
 };
 

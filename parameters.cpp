@@ -13,7 +13,7 @@ void Parameters::read_file(std::string filename)
 	file >> name >> dt;
 	file >> name >> beta;
 	file >> name >> max_blocks;
-	file >> name >> num_steps;
+	file >> name >> total_time;
 	file >> name >> steps_per_sample;
 	file >> name >> thermalization_steps;
 	file >> name >> num_bins;
@@ -42,9 +42,13 @@ void Parameters::read_file(std::string filename)
 	iss2 >> name;
 	while(iss2 >> id)
 		to_print_every_sample.push_back(id);
+}
 
+void Parameters::calculate_dependencies()
+{
 	temperature = 1.0/beta;
-	num_samples = (int) num_steps / steps_per_sample;
+	num_steps = (int) total_time / (dt * max_blocks); //per block
+	num_samples = (int) num_steps / steps_per_sample; //per block
 	spring_const = num_beads*mass/(hbar*hbar*beta*beta);
 	hist_size = length_scale * 10;
 	

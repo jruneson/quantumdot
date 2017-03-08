@@ -10,6 +10,7 @@ class Parameters{
 public:
 	//read from file
 	void read_file(std::string);
+	void calculate_dependencies();
 	
 	//independent parameters
 	int num_parts;
@@ -18,7 +19,7 @@ public:
 	double dt;
 	double beta;
 	int max_blocks;
-	int num_steps; //per block
+	double total_time;
 	int steps_per_sample;
 	bool with_thermostat;
 	int thermalization_steps;
@@ -34,6 +35,7 @@ public:
 	//dependent parameters
 	double temperature;
 	int num_samples;
+	int num_steps; //per block
 	double spring_const;
 	double hist_size;
 	

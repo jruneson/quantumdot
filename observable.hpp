@@ -23,8 +23,9 @@ public:
 	void set_zero();
 	void update_avg(const int&);
 	void normalize_avg(const int&);
+	double get_value() const;
 	double get_avg() const;
-	double std_dev(const int&) const;
+	double std_dev(const double&) const;
 	std::string get_name();
 	
 	void set_print_on();
