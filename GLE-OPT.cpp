@@ -189,9 +189,9 @@ void GLE::computeMatrices()
 	double temp=T;
 	double boltzmann=1;
 	
-	ifstream inp("Amatrix.dat");
+	ifstream inp("Amatrix.txt");
 	if(!(inp.good()))
-		cout << "Warning, Amatrix.dat is missing!" << endl;
+		cout << "Warning, Amatrix.txt is missing!" << endl;
 	inp>>s;
 	s--;
 	snum=s;

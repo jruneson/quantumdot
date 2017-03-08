@@ -17,7 +17,7 @@ public:
 //	double int_potential(Point);
 	
 //	Force force(const Point&,const Point&,const Point&);
-	Force ext_force(const Point&);
+	Force ext_force(const Point&) const;
 	Force spring_force(const Point&, const Point&, const Point&) ;
 	Force bias_force(const Point&);
 //	Force int_force(Point);

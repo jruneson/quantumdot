@@ -7,7 +7,7 @@ Observable::Observable()
 	value,avg,avg_sq=0;
 }*/
 
-Observable::Observable(int id_to_set) : id(id_to_set)
+Observable::Observable(int _id, double _beta) : id(_id), beta(_beta)
 { 
 	value, avg, avg_sq = 0;
 	print = false;
@@ -52,13 +52,19 @@ std::string Observable::get_name()
 	switch(id)
 	{
 		case 0:
-			return "Potential_energy";
+			return "Pot_energy";
+		case 1:
+			return "Kinetic_energy";
+		case 2:
+			return "Total_energy";
+		case 3:
+			return "Kin_en_virial";
 		case 10:
-			return "X_coordinate_n1p1";
+			return "X_coord_n1p1";
 		case 20:
-			return "Potential_energy_cl";
+			return "Pot_energy_cl";
 		case 21:
-			return "Kinetic_energy_cl";
+			return "Kin_energy_cl";
 		case 22:
 			return "Total_energy_cl";
 		default:
@@ -85,9 +91,18 @@ void Observable::measure(const std::vector<Polymer>& polymers, Interaction& inte
 			case 0:
 				tmp2 = potential_energy(pol,interac);
 				break;
+			case 1:
+				tmp2 = kinetic_energy(pol,interac);
+				break;
+			case 2:
+				tmp2 = total_energy(pol,interac);
+				break;
+			case 3:
+				tmp2 = kinetic_energy_virial(pol,interac);
+				break;
 			case 10:
 				if(n==0)
-					tmp2 = pol[0][0];
+					tmp2 = pol[0][0]; //x-coordinate of bead 0
 				break;
 			case 20:
 				tmp2 = potential_energy_cl(pol,interac);
@@ -118,7 +133,29 @@ double Observable::potential_energy(const Polymer& pol, const Interaction& inter
 		tmp += interac.ext_potential(pol[bead]);
 	tmp /= pol.num_beads;
 	return tmp;
-}		
+}
+
+double Observable::kinetic_energy(const Polymer& pol, const Interaction& interac)
+{
+	double tmp = 0;
+	for(int bead=0; bead<pol.num_beads; ++bead)
+		tmp += pol[bead].sqdist(pol[bead+1]);
+	double offset = pol.num_beads*pol[0].size()/(2*beta);
+	return offset - 0.5 * interac.get_spring_const() * tmp;
+}
+
+double Observable::total_energy(const Polymer& pol, const Interaction& interac)
+{
+	return potential_energy(pol, interac) + kinetic_energy(pol, interac);
+}
+
+double Observable::kinetic_energy_virial(const Polymer& pol, const Interaction& interac)
+{
+	double tmp = 0;
+	for(int bead=0; bead<pol.num_beads; ++bead)
+		tmp -= pol[bead]*interac.ext_force(pol[bead]); //minus to cancel minus in force expression
+	return tmp/(2*pol.num_beads);
+}
 
 double Observable::potential_energy_cl(const Polymer& pol, const Interaction& interac)
 {
@@ -144,8 +181,4 @@ double Observable::total_energy_cl(const Polymer& pol, const Interaction& intera
 }
 
 
-/*void DistributionObservable::measure(const std::vector<Polymer>& pols);
-{
-	
-}*/
 

@@ -42,7 +42,7 @@ void Interaction::update_one_pol_forces(Polymer& pol)
 	return ext_force(p) + spring_force(last,p,next) + bias_force(p);
 }*/
 
-Force Interaction::ext_force(const Point& p) //later on function object from Parameters
+Force Interaction::ext_force(const Point& p) const
 {
 	return (-curvature) * p;
 }

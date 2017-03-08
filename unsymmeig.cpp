@@ -1,16 +1,16 @@
 #include<iostream>
-#include<cmath>
-#include<cfloat>
-#include<complex>
-#include<limits>
+#include <cmath>
+#include <cfloat>
+#include <complex>
+#include <limits>
+#include <iostream>
 using namespace std;
 #include "unsymmeig.hpp"
 
 
 Unsymmeig::Unsymmeig(double ***aa,int _n, bool hessenb=false)
 {
-    	
-    	n = _n;
+    n = _n;
 	wri=new double*[n];
 	a = new double*[n];
 	zz= new double*[n];
@@ -34,21 +34,21 @@ Unsymmeig::Unsymmeig(double ***aa,int _n, bool hessenb=false)
 	}
 	
 	
-	
-        balance();
-        if (!hessen) elmhes();
-        if (yesvecs) {
+	balance();
+
+	if (!hessen) elmhes();
+	if (yesvecs) {
 		for(int i=0;i<n;i++)
 			zz[i][i]=1;
 		if(!hessen) eltran();
 		hqr2();
 		balbak();
 		//sortvecs();	
-        } else {
-             hqr();
-	   //  sort();
-        }
-    }
+	} else {
+		 hqr();
+   //  sort();
+	}
+}
 
 Unsymmeig::~Unsymmeig()
 {
@@ -308,7 +308,7 @@ void Unsymmeig::hqr2()
 	{
 		for (j=MAX(i-1,0);j<n;j++)
 		anorm += abs(a[i][j]);
-		nn=n-1;
+		nn=n-1; //n=s+1=3 and is always the case with the same Amatrix
 		t=0.0;
 		while (nn >= 0) {
 			its=0;
@@ -328,7 +328,7 @@ void Unsymmeig::hqr2()
 				} else {
 					y=a[nn-1][nn-1];
 					w=a[nn][nn-1]*a[nn-1][nn];
-					if (l == nn-1) {
+					if (l == nn-1) {						
 						p=0.5*(y-x);
 						q=p*p+w;
 						z=sqrt(abs(q));

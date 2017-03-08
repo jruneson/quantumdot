@@ -8,13 +8,14 @@
 #include "interaction.hpp"
 
 
+
 #ifndef OBSERVABLE_HPP
 #define OBSERVABLE_HPP
 
 class Observable {
 public:
 	//Observable();
-	Observable(int);
+	Observable(int,double);
 	
 	void measure(const std::vector<Polymer>&, Interaction&, const double&);
 	void print_measure(const double&, const double&);
@@ -36,8 +37,12 @@ private:
 	double avg_sq;
 	std::ofstream file;
 	const int id;
+	const double beta;
 	
 	double potential_energy(const Polymer&, const Interaction&);
+	double kinetic_energy(const Polymer&, const Interaction&);
+	double total_energy(const Polymer&, const Interaction&);
+	double kinetic_energy_virial(const Polymer&, const Interaction&);
 	double potential_energy_cl(const Polymer&, const Interaction&);
 	double kinetic_energy_cl(const Polymer&);
 	double total_energy_cl(const Polymer&, const Interaction&);

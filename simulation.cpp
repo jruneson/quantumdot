@@ -23,9 +23,9 @@ Simulation::Simulation(const Parameters& params)
 	std::vector<int> to_print = params.to_print_every_sample;
 	for(int id : params.to_measure)
 	{
-		auto pair = obs.insert(std::pair<int,Observable>(id,Observable(id)));
+		auto pair = obs.insert(std::pair<int,Observable>(id,Observable(id,1.0/temperature)));
 		if(std::find(to_print.begin(), to_print.end(), id) != to_print.end())
-			pair.first->second.set_print_on();
+			pair.first->second.set_print_on();		
 	}
 	histogram.assign(params.num_bins,0);
 	histogram_avg.assign(params.num_bins,0);
@@ -51,11 +51,17 @@ void Simulation::setup()
 			}
 		}
 	}
-	std::cout << polymers.size() << "\t" << polymers[0].num_beads << "\t" << polymers[0][0].size() 
-			<< "\t" << max_blocks << std::endl;
+	//std::cout << polymers.size() << "\t" << polymers[0].num_beads << "\t" << polymers[0][0].size() 
+	//		<< "\t" << max_blocks << std::endl;
 	std::time_t t = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
 	logfile.open("logfile"); //add time
-	logfile << std::ctime(&t) << std::endl;
+	logfile << std::ctime(&t);
+	logfile << "P=" << polymers[0].num_beads << " dim=" << polymers[0][0].size() << " dt=" << dt 
+			<< " time=" << dt*max_blocks*num_samples*steps_per_sample << " T=" << temperature << std::endl << std::endl;
+	logfile << "Block";
+	for(auto& pair : obs)
+		logfile << "\t" << pair.second.get_name();
+	logfile << std::endl;
 	logfile.precision(8);
 	gle = new GLE(polymers, dt, temperature, polymers[0].mass, polymers[0].num_beads, 
 					num_parts, polymers[0][0].size(),thermostat_on);
@@ -187,7 +193,7 @@ void Simulation::print_to_file()
 
 void Simulation::stop()
 {
-	logfile << "Name\t\t\tValue\t\tError" << std::endl;
+	logfile << "Name\t\tValue\t\tError" << std::endl;
 	for(auto& pair : obs)
 	{
 		Observable& ob = pair.second;
@@ -207,6 +213,7 @@ void Simulation::stop()
 					<< "\t" << std::sqrt((histogram_sq_avg[bin]-std::pow(histogram_avg[bin],2))/(block-1)) 
 					<< std::endl;
 	}
+	delete gle;
 	timer.stop();
 	std::cout << std::endl << timer.duration() << " s" << std::endl;
 }

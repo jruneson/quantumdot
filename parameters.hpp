@@ -12,24 +12,24 @@ public:
 	void read_file(std::string);
 	
 	//independent parameters
-	int num_parts=2;
-	int num_beads=30;
-	int dim=1;
-	double dt=0.01;
-	double beta = 5.0;
-	int max_blocks=20;
-	int num_steps = 10000; //per block
-	int steps_per_sample = 5;
-	bool with_thermostat = true;
-	int thermalization_steps = 5000;
-	int num_bins = 2000;
+	int num_parts;
+	int num_beads;
+	int dim;
+	double dt;
+	double beta;
+	int max_blocks;
+	int num_steps; //per block
+	int steps_per_sample;
+	bool with_thermostat;
+	int thermalization_steps;
+	int num_bins;
 	
-	double hbar = 1;
-	double mass = 1;
-	double curvature = 1;
-	double charge = 1;
-	double diel_const = 1;
-	double length_scale = 1;
+	double hbar;
+	double mass;
+	double curvature;
+	double charge;
+	double diel_const;
+	double length_scale;
 	
 	//dependent parameters
 	double temperature;
@@ -40,8 +40,8 @@ public:
 	//potential
 	
 	//observables to measure
-	const std::vector<int> to_measure = {10, 22};
-	const std::vector<int> to_print_every_sample = {10, 22};
+	std::vector<int> to_measure;
+	std::vector<int> to_print_every_sample;
 };
 
 

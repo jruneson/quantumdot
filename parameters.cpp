@@ -1,4 +1,5 @@
-
+#include <sstream>
+#include <iostream>
 #include "parameters.hpp"
 
 
@@ -19,6 +20,7 @@ void Parameters::read_file(std::string filename)
 	int to_bool;
 	file >> name >> to_bool;
 	with_thermostat = (to_bool != 0);
+
 	
 	file >> name >> hbar;
 	file >> name >> mass;
@@ -26,11 +28,26 @@ void Parameters::read_file(std::string filename)
 	file >> name >> charge;
 	file >> name >> diel_const;
 	file >> name >> length_scale;
+	
+	std::string line;
+	int id;
+	getline(file, line);
+	getline(file, line);
+	std::istringstream iss(line);
+	iss >> name;
+	while(iss >> id)
+		to_measure.push_back(id);
+	getline(file, line);
+	std::istringstream iss2(line);
+	iss2 >> name;
+	while(iss2 >> id)
+		to_print_every_sample.push_back(id);
 
 	temperature = 1.0/beta;
 	num_samples = (int) num_steps / steps_per_sample;
 	spring_const = num_beads*mass/(hbar*hbar*beta*beta);
 	hist_size = length_scale * 10;
+	
 }
 
-//read from data file
+

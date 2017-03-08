@@ -6,11 +6,12 @@
 //include "GLE-OPT.h"
 //include "spline.hpp"
 #include "simulation.hpp"
-#include "interaction.hpp"
-#include "polymer.hpp"
-#include "bias.hpp"
-#include "point.hpp"
-#include "observable.hpp"
+#include "parameters.hpp"
+//#include "interaction.hpp"
+//#include "polymer.hpp"
+//#include "bias.hpp"
+//#include "point.hpp"
+//#include "observable.hpp"
 
 
 
@@ -35,9 +36,13 @@ int main()
  x probability distribution (1D)
  x read parameters from file 
  x Thermostat
- * write project description
- * Timer
- * Test
+ x Timer
+ x Test
+ x write project description
+ x ask Marco about thermostat
+ x find error, then put back the new observable class
+ * Potential + kinetic energy (virial)
+ * fix reading in vector of obs to print every turn
  * Bias
  * Test
  * Spline

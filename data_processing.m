@@ -49,7 +49,17 @@ title('Without thermostat. N=2, P=30, dt=0.01')
 
 %% 
 clc; clf; hold on
-%data = load('Prob_distribution.dat');
-data = load('X_coordinate_n1p1.dat');
+data = load('Pot_energy.dat');
+data2 = load('Kinetic_energy.dat');
+data3 =load('Total_energy.dat');
 plot(data(:,1),data(:,2))
+plot(data2(:,1),data2(:,2))
+plot(data3(:,1),data3(:,2))
+plot(data(:,1),2*data(:,2),'k')
+xlim([500 570])
+ylim([-5 4])
+legend('Pot energy','Kin energy','Tot energy', 'Tot en (with virial kin)','location','southeast')
 %data(:,3) contains errors (from standard deviation)
+xlabel('Time')
+ylabel('Energy')
+set(gca, 'FontSize',14)
