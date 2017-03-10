@@ -21,9 +21,10 @@ public:
 	int max_blocks;
 	double total_time;
 	int steps_per_sample;
-	bool with_thermostat;
 	int thermalization_steps;
 	int num_bins;
+	double tolerance;
+	bool with_thermostat;
 	
 	double hbar;
 	double mass;

@@ -25,6 +25,7 @@ public:
 	double& operator[](const int&);
 	const double& operator[](const int&) const;
 	void operator+=(const Point&);
+	void operator*=(const double&);
 };
 
 Point operator+(const Point&, const Point&);

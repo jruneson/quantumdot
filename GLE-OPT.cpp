@@ -1,5 +1,6 @@
-#include<iostream>
-#include<fstream>
+#include <iostream>
+#include <fstream>
+#include <stdexcept>
 
 #include "GLE-OPT.hpp"
 #include "symmeig.hpp"
@@ -191,7 +192,7 @@ void GLE::computeMatrices()
 	
 	ifstream inp("Amatrix.txt");
 	if(!(inp.good()))
-		cout << "Warning, Amatrix.txt is missing!" << endl;
+		throw std::runtime_error("Warning, Amatrix.txt is missing!");
 	inp>>s;
 	s--;
 	snum=s;

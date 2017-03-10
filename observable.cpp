@@ -1,15 +1,13 @@
 
 #include "observable.hpp"
 
-/*
-Observable::Observable()
-{
-	value,avg,avg_sq=0;
-}*/
 
 Observable::Observable(int _id, double _beta) : id(_id), beta(_beta)
 { 
-	value, avg, avg_sq = 0;
+	value = 0;
+	avg = 0;
+	avg_sq = 0;
+	blocks = 0;
 	print = false;
 }
 
@@ -22,8 +20,9 @@ void Observable::set_zero()
 void Observable::update_avg(const int& num_samples)
 {
 	double tmp = value/num_samples;
-	avg += tmp;
-	avg_sq += tmp*tmp;
+	avg = (avg*blocks + tmp)/(blocks+1);
+	avg_sq = (avg_sq*blocks + tmp*tmp)/(blocks+1);
+	++blocks;
 }
 
 double Observable::get_avg() const
@@ -35,26 +34,24 @@ double Observable::get_value() const
 {
 	return value;
 }
-
+/*
 void Observable::normalize_avg(const int& num_blocks)
 {
-	std::cout << avg << "\t" << num_blocks;
+//	std::cout << avg << "\t" << num_blocks;
 	avg /= num_blocks;
 	avg_sq /= num_blocks;
-	std::cout << "\t" << avg << std::endl;
-}
-
-double Observable::std_dev(const double& n) const
-{
-	return std::sqrt((avg_sq - avg*avg)*n/(n-1.0)); //note that avg_sq is not normalized
-}
-
-/*void Observable::operator+=(double to_add)
-{
-	value += to_add;
+//	std::cout << "\t" << avg << std::endl;
 }*/
 
-std::string Observable::get_name()
+double Observable::std_dev() const
+{
+	if(blocks>=2)
+		return std::sqrt((avg_sq - avg*avg)*blocks/(blocks-1.0)); //note that avg_sq is not normalized
+	return 0;
+}
+
+
+std::string Observable::get_name() const
 {
 	switch(id)
 	{
@@ -163,9 +160,13 @@ double Observable::total_energy(const Polymer& pol, const Interaction& interac)
 double Observable::kinetic_energy_virial(const Polymer& pol, const Interaction& interac)
 {
 	double tmp = 0;
+	Point mean_point(pol[0].size());
 	for(int bead=0; bead<pol.num_beads; ++bead)
-		tmp -= pol[bead]*interac.ext_force(pol[bead]); //minus to cancel minus in force expression
-	return tmp/(2*pol.num_beads);
+		mean_point += pol[bead];
+	mean_point *= 1.0/pol.num_beads;
+	for(int bead=0; bead<pol.num_beads; ++bead)
+		tmp -= (pol[bead]-mean_point)*interac.ext_force(pol[bead]); //minus to cancel minus in force expression
+	return 1.0/(2.0*beta) + tmp/(2*pol.num_beads);
 }
 
 double Observable::potential_energy_cl(const Polymer& pol, const Interaction& interac)
@@ -188,7 +189,7 @@ double Observable::kinetic_energy_cl(const Polymer& pol)
 
 double Observable::total_energy_cl(const Polymer& pol, const Interaction& interac)
 {
-	return potential_energy_cl(pol, interac) + kinetic_energy_cl(pol); //note, take 1 away!
+	return potential_energy_cl(pol, interac) + kinetic_energy_cl(pol);
 }
 
 

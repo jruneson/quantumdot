@@ -1,5 +1,5 @@
 
-
+#include <stdexcept>
 #include "simulation.hpp"
 
 
@@ -12,7 +12,7 @@ Simulation::Simulation(const Parameters& params, std::ofstream& _res_file)
 	  num_bins(params.num_bins), hist_size(params.hist_size),
 	  temperature(params.temperature), thermalization_steps(params.thermalization_steps),
 	  thermostat_on(params.with_thermostat), res_file(_res_file),
-	  total_time(params.total_time)
+	  total_time(params.total_time),tolerance(params.tolerance), sign(params.sign)
 {
 	for(int n=0; n<num_parts; ++n)
 		polymers.push_back(Polymer(params));
@@ -52,21 +52,31 @@ void Simulation::setup()
 			}
 		}
 	}
-	std::cout << "time = " << total_time << "\tP = " << polymers[0].num_beads << std::endl;
+	std::cout << "time = " << total_time << "\tP = " << polymers[0].num_beads 
+				<< "\t dt = " << dt << std::endl;
 	std::time_t t = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
 	logfile.open("logfile_P"+std::to_string(polymers[0].num_beads));
 	logfile << std::ctime(&t);
 	logfile << "P=" << polymers[0].num_beads << " dim=" << polymers[0][0].size() << " dt=" << dt 
-			<< " requested time=" << total_time
-			<< " actual time=" << dt*max_blocks*num_samples*steps_per_sample
+			<< " maximal time=" << total_time
+			//<< " actual time=" << dt*max_blocks*num_samples*steps_per_sample
 			<< " samples=" << max_blocks*num_samples << " T=" << temperature << std::endl << std::endl;
 	logfile << "Block";
 	for(auto& pair : obs)
 		logfile << "\t" << pair.second.get_name();
 	logfile << std::endl;
 	logfile.precision(8);
-	gle = new GLE(polymers, dt, temperature, polymers[0].mass, polymers[0].num_beads, 
+	try 
+	{
+		gle = new GLE(polymers, dt, temperature, polymers[0].mass, polymers[0].num_beads, 
 					num_parts, polymers[0][0].size(),thermostat_on);
+	}
+	catch(const std::exception& e)
+	{
+		std::cout << "exception: " << e.what() << std::endl;
+		return;
+	}
+		
 	thermalize();
 }
 
@@ -105,7 +115,7 @@ void Simulation::run_block()
 	++block;
 	print_to_file();
 	update_screen();
-	if(block>=max_blocks)
+	if((block>=max_blocks)||(converged()))
 		finished = true;
 }
 
@@ -192,19 +202,31 @@ void Simulation::print_to_file()
 	logfile << std::endl;
 }
 
+bool Simulation::converged()
+{
+	/*
+	if(block>=5)
+	{
+		bool tmp = true;
+		for(const auto& pair : obs)
+		{
+			const auto& ob = pair.second;
+			tmp*=(abs(ob.std_dev()/ob.get_avg()) <= tolerance);
+		}
+		return tmp;
+	}*/
+	return false;
+}
 
 void Simulation::stop()
 {
 	logfile << "Name\t\tValue\t\tError with " << block << " blocks" << std::endl;
 	res_file << polymers[0].num_beads << "\t" << total_time;
-	Observable& obser = obs.at(0);
-	std::cout << "Avg: " << obser.get_avg() << std::endl;
-	for(auto& pair : obs)
+	for(const auto& pair : obs)
 	{
-		auto& ob = pair.second;
-		ob.normalize_avg(block);
-		logfile << ob.get_name() << "\t" << ob.get_avg() << "\t" << ob.std_dev(block) << std::endl;
-		res_file << "\t" << ob.get_avg() << "\t" << ob.std_dev(block);
+		const auto& ob = pair.second;
+		logfile << ob.get_name() << "\t" << ob.get_avg() << "\t" << ob.std_dev() << std::endl;
+		res_file << "\t" << ob.get_avg() << "\t" << ob.std_dev();
 	}
 	res_file << std::endl;
 	std::ofstream hist_file("Prob_distribution.dat");

@@ -10,16 +10,13 @@
 
 int main()
 {
-	std::vector<double> times = {10000, 50000};
-	std::vector<double> Ps = {20, 40, 60, 80};
-	//std::vector<double> dts = {0.5, 0.2, 0.1, 0.05, 0.01};
-	//std::vector<double> Ps = {20, 40, 60, 80};
+	std::vector<double> times = {100000};
+	std::vector<double> Ps = {10,30,50,70};
 	Parameters params;
 	params.read_file("parameters.cfg");
 	std::ofstream results_file("results.dat");
 	results_file.precision(8);
-	//results_file << "%%Total time " << params.total_time << std::endl;
-	results_file << "%%P\tTotal time";
+	results_file << "%P\tTTot";
 	for(int id : params.to_measure)
 		results_file << "\tObsId " << id << "\t\tError\t";
 	results_file << std::endl;
@@ -53,14 +50,11 @@ int main()
  x Timer
  x Test
  x write project description
- x ask Marco about thermostat
- x find error, then put back the new observable class
  x Potential + kinetic energy (virial)
  x fix reading in vector of obs to print every turn
- * check std_dev
- * turn missing Amatrix into an error
- * Test conv in P
+ x turn missing Amatrix into an error
  * centroid virial
+ * fermion and boson
  * Bias
  * Test
  * Spline

@@ -35,6 +35,7 @@ public:
 	int calc_bin(const double&);
 	void update_screen();
 	void print_to_file();
+	bool converged();
 	void stop();
 		
 	double coll_var() const;
@@ -64,6 +65,8 @@ private:
 	const double hist_size;
 	GLE* gle;
 	const bool thermostat_on;
+	const double tolerance;
+	const int sign;
 	
 	std::map<int,Observable> obs;	
 	std::vector<double> histogram; //1D probability density. If dim>1, only the first coordinate is considered.

@@ -98,7 +98,7 @@ ekin_err = [0.077 0.060 0.053 0.097 0.105 0.092 ...
             0.058 0.082 0.086 0.069 0.092 0.094].';
 
 
-%%
+%% 04convergence in P and dt
 clf; clc; hold on
 
 file = importdata('run3/results.dat');
@@ -121,14 +121,24 @@ camlight right
 view(130, 30)
 set(gca,'FontSize',13)
 
-%%
-clf;
-data = load('Kinetic_energy.dat');
+%% 05fluctuations of ekin and position
+clf; hold on
+data2 = load('run1/Kinetic_energy.dat');
+data = load('run1/X_coord_n1p1.dat');
 t = data(:,1);
 x = data(:,2);
+e = data2(:,2);
 L = length(x);
-plot(t,x)
+plot(t,x,'o-')
+plot(t,e,'o-')
 
+xlim([0 15])
+xlabel('Time')
+ylabel('a.u.')
+legend('Position of 1 bead','Kinetic energy estimator')
+set(gca,'FontSize',14)
+%% fft check
+hold on
 Y = fft(x);
 P2 = abs(Y/L);
 P1 = P2(1:L/2+1);
@@ -136,4 +146,50 @@ P1(2:end-1) = 2*P1(2:end-1);
 Fs = 1/(t(2)-t(1))
 f = Fs*(0:(L/2))/L;
 plot(f,P1);
-xlim([0 2])
+xlim([0 3])
+ylim([0 0.3])
+
+%% 05conv in P and ttot
+clf; clc; hold on
+opt = 'kin';
+file = importdata('run1/results.dat');
+data = file.data;
+P = data(:,1);
+time = data(:,2);
+epot = data(:,3);
+epot_err = data(:,4);
+ekin = data(:,5);
+ekin_err = data(:,6);
+if (opt == 'pot')
+    plot3d_data(P,time,epot,epot_err);
+    zlim([0.4 0.6])
+    zlabel('Potential energy')
+elseif (opt == 'kin')
+    plot3d_data(P,time,ekin,ekin_err);
+    zlim([0 1])
+    zlabel('Kinetic energy')
+end
+xlabel('Number of beads')
+ylabel('Total time')
+colormap hsv
+camlight right
+view(140, 10)
+set(gca,'FontSize',13)
+
+%%
+clc; clf; hold on
+file = importdata('run1/results.dat');
+data = file.data;
+P = data(:,1);
+ekin = data(:,7);
+ekin_err=data(:,8);
+clf; hold on
+errorbar(P,ekin,ekin_err,'o-')
+%errorbar(P,ekin2,ekin_err2,'o-')
+plot([10 90],[0.5 0.5],'k--')
+%legend('dt=T/100','dt=T/20','Target','location','southwest')
+xlabel('Number of beads')
+ylabel('Kinetic energy')
+set(gca,'Fontsize',14)
+xlim([10 90])
+ylim([0.4 0.6])

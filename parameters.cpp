@@ -17,6 +17,7 @@ void Parameters::read_file(std::string filename)
 	file >> name >> steps_per_sample;
 	file >> name >> thermalization_steps;
 	file >> name >> num_bins;
+	file >> name >> tolerance;
 	int to_bool;
 	file >> name >> to_bool;
 	with_thermostat = (to_bool != 0);
@@ -46,8 +47,8 @@ void Parameters::read_file(std::string filename)
 
 void Parameters::calculate_dependencies()
 {
-	dt_md = 2*M_PI * std::pow(curvature/mass + 3.0*num_beads/(hbar*hbar*beta*beta),-0.5) * 0.05; //at least 10dt within the highest freq mode
-	//dt_sample = dt_md * steps_per_sample;
+	dt_md = 2*M_PI * std::pow(curvature/mass + 3.0*num_beads/(hbar*hbar*beta*beta),-0.5) * 0.02; //at least 10dt within the highest freq mode
+	//change dt_md depending on what observables are measured
 	temperature = 1.0/beta;
 	num_steps = (int) total_time / (dt_md * max_blocks); //per block
 	num_samples = (int) num_steps / steps_per_sample; //per block
