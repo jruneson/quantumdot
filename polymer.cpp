@@ -9,8 +9,8 @@ Polymer::Polymer(const Parameters& params) : num_beads(params.num_beads)
 		coords.push_back(Point(params));
 		vels.push_back(Point(params));
 		forces.push_back(Force(params));
-		dt_2m = params.dt / (2.0 * params.mass);
-		mdt = params.mass * params.dt;
+		dt_2m = params.dt_md / (2.0 * params.mass);
+		mdt = params.mass * params.dt_md;
 		mass = params.mass;
 	}
 }

@@ -10,22 +10,22 @@
 
 int main()
 {
-	//std::vector<double> dts = {0.1, 0.05, 0.02, 0.01, 0.005};
-	//std::vector<double> Ps = {30, 40, 50, 60, 70, 80};
-	std::vector<double> dts = {0.5, 0.2, 0.1, 0.05, 0.01};
+	std::vector<double> times = {10000, 50000};
 	std::vector<double> Ps = {20, 40, 60, 80};
+	//std::vector<double> dts = {0.5, 0.2, 0.1, 0.05, 0.01};
+	//std::vector<double> Ps = {20, 40, 60, 80};
 	Parameters params;
 	params.read_file("parameters.cfg");
 	std::ofstream results_file("results.dat");
 	results_file.precision(8);
-	results_file << "%%Total time " << params.total_time << std::endl;
-	results_file << "%%P\tdt";
+	//results_file << "%%Total time " << params.total_time << std::endl;
+	results_file << "%%P\tTotal time";
 	for(int id : params.to_measure)
 		results_file << "\tObsId " << id << "\t\tError\t";
 	results_file << std::endl;
-	for(double dt : dts)
+	for(double ttot : times)
 	{
-		params.dt = dt;
+		params.total_time = ttot;
 		for(int P : Ps)
 		{
 			params.num_beads = P;
@@ -60,6 +60,7 @@ int main()
  * check std_dev
  * turn missing Amatrix into an error
  * Test conv in P
+ * centroid virial
  * Bias
  * Test
  * Spline

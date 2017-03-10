@@ -120,3 +120,20 @@ colormap hsv
 camlight right
 view(130, 30)
 set(gca,'FontSize',13)
+
+%%
+clf;
+data = load('Kinetic_energy.dat');
+t = data(:,1);
+x = data(:,2);
+L = length(x);
+plot(t,x)
+
+Y = fft(x);
+P2 = abs(Y/L);
+P1 = P2(1:L/2+1);
+P1(2:end-1) = 2*P1(2:end-1);
+Fs = 1/(t(2)-t(1))
+f = Fs*(0:(L/2))/L;
+plot(f,P1);
+xlim([0 2])

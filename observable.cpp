@@ -38,10 +38,10 @@ double Observable::get_value() const
 
 void Observable::normalize_avg(const int& num_blocks)
 {
-	//std::cout << avg;
+	std::cout << avg << "\t" << num_blocks;
 	avg /= num_blocks;
 	avg_sq /= num_blocks;
-	//std::cout << "\t" << avg << std::endl;
+	std::cout << "\t" << avg << std::endl;
 }
 
 double Observable::std_dev(const double& n) const

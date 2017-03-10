@@ -16,7 +16,7 @@ public:
 	int num_parts;
 	int num_beads;
 	int dim;
-	double dt;
+	double dt_md;
 	double beta;
 	int max_blocks;
 	double total_time;

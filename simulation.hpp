@@ -55,6 +55,7 @@ private:
 	bool finished;
 	double time;
 	int block;
+	const double total_time;
 	const int max_blocks;
 	const int num_samples;
 	const int thermalization_steps;
