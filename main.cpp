@@ -10,19 +10,19 @@
 
 int main()
 {
-	std::vector<double> times = {100000};
-	std::vector<double> Ps = {10,30,50,70};
+	std::vector<double> betas = {5.0,2.0,1.0,0.5,0.3};
+	std::vector<double> Ps = {60};
 	Parameters params;
-	params.read_file("parameters.cfg");
+	params.read_file("configuration.cfg");
 	std::ofstream results_file("results.dat");
 	results_file.precision(8);
-	results_file << "%P\tTTot";
+	results_file << "%P\tbeta";
 	for(int id : params.to_measure)
 		results_file << "\tObsId " << id << "\t\tError\t";
 	results_file << std::endl;
-	for(double ttot : times)
+	for(double beta : betas)
 	{
-		params.total_time = ttot;
+		params.beta = beta;
 		for(int P : Ps)
 		{
 			params.num_beads = P;
@@ -53,12 +53,17 @@ int main()
  x Potential + kinetic energy (virial)
  x fix reading in vector of obs to print every turn
  x turn missing Amatrix into an error
- * centroid virial
+ x centroid virial
+ * check fluctuations of centroid virial - can dt be increased?
+ * why are fluctuations of e_pot larger for smaller beta?
  * fermion and boson
+ * check conv with P for different beta
+ * make P dependent on beta?
  * Bias
  * Test
  * Spline
  * Test
+ * read from XML-file or similar
  * read functions from file - or choose function with an integer input
  * Interaction, several particles
  * histogram at 3d

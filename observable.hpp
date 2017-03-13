@@ -7,7 +7,7 @@
 #include "polymer.hpp"
 #include "interaction.hpp"
 #include "point.hpp"
-
+#include "parameters.hpp"
 
 
 #ifndef OBSERVABLE_HPP
@@ -15,19 +15,20 @@
 
 class Observable {
 public:
-	Observable(int,double);
+	Observable(int,const Parameters&);
 	
-	void measure(const std::vector<Polymer>&, Interaction&, const double&);
-	void print_measure(const double&, const double&);
+	void measure(const std::vector<Polymer>&, Interaction&, double, double);
+	void print_measure(double, double);
 	
 	void set_zero();
-	void update_avg(const int&);
+	void update_avg(int);
 	double get_value() const;
-	double get_avg() const;
-	double std_dev() const;
+	double get_avg(double) const;
+	double std_dev(double,double) const;
 	std::string get_name() const;
 	
 	void set_print_on();
+
 	
 private:
 	double value;
@@ -35,8 +36,13 @@ private:
 	double avg_sq;
 	std::ofstream file;
 	const int id;
-	const double beta;
 	int blocks;
+	
+	const double kin_offset;
+	const double virial_offset;
+	const double exc_const;
+	const double exc_der_const;
+
 	
 	double potential_energy(const Polymer&, const Interaction&);
 	double kinetic_energy(const Polymer&, const Interaction&);
@@ -45,6 +51,8 @@ private:
 	double potential_energy_cl(const Polymer&, const Interaction&);
 	double kinetic_energy_cl(const Polymer&);
 	double total_energy_cl(const Polymer&, const Interaction&);
+	
+	double exc_der(const std::vector<Polymer>&);
 	
 	bool print;
 		

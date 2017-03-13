@@ -17,7 +17,9 @@ void Parameters::read_file(std::string filename)
 	file >> name >> steps_per_sample;
 	file >> name >> thermalization_steps;
 	file >> name >> num_bins;
+	file >> name >> sign;
 	file >> name >> tolerance;
+	file >> name >> steps_in_highest_mode;
 	int to_bool;
 	file >> name >> to_bool;
 	with_thermostat = (to_bool != 0);
@@ -47,12 +49,17 @@ void Parameters::read_file(std::string filename)
 
 void Parameters::calculate_dependencies()
 {
-	dt_md = 2*M_PI * std::pow(curvature/mass + 3.0*num_beads/(hbar*hbar*beta*beta),-0.5) * 0.02; //at least 10dt within the highest freq mode
-	//change dt_md depending on what observables are measured
+	dt_md = 2*M_PI * std::pow(curvature/mass + 4.0*num_beads/(hbar*hbar*beta*beta),-0.5)
+			* 1.0/steps_in_highest_mode; //at least 10dt within the highest freq mode
+	//change dt_md depending on what observables are measured : 0.02 for ekin, 0.1 or 0.05 otherwise
 	temperature = 1.0/beta;
 	num_steps = (int) total_time / (dt_md * max_blocks); //per block
 	num_samples = (int) num_steps / steps_per_sample; //per block
 	spring_const = num_beads*mass/(hbar*hbar*beta*beta);
+	exc_const = num_beads*mass/(hbar*hbar*beta);
+	exc_der_const = sign * mass/(hbar*hbar*beta);
+	kin_offset = num_beads*dim/(2.0*beta);
+	virial_offset = dim/(2.0*beta); //not sure about the dim factor
 	hist_size = length_scale * 10;
 	
 }

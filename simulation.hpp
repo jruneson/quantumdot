@@ -32,11 +32,12 @@ public:
 	void measure();
 	void update_avgs();
 	void update_histogram();
-	int calc_bin(const double&);
+	int calc_bin(double);
 	void update_screen();
 	void print_to_file();
 	bool converged();
 	void stop();
+	void update_exc();
 		
 	double coll_var() const;
 	Force grad_coll_var() const;
@@ -66,7 +67,15 @@ private:
 	GLE* gle;
 	const bool thermostat_on;
 	const double tolerance;
+	
+	const double beta;
 	const int sign;
+	const double exc_const;
+	
+	double exchange_factor;
+	double exc_sum;
+	double exc_avg;
+	double exc_avg_sq;
 	
 	std::map<int,Observable> obs;	
 	std::vector<double> histogram; //1D probability density. If dim>1, only the first coordinate is considered.

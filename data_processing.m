@@ -151,45 +151,84 @@ ylim([0 0.3])
 
 %% 05conv in P and ttot
 clf; clc; hold on
-opt = 'kin';
-file = importdata('run1/results.dat');
+opt = 'pot';
+file = importdata('run3/results.dat');
 data = file.data;
 P = data(:,1);
-time = data(:,2);
+beta = data(:,2)
 epot = data(:,3);
 epot_err = data(:,4);
 ekin = data(:,5);
 ekin_err = data(:,6);
 if (opt == 'pot')
-    plot3d_data(P,time,epot,epot_err);
-    zlim([0.4 0.6])
+    plot3d_data(P,1./beta,epot,epot_err);
+    %zlim([0.4 0.6])
     zlabel('Potential energy')
 elseif (opt == 'kin')
-    plot3d_data(P,time,ekin,ekin_err);
-    zlim([0 1])
+    plot3d_data(P,1./beta,ekin,ekin_err);
+    zlim([-1 1])
     zlabel('Kinetic energy')
 end
 xlabel('Number of beads')
-ylabel('Total time')
+ylabel('T')
 colormap hsv
 camlight right
 view(140, 10)
 set(gca,'FontSize',13)
+hw = 1;
+E = @(kT) 0.5*hw + hw./(exp(hw./kT)-1);
+T = 1./beta;
+x = linspace(0,max(T));
+plot3(zeros(length(x),1),x,E(x),'--')
+E(max(T))
 
 %%
 clc; clf; hold on
 file = importdata('run1/results.dat');
 data = file.data;
-P = data(:,1);
-ekin = data(:,7);
-ekin_err=data(:,8);
+%file2 = importdata('run3/results.dat');
+%data2= file2.data;
+beta = data(:,2);
+T = 1./beta;
+epot = data(:,3);
+epot_err = data(:,4);
+epot2 = data2(:,3);
+epot_err2 = data2(:,4);
+evir = data(:,7);
+evir_err=data(:,8);
+evir2 = data2(:,7);
+evir_err2 = data2(:,8);
 clf; hold on
-errorbar(P,ekin,ekin_err,'o-')
-%errorbar(P,ekin2,ekin_err2,'o-')
-plot([10 90],[0.5 0.5],'k--')
+errorbar(T,epot,epot_err,'o')
+errorbar(T,evir,evir_err,'v')
+%errorbar(T,evir,50*evir_err,'^')
+%errorbar(T,evir2,50*evir_err2,'o')
+%plot([10 90],[0.5 0.5],'k--')
 %legend('dt=T/100','dt=T/20','Target','location','southwest')
-xlabel('Number of beads')
-ylabel('Kinetic energy')
+xlabel('Temperature')
+ylabel('')
 set(gca,'Fontsize',14)
-xlim([10 90])
-ylim([0.4 0.6])
+%xlim([10 90])
+%ylim([0.4 0.6])
+
+hw = 1;
+E = @(kT) 0.5*hw + hw./(exp(hw./kT)-1);
+Eb = @(kT) hw*(1+1./(exp(hw./kT)-1) + 2./(exp(2*hw./kT)-1))/2;
+Ef = @(kT) hw*(2+1./(exp(hw./kT)-1) + 2./(exp(2*hw./kT)-1))/2;
+x = linspace(0, max(T));
+plot(x,Eb(x),'k--')
+grid on
+legend('Pot','Vir', 'Theory','location','northwest')
+title('Boson energy')
+%%
+clf; clc;
+data = load('run2/Pot_energy.dat');
+data2= load('run2/Kin_en_virial.dat');
+t = data(:,1);
+pot = data(:,2);
+vir = data2(:,2);
+%%
+clf; hold on
+plot(t,pot,'o-')
+plot(t,(vir-5)*100+5,'o-')
+xlim([0 10])

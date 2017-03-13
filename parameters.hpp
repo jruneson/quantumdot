@@ -23,7 +23,9 @@ public:
 	int steps_per_sample;
 	int thermalization_steps;
 	int num_bins;
+	int sign;
 	double tolerance;
+	int steps_in_highest_mode;
 	bool with_thermostat;
 	
 	double hbar;
@@ -38,6 +40,10 @@ public:
 	int num_samples;
 	int num_steps; //per block
 	double spring_const;
+	double exc_const;
+	double exc_der_const;
+	double kin_offset;
+	double virial_offset;
 	double hist_size;
 	
 	//potential
