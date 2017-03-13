@@ -184,7 +184,7 @@ E(max(T))
 
 %%
 clc; clf; hold on
-file = importdata('run1/results.dat');
+file = importdata('run5/results.dat');
 data = file.data;
 %file2 = importdata('run3/results.dat');
 %data2= file2.data;
@@ -194,15 +194,18 @@ epot = data(:,3);
 epot_err = data(:,4);
 epot2 = data2(:,3);
 epot_err2 = data2(:,4);
+ekin = data(:,5);
+ekin_err = data(:,6);
 evir = data(:,7);
 evir_err=data(:,8);
 evir2 = data2(:,7);
 evir_err2 = data2(:,8);
 clf; hold on
 errorbar(T,epot,epot_err,'o')
-errorbar(T,evir,evir_err,'v')
-%errorbar(T,evir,50*evir_err,'^')
-%errorbar(T,evir2,50*evir_err2,'o')
+errorbar(T,ekin,ekin_err,'v')
+errorbar(T,evir,evir_err,'^')
+%errorbar(T,evir,evir_err,'^')
+%errorbar(T,evir2,evir_err2,'o')
 %plot([10 90],[0.5 0.5],'k--')
 %legend('dt=T/100','dt=T/20','Target','location','southwest')
 xlabel('Temperature')
@@ -216,10 +219,14 @@ E = @(kT) 0.5*hw + hw./(exp(hw./kT)-1);
 Eb = @(kT) hw*(1+1./(exp(hw./kT)-1) + 2./(exp(2*hw./kT)-1))/2;
 Ef = @(kT) hw*(2+1./(exp(hw./kT)-1) + 2./(exp(2*hw./kT)-1))/2;
 x = linspace(0, max(T));
+plot(x,E(x),'k--')
 plot(x,Eb(x),'k--')
+plot(x,Ef(x),'k--')
+xlim([0 3.5])
+ylim([0 5])
 grid on
-legend('Pot','Vir', 'Theory','location','northwest')
-title('Boson energy')
+legend('Pot','Kin','Vir', 'Theory','location','northwest')
+title('Disting.part. energy')
 %%
 clf; clc;
 data = load('run2/Pot_energy.dat');
@@ -232,3 +239,24 @@ clf; hold on
 plot(t,pot,'o-')
 plot(t,(vir-5)*100+5,'o-')
 xlim([0 10])
+
+%%
+clf; hold on; clc;
+file = importdata('run3/results.dat');
+data = file.data;
+tau = data(:,1);
+epot = data(:,3);
+epot_err = data(:,4);
+ekin = data(:,5);
+ekin_err = data(:,6);
+evir = data(:,7);
+evir_err = data(:,8);
+errorbar(1./tau,epot,epot_err,'o-')
+errorbar(1./tau,ekin,ekin_err,'v-')
+errorbar(1./tau,evir,evir_err,'^-')
+ylim([0 0.7])
+plot([0 14],[0.5 0.5],'k--')
+legend('Potential','Kinetic','Virial','location','southwest')
+set(gca,'fontsize',14)
+xlabel('1/\tau')
+title('\beta=5.0 (quantum regime)')

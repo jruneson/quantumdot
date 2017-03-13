@@ -10,22 +10,22 @@
 
 int main()
 {
-	std::vector<double> betas = {5.0,2.0,1.0,0.5,0.3};
-	std::vector<double> Ps = {60};
+	std::vector<double> betas = {5.0};
+	std::vector<double> taus = {1.0,0.5,0.2,0.15,0.1,0.075};
 	Parameters params;
 	params.read_file("configuration.cfg");
 	std::ofstream results_file("results.dat");
 	results_file.precision(8);
-	results_file << "%P\tbeta";
+	results_file << "%tau\tbeta";
 	for(int id : params.to_measure)
 		results_file << "\tObsId " << id << "\t\tError\t";
 	results_file << std::endl;
 	for(double beta : betas)
 	{
 		params.beta = beta;
-		for(int P : Ps)
+		for(double tau : taus)
 		{
-			params.num_beads = P;
+			params.tau = tau;
 			params.calculate_dependencies();
 			Simulation sim(params, results_file);
 			sim.setup();
@@ -54,11 +54,13 @@ int main()
  x fix reading in vector of obs to print every turn
  x turn missing Amatrix into an error
  x centroid virial
- * check fluctuations of centroid virial - can dt be increased?
  * why are fluctuations of e_pot larger for smaller beta?
  * fermion and boson
- * check conv with P for different beta
- * make P dependent on beta?
+ * make P depend on beta
+ * units
+ * maybe separate out error estimation from exchange factor
+ * read config.xyz in/out
+ * check conv with tau 
  * Bias
  * Test
  * Spline

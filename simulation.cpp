@@ -13,7 +13,8 @@ Simulation::Simulation(const Parameters& params, std::ofstream& _res_file)
 	  temperature(params.temperature), thermalization_steps(params.thermalization_steps),
 	  thermostat_on(params.with_thermostat), res_file(_res_file),
 	  total_time(params.total_time),tolerance(params.tolerance),
-	  beta(params.beta), sign(params.sign), exc_const(params.exc_const)
+	  beta(params.beta), sign(params.sign), exc_const(params.exc_const),
+	  tau(params.tau)
 {
 	for(int n=0; n<num_parts; ++n)
 		polymers.push_back(Polymer(params));
@@ -54,7 +55,7 @@ void Simulation::setup()
 		}
 	}
 	std::cout << "time = " << total_time << "\tP = " << polymers[0].num_beads 
-				<< "\t dt = " << dt << "\t beta = " << beta << std::endl;
+				<< "\t dt = " << dt << "\t beta = " << beta << "\t tau = " << tau << std::endl;
 	std::time_t t = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
 	logfile.open("logfile_P"+std::to_string(polymers[0].num_beads));
 	logfile << std::ctime(&t);
@@ -228,7 +229,7 @@ bool Simulation::converged()
 void Simulation::stop()
 {
 	logfile << "Name\t\tValue\t\tError with " << block << " blocks" << std::endl;
-	res_file << polymers[0].num_beads << "\t" << beta;
+	res_file << tau << "\t" << beta;
 	for(const auto& pair : obs)
 	{
 		const auto& ob = pair.second;

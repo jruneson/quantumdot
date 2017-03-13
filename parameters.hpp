@@ -14,10 +14,10 @@ public:
 	
 	//independent parameters
 	int num_parts;
-	int num_beads;
 	int dim;
-	double dt_md;
+	double tau;
 	double beta;
+	
 	int max_blocks;
 	double total_time;
 	int steps_per_sample;
@@ -36,6 +36,8 @@ public:
 	double length_scale;
 	
 	//dependent parameters
+	int num_beads;
+	double dt_md;
 	double temperature;
 	int num_samples;
 	int num_steps; //per block

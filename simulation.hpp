@@ -69,6 +69,7 @@ private:
 	const double tolerance;
 	
 	const double beta;
+	const double tau;
 	const int sign;
 	const double exc_const;
 	
