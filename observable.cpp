@@ -31,6 +31,11 @@ double Observable::get_avg(double exc_avg) const
 	return avg/exc_avg;
 }
 
+double Observable::get_avg_sq(double exc_avg) const
+{
+	return avg_sq/(exc_avg*exc_avg);
+}
+
 double Observable::get_value() const
 {
 	return value;
@@ -44,17 +49,7 @@ void Observable::normalize_avg(const int& num_blocks)
 //	std::cout << "\t" << avg << std::endl;
 }*/
 
-double Observable::std_dev(double exc_avg, double exc_avg_sq) const
-{
-	if(blocks>=2)
-	{
-		double num_error = std::sqrt((avg_sq - avg*avg)*blocks/(blocks-1.0)); //note that avg_sq is not normalized
-		double den_error = std::sqrt((exc_avg_sq - exc_avg*exc_avg)*blocks/(blocks-1.0));
-		return avg/exc_avg * (num_error/avg + den_error/exc_avg);		
-		//error = num/den * (num_err/num + den_err/den)
-	}
-	return 0;
-}
+
 
 
 std::string Observable::get_name() const
@@ -133,8 +128,9 @@ void Observable::measure(const std::vector<Polymer>& polymers, Interaction& inte
 		case 1:
 			tmp += exc_der(polymers);
 			break;
-		case 2:
-			tmp += exc_der(polymers);
+		case 3:
+			tmp += exc_der_virial(polymers);
+			break;
 		default:
 			break;
 	}
@@ -165,12 +161,13 @@ double Observable::kinetic_energy(const Polymer& pol, const Interaction& interac
 	double tmp = 0;
 	for(int bead=0; bead<pol.num_beads; ++bead)
 		tmp += pol[bead].sqdist(pol[bead+1]);
+	//std::cout << kin_offset << "\t" << 0.5*interac.get_spring_const() * tmp << std::endl;
 	return kin_offset - 0.5 * interac.get_spring_const() * tmp;
 }
 
 double Observable::total_energy(const Polymer& pol, const Interaction& interac)
 {
-	return potential_energy(pol, interac) + kinetic_energy(pol, interac);
+	return potential_energy(pol, interac) + kinetic_energy_virial(pol, interac);
 }
 
 double Observable::kinetic_energy_virial(const Polymer& pol, const Interaction& interac)
@@ -208,15 +205,40 @@ double Observable::total_energy_cl(const Polymer& pol, const Interaction& intera
 	return potential_energy_cl(pol, interac) + kinetic_energy_cl(pol);
 }
 
-double Observable::exc_der(const std::vector<Polymer>& pols)
+double Observable::exc_der(const std::vector<Polymer>& pols) const
 {
+	if(pols.size()==1)
+		return 0;
 	double tmp=0;
 	for(int bead=0; bead<pols[0].num_beads; ++bead)
 	{
-		double scalar_prod = (pols[0][bead]-pols[1][bead])*(pols[0][bead+1]-pols[1][bead+1]);
-		tmp += scalar_prod * std::exp(-exc_const*scalar_prod);
+		double sc_prod = scalar_product(pols,bead);
+		tmp += sc_prod * std::exp(-exc_const*sc_prod);
 	}
 	return exc_der_const * tmp;
 }
 
+double Observable::exc_der_virial(const std::vector<Polymer>& pols) const
+{
+	if(pols.size()==1)
+		return 0;
+	Point tmp(pols[0][0].size());
+	Point mean0(pols[0][0].size());
+	Point mean1(pols[1][0].size());
+	for(int bead=0; bead<pols[0].num_beads; ++bead)
+	{
+		mean0 += pols[0][bead];
+		mean1 += pols[1][bead];
+		double sc_prod = scalar_product(pols,bead);
+		tmp += (pols[0][bead]-pols[1][bead])*std::exp(-exc_const*sc_prod);
+	}
+	mean0 /= pols[0].num_beads;
+	mean1 /= pols[1].num_beads;
+	return  exc_der_const*(mean0-mean1)*tmp;
+}
+
+double Observable::scalar_product(const std::vector<Polymer>& pols, int bead) const
+{
+	return (pols[0][bead]-pols[1][bead])*(pols[0][bead+1]-pols[1][bead+1]);
+}
 

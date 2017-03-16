@@ -15,8 +15,8 @@ public:
 	//independent parameters
 	int num_parts;
 	int dim;
-	double tau;
-	double beta;
+	double tau; //in Ha^{-1}
+	double beta; //in Ha^{-1}
 	
 	int max_blocks;
 	double total_time;
@@ -28,20 +28,23 @@ public:
 	int steps_in_highest_mode;
 	bool with_thermostat;
 	
-	double hbar;
-	double mass;
-	double curvature;
+	double hw; //in Ha
+	double m_hbar2 = 1.0; //m/hbar^2 = 1 a_0^{-2} Ha^{-1}
+	double hbar = 2.4188843e-5; //in Ha ps
+	double mass; //in kg
 	double charge;
 	double diel_const;
-	double length_scale;
+	double length_scale; //in a_0
 	
 	//dependent parameters
 	int num_beads;
+	double curvature; //in Ha a_0^{-2}
 	double dt_md;
+	double dt_2m;
 	double temperature;
 	int num_samples;
 	int num_steps; //per block
-	double spring_const;
+	double spring_const; 
 	double exc_const;
 	double exc_der_const;
 	double kin_offset;

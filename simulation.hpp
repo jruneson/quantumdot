@@ -37,7 +37,9 @@ public:
 	void print_to_file();
 	bool converged();
 	void stop();
+	void print_config();
 	void update_exc();
+	double std_error(double,double) const;
 		
 	double coll_var() const;
 	Force grad_coll_var() const;

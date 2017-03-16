@@ -240,23 +240,92 @@ plot(t,pot,'o-')
 plot(t,(vir-5)*100+5,'o-')
 xlim([0 10])
 
-%%
+%% 08units
 clf; hold on; clc;
-file = importdata('run3/results.dat');
+type='abc';
+if(type=='dis')
+    folder='run4/';
+elseif(type=='bos')
+    folder='run5/';
+elseif(type=='fer')
+    folder='run6/';
+else
+    folder='run1/';
+end
+
+file = importdata(strcat(folder,'results.dat'));
 data = file.data;
-tau = data(:,1);
+%P = [100 50 20 10 5 2].';
+tau = data(:,1)*1e-6;
+beta = data(:,2);
+hw=1e-4;
+data=data/hw;
 epot = data(:,3);
 epot_err = data(:,4);
 ekin = data(:,5);
 ekin_err = data(:,6);
 evir = data(:,7);
 evir_err = data(:,8);
-errorbar(1./tau,epot,epot_err,'o-')
-errorbar(1./tau,ekin,ekin_err,'v-')
-errorbar(1./tau,evir,evir_err,'^-')
-ylim([0 0.7])
-plot([0 14],[0.5 0.5],'k--')
-legend('Potential','Kinetic','Virial','location','southwest')
-set(gca,'fontsize',14)
-xlabel('1/\tau')
-title('\beta=5.0 (quantum regime)')
+x=315775./beta;
+%x=1./tau;
+errorbar(x,epot,epot_err,'o-')
+errorbar(x,ekin,ekin_err,'v-')
+errorbar(x,evir,evir_err,'^-')
+xlim([0 max(x)])
+ylim([0 2])
+%plot([0 max(x)],[50 50],'k--')
+%hw = 100;
+k=1/315775;
+E = @(T) 0.5*hw + hw./(exp(hw./(k*T))-1);
+Eb = @(T) hw*(1+1./(exp(hw./(k*T))-1) + 2./(exp(2*hw./(k*T))-1))/2;
+Ef = @(T) hw*(2+1./(exp(hw./(k*T))-1) + 2./(exp(2*hw./(k*T))-1))/2;
+T = linspace(0, max(x));
+if(type=='dis')
+    title('Distinguishable')
+elseif(type=='bos')
+    title('Bosons')
+elseif(type=='fer')
+    title('Fermions')
+end
+plot(T,E(T)/hw,'k--')
+plot(T,Eb(T)/hw,'k--')
+plot(T,Ef(T)/hw,'k--')
+h=legend('Potential','Kinetic','Virial','Theory','location','southeast');
+set(h,'interpreter','latex');
+xlabel('$T ~(\mathrm{K})$','interpreter','latex')
+ylabel('Energy ($\hbar\omega_0$)','interpreter','latex')
+%title('$\hbar\omega=100\,\mathrm{\mu Ha}$','interpreter','latex')
+set(gca,'fontsize',18)
+%set(0,'defaulttextinterpreter','latex')
+%set(0,'defaultaxesfontname','arial')
+%ax = gca;
+%xt = get(gca,'xtick');
+%yt = get(gca,'YTick');
+%set(ax,'XTick','fontsize',12)
+
+%%
+clf; hold on; clc;
+%data = load('run1/Prob_distribution.dat');
+%data = load('run1/X_coord_n1p1.dat');
+data = load('run1/Pot_energy_cl.dat');
+data = load('run1/Kin_energy_cl.dat');
+%data = load('Pot_energy.dat');
+%data = load('Kinetic_energy.dat');
+%data = load('Kin_en_virial.dat');
+%data = load('Pot_energy.dat')+load('Kinetic_energy.dat');
+t=data(:,1);
+epot = data(:,2);
+plot(t,epot,'o')
+%xlim([0 100])
+%%
+hbar = 1.0545718e-34;
+m = 9.10938356e-31;
+a0 = 5.2917721067e-11;
+Eh = 4.359744650e-18;
+e = 1.602e-19;
+r = 50e-9;
+%hbar*hbar/(2*m*r^2) / Eh
+m/(hbar/a0/sqrt(Eh))^2;
+Eh/a0^2*1e-24;
+(1e-12/a0)^2
+%%

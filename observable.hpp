@@ -24,6 +24,7 @@ public:
 	void update_avg(int);
 	double get_value() const;
 	double get_avg(double) const;
+	double get_avg_sq(double) const;
 	double std_dev(double,double) const;
 	std::string get_name() const;
 	
@@ -52,7 +53,9 @@ private:
 	double kinetic_energy_cl(const Polymer&);
 	double total_energy_cl(const Polymer&, const Interaction&);
 	
-	double exc_der(const std::vector<Polymer>&);
+	double exc_der(const std::vector<Polymer>&) const;
+	double exc_der_virial(const std::vector<Polymer>&) const;
+	double scalar_product(const std::vector<Polymer>&, int) const;
 	
 	bool print;
 		

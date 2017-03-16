@@ -10,8 +10,11 @@
 
 int main()
 {
-	std::vector<double> betas = {5.0};
-	std::vector<double> taus = {1.0,0.5,0.2,0.15,0.1,0.075};
+	//std::vector<double> betas = {10000};
+	std::vector<double> betas = {6500,10000,15000,20000,50000,100000,200000};
+	std::vector<double> taus = {5000};
+	//std::vector<double> taus = {500,1000,2000,3000,5000,10000};
+	//std::vector<double> taus = {2000, 5000, 10000, 20000, 30000, 50000};
 	Parameters params;
 	params.read_file("configuration.cfg");
 	std::ofstream results_file("results.dat");
@@ -54,13 +57,14 @@ int main()
  x fix reading in vector of obs to print every turn
  x turn missing Amatrix into an error
  x centroid virial
- * why are fluctuations of e_pot larger for smaller beta?
- * fermion and boson
- * make P depend on beta
- * units
+ x fermion and boson
+ x make P depend on beta
+ x units
  * maybe separate out error estimation from exchange factor
  * read config.xyz in/out
- * check conv with tau 
+ x check conv with tau 
+ * clean up logfiles
+ * use python instead of matlab, to also run program from there
  * Bias
  * Test
  * Spline

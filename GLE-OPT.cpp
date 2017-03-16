@@ -8,8 +8,6 @@
 #include "svd.hpp"
 #include "numgen.hpp"
 
-//When is snum initialized??
-//Box-Muller sampling - bad choice - what can be improved?
 
 using namespace std;
 
@@ -18,7 +16,7 @@ GLE::GLE(std::vector<Polymer>& pols, const double& timestep, const double& tempe
 		const bool thermostat_on)
 {
 	psize = num_beads*num_parts;
-	T = temperature;
+	T = temperature; //in K
 	dt = timestep;
 	mass = part_mass; //note, must be the same for all particles
 	dim = dims;
@@ -188,7 +186,8 @@ void GLE::computeMatrices()
 {
 	int s;
 	double temp=T;
-	double boltzmann=1;
+	double kB=1.38064852e-23;
+	double conv = 3.5710648e-4;
 	
 	ifstream inp("Amatrix.txt");
 	if(!(inp.good()))
@@ -202,9 +201,9 @@ void GLE::computeMatrices()
 	
 	for(int i=0;i<s+1;i++)
 	{
-		Ap[i]= new double[s+1];
-		Dp[i]= new double[s+1];
-		Tmatrix[i]= new double[s+1];
+		Ap[i] = new double[s+1];
+		Dp[i] = new double[s+1];
+		Tmatrix[i] = new double[s+1];
 		for(int j=0;j<s+1;j++)
 			Ap[i][j]=0;	
 	}	
@@ -216,7 +215,8 @@ void GLE::computeMatrices()
 	
 	for(int i=0;i<s+1;i++)
 		for(int j=0;j<s+1;j++)
-			Dp[i][j]=boltzmann*temp*(Ap[i][j]+Ap[j][i])/mass;
+			Dp[i][j] = conv*(kB*temp/mass)*(Ap[i][j]+Ap[j][i]);
+			//Dp[i][j]=boltzmann*temp*(Ap[i][j]+Ap[j][i])/mass;
 
 	
 	
@@ -325,7 +325,6 @@ void GLE::computeMatrices()
 				p2[i][j]+=p1[i][k]*T2[k][j];
 			
 			F[i][j]=Cp[i][j]-p2[i][j];
-			
 		}
 	}
 	
@@ -348,6 +347,10 @@ void GLE::computeMatrices()
 		
 	real_matrix_squareroot(F,Smatrix,s+1);
 
+	/*double sqrtm = std::sqrt(mass);
+	for(int i=0;i<s+1;++i)
+		for(int j=0;j<s+1;++j)
+			Smatrix[i][j] *= sqrtm; //added by JR*/
 }
 
 

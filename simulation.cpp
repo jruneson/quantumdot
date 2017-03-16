@@ -63,7 +63,7 @@ void Simulation::setup()
 			<< " maximal time=" << total_time
 			//<< " actual time=" << dt*max_blocks*num_samples*steps_per_sample
 			<< " samples=" << max_blocks*num_samples << " T=" << temperature << std::endl << std::endl;
-	logfile << "Block";
+	logfile << "Block\tExc_const";
 	for(auto& pair : obs)
 		logfile << "\t" << pair.second.get_name();
 	logfile << std::endl;
@@ -204,9 +204,9 @@ void Simulation::update_screen()
 
 void Simulation::print_to_file()
 {
-	logfile << block;
+	logfile << block << "\t" << exc_avg;
 	for(auto& ob : obs)
-		logfile <<	"\t" << ob.second.get_value()/num_samples;
+		logfile <<	"\t" << ob.second.get_avg(exc_avg);
 	logfile << std::endl;
 }
 
@@ -233,31 +233,80 @@ void Simulation::stop()
 	for(const auto& pair : obs)
 	{
 		const auto& ob = pair.second;
-		logfile << ob.get_name() << "\t" << ob.get_avg(exc_avg) << "\t" 
-				<< ob.std_dev(exc_avg,exc_avg_sq) << std::endl;
-		res_file << "\t" << ob.get_avg(exc_avg) << "\t" << ob.std_dev(exc_avg,exc_avg_sq);
+		double avg = ob.get_avg(exc_avg);
+		double avg_sq = ob.get_avg_sq(exc_avg);
+		logfile << ob.get_name() << "\t" << avg << "\t" 
+				<< std_error(avg,avg_sq) << std::endl;
+		res_file << "\t" << avg << "\t" << std_error(avg,avg_sq);
 	}
 	res_file << std::endl;
+	logfile.close();
+	
 	std::ofstream hist_file("Prob_distribution.dat");
 	for(int bin = 0; bin<num_bins; ++bin)
 	{
 		histogram_avg[bin] /= block;
 		histogram_sq_avg[bin] /= block;
 		hist_file << hist_size*((double) bin /num_bins - 0.5) << "\t" << histogram_avg[bin]
-					<< "\t" << std::sqrt((histogram_sq_avg[bin]-std::pow(histogram_avg[bin],2))/(block-1)) 
+					<< "\t" << std_error(histogram_avg[bin],histogram_sq_avg[bin])
+					//<< "\t" << std::sqrt((histogram_sq_avg[bin]-std::pow(histogram_avg[bin],2))/(block-1)) 
 					<< std::endl;
 	}
-	logfile.close();
+	print_config();
+	
 	delete gle;
 	timer.stop();
 	std::cout << std::endl << timer.duration() << " s" << std::endl;
 }
 
+void Simulation::print_config()
+{
+	std::ofstream coord_file("config.xyz");
+	std::ofstream vel_file("vels.xyz");
+	coord_file << num_parts*polymers[0].num_beads << std::endl << std::endl;
+	vel_file << num_parts*polymers[0].num_beads << std::endl << std::endl;
+	for(int n=0; n<polymers.size(); ++n)
+	{
+		for(int bead=0; bead<polymers[n].num_beads; ++bead)
+		{
+			Point& p = polymers[n][bead];
+			Point& v = polymers[n].vels[bead];
+			for(int d=0; d<p.size(); ++d)
+			{
+				coord_file << p[d] << "\t";
+				vel_file << v[d] << "\t";
+			}
+			coord_file << std::endl;
+			vel_file << std::endl;
+		}
+	}
+	coord_file.close();
+	vel_file.close();
+}
+
 void Simulation::update_exc()
 {
-	double tmp = 0;
-	for(int bead=0; bead<polymers[0].num_beads; ++bead)
-		tmp += std::exp( - exc_const * (polymers[0][bead]-polymers[1][bead])*(polymers[0][bead+1]-polymers[1][bead+1]));
-	exchange_factor = 1.0 + sign*tmp/polymers[0].num_beads;
+	if(num_parts==1)
+		exchange_factor = 1.0;
+	else
+	{
+		double tmp = 0;
+		for(int bead=0; bead<polymers[0].num_beads; ++bead)
+			tmp += std::exp( - exc_const * (polymers[0][bead]-polymers[1][bead])*(polymers[0][bead+1]-polymers[1][bead+1]));
+		exchange_factor = 1.0 + sign*tmp/polymers[0].num_beads;
+	}
 	exc_sum += exchange_factor;
+}
+
+double Simulation::std_error(double avg, double avg_sq) const
+{
+	//standard error of the mean is std/sqrt(blocks)
+	if(block>=2)
+	{
+		double num_error = std::sqrt((avg_sq - avg*avg)/(block-1.0)); //note that avg_sq is not normalized
+		double den_error = std::sqrt((exc_avg_sq - exc_avg*exc_avg)/(block-1.0));
+		return avg/exc_avg * (num_error/avg + den_error/exc_avg);		
+		//error = num/den * (num_err/num + den_err/den)
+	}
+	return 0;
 }

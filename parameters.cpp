@@ -24,10 +24,10 @@ void Parameters::read_file(std::string filename)
 	file >> name >> to_bool;
 	with_thermostat = (to_bool != 0);
 
-	
-	file >> name >> hbar;
+	file >> name >> hw;
 	file >> name >> mass;
-	file >> name >> curvature;
+	m_hbar2 *= mass;
+	mass *= 9.10938356e-31;
 	file >> name >> charge;
 	file >> name >> diel_const;
 	file >> name >> length_scale;
@@ -50,19 +50,22 @@ void Parameters::read_file(std::string filename)
 void Parameters::calculate_dependencies()
 {
 	num_beads = round(beta/tau);
-	dt_md = 2*M_PI * std::pow(curvature/mass + 4.0*num_beads/(hbar*hbar*beta*beta),-0.5)
+	if(num_beads<1)
+		num_beads=1;
+	curvature = m_hbar2 * hw*hw;
+	dt_md = 2*M_PI * std::pow(1 + 4.0*num_beads/(hw*hw*beta*beta),-0.5) * hbar/hw
 			* 1.0/steps_in_highest_mode; //at least 10dt within the highest freq mode
 	//change dt_md depending on what observables are measured : 0.02 for ekin, 0.1 or 0.05 otherwise
-	temperature = 1.0/beta;
+	dt_2m = dt_md / (2.0*mass) * 1.556893025e-21; //containing conversion factor from Ha/a_0 to kg a_0 ps^{-2}
+	temperature = 1.0/beta * 315775.13;
 	num_steps = (int) total_time / (dt_md * max_blocks); //per block
 	num_samples = (int) num_steps / steps_per_sample; //per block
-	spring_const = num_beads*mass/(hbar*hbar*beta*beta);
-	exc_const = num_beads*mass/(hbar*hbar*beta);
-	exc_der_const = sign * mass/(hbar*hbar*beta);
+	spring_const = num_beads*m_hbar2/(beta*beta);
+	exc_const = num_beads*m_hbar2/beta;
+	exc_der_const = -sign * m_hbar2/(beta*beta);
 	kin_offset = num_beads*dim/(2.0*beta);
 	virial_offset = dim/(2.0*beta); //not sure about the dim factor
-	hist_size = length_scale * 10;
-	
+	hist_size = length_scale * 500;	
 }
 
 
