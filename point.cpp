@@ -8,7 +8,7 @@ Point::Point(const Parameters& params)
 	point_coords.assign(params.dim,0);
 }
 
-Point::Point(const int& dim)
+Point::Point(int dim)
 {
 	point_coords.assign(dim,0);
 }
@@ -35,12 +35,12 @@ double Point::sqdist0() const
 	return tmp;
 }
 
-double& Point::operator[](const int& index) 
+double& Point::operator[](int index) 
 {
 	return point_coords[index];
 }
 
-const double& Point::operator[](const int& index) const
+const double& Point::operator[](int index) const
 {
 	return point_coords[index];
 }
@@ -50,6 +50,18 @@ void Point::operator+=(const Point& p)
 {
 	for(int d=0; d<point_coords.size(); ++d)
 		point_coords[d] += p.point_coords[d];
+}
+
+void Point::operator*=(double c)
+{
+	for(int d=0; d<point_coords.size(); ++d)
+		point_coords[d] *= c;
+}
+
+void Point::operator/=(double c)
+{
+	for(int d=0; d<point_coords.size(); ++d)
+		point_coords[d] /= c;
 }
 
 int Point::size() const
@@ -73,7 +85,7 @@ Point operator-(const Point& p1, const Point& p2)
 	return p1 + (-1)*p2;
 }
 
-Point operator*(const Point& p, const double& c)
+Point operator*(const Point& p, double c)
 {
 	Point p_new(p.size());
 	for(int d=0; d<p.point_coords.size(); ++d)
@@ -81,12 +93,12 @@ Point operator*(const Point& p, const double& c)
 	return p_new;
 }
 
-Point operator*(const double& c, const Point& p)
+Point operator*(double c, const Point& p)
 {
 	return p*c;
 }
 
-Point operator/(const Point& p, const double& c)
+Point operator/(const Point& p, double c)
 {
 	return p*(1.0/c);
 }

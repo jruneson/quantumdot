@@ -22,9 +22,9 @@ public:
 	std::vector<Point> coords;
 	std::vector<Point> vels;
 	std::vector<Force> forces;
-	double dt_2m;
-	double mdt;
-	double mass;
+	const double dt_2m;
+	const double dt;
+	const double mass;
 };
 
 #endif

@@ -2,6 +2,7 @@
 #include <vector>
 #include <iostream>
 #include <fstream>
+#include <sstream>
 #include <chrono>
 #include <ctime>
 #include <map>
@@ -22,8 +23,10 @@
 
 class Simulation{
 public:
-	Simulation(const Parameters&);
+	Simulation(const Parameters&, std::ofstream&);
 	void setup();
+	void read_input_coords();
+	void initialize_coords_simple();
 	void thermalize();
 	void run();
 	void run_block();
@@ -32,10 +35,15 @@ public:
 	void measure();
 	void update_avgs();
 	void update_histogram();
-	int calc_bin(const double&);
+	int calc_bin(double);
 	void update_screen();
 	void print_to_file();
+	bool converged();
 	void stop();
+	void print_config();
+	void update_exc();
+	double simple_uncertainty(double,double) const;
+	double weighted_uncertainty(double,double) const;
 		
 	double coll_var() const;
 	Force grad_coll_var() const;
@@ -55,6 +63,7 @@ private:
 	bool finished;
 	double time;
 	int block;
+	const double total_time;
 	const int max_blocks;
 	const int num_samples;
 	const int thermalization_steps;
@@ -62,7 +71,19 @@ private:
 	const int num_bins;
 	const double hist_size;
 	GLE* gle;
+	const bool using_input_file;
 	const bool thermostat_on;
+	const double tolerance;
+	
+	const double beta;
+	const double tau;
+	const int sign;
+	const double exc_const;
+	
+	double exchange_factor;
+	double exc_sum;
+	double exc_avg;
+	double exc_avg_sq;
 	
 	std::map<int,Observable> obs;	
 	std::vector<double> histogram; //1D probability density. If dim>1, only the first coordinate is considered.
@@ -74,6 +95,7 @@ private:
 	Timer timer;
 	
 	std::ofstream logfile;
+	std::ofstream& res_file;
 
 };
 
