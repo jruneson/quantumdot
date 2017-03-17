@@ -1,0 +1,7 @@
+*.o
+*.dat
+run*
+tests/
+*.xyz
+*.m~
+pimd

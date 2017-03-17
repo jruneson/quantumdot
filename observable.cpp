@@ -196,7 +196,7 @@ double Observable::kinetic_energy_cl(const Polymer& pol)
 	double tmp = 0;
 	for(int bead=0; bead<pol.num_beads; ++bead)
 		tmp += pol.vels[bead]*pol.vels[bead];
-	tmp *= 0.5*pol.mass;
+	tmp *= 0.5*pol.mass * 1.747801e25;
 	return tmp;
 }
 

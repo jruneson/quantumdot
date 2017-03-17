@@ -10,11 +10,10 @@
 
 int main()
 {
-	//std::vector<double> betas = {10000};
-	std::vector<double> betas = {6500,10000,15000,20000,50000,100000,200000};
-	std::vector<double> taus = {5000};
-	//std::vector<double> taus = {500,1000,2000,3000,5000,10000};
-	//std::vector<double> taus = {2000, 5000, 10000, 20000, 30000, 50000};
+	//std::vector<double> betas = {3.0};
+	std::vector<double> betas = {0.15,0.3,0.5,1,2,5,10};
+	std::vector<double> taus = {0.15};
+	//std::vector<double> taus = {0.07,0.1,0.15,0.2,0.3,0.5,1,2,5};
 	Parameters params;
 	params.read_file("configuration.cfg");
 	std::ofstream results_file("results.dat");

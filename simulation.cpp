@@ -14,7 +14,7 @@ Simulation::Simulation(const Parameters& params, std::ofstream& _res_file)
 	  thermostat_on(params.with_thermostat), res_file(_res_file),
 	  total_time(params.total_time),tolerance(params.tolerance),
 	  beta(params.beta), sign(params.sign), exc_const(params.exc_const),
-	  tau(params.tau)
+	  tau(params.tau), using_input_file(params.using_input_file)
 {
 	for(int n=0; n<num_parts; ++n)
 		polymers.push_back(Polymer(params));
@@ -41,19 +41,10 @@ Simulation::Simulation(const Parameters& params, std::ofstream& _res_file)
 void Simulation::setup() 
 {
 	timer.start();
-	for(int n=0; n<polymers.size(); ++n)
-	{
-		Polymer& pol = polymers[n];
-		for(int bead=0; bead<pol.num_beads; ++bead)
-		{
-			for(int d=0; d<pol[0].size(); ++d)
-			{
-				pol[bead][d] = length_scale * ((double) bead/pol.num_beads - 0.5) * ((double) n/num_parts + 0.1);
-				pol.vels[bead][d] = 0.5;
-				pol.forces[bead][d] = 0.0;
-			}
-		}
-	}
+	if(using_input_file)
+		read_input_coords();
+	else
+		initialize_coords_simple();
 	std::cout << "time = " << total_time << "\tP = " << polymers[0].num_beads 
 				<< "\t dt = " << dt << "\t beta = " << beta << "\t tau = " << tau << std::endl;
 	std::time_t t = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
@@ -78,10 +69,56 @@ void Simulation::setup()
 		std::cout << "exception: " << e.what() << std::endl;
 		return;
 	}
-		
+	if(!using_input_file)
 	thermalize();
 	update_exc();
 }
+
+void Simulation::read_input_coords()
+{
+	std::ifstream coords_file("coords.xyz");
+	std::ifstream vels_file("vels.xyz");
+	std::string line,line2;
+	getline(coords_file,line); getline(coords_file,line);
+	getline(vels_file,line); getline(vels_file,line);
+	for(int n=0; n<polymers.size(); ++n)
+	{
+		Polymer& pol = polymers[n];
+		for(int bead=0; bead<pol.num_beads; ++bead)
+		{
+			getline(coords_file,line);
+			std::istringstream iss(line);
+			getline(vels_file,line2);
+			std::istringstream iss2(line2);
+			double number;
+			for(int d=0; d<pol[0].size(); ++d)
+			{
+				iss >> number;
+				pol[bead][d] = number;
+				iss2 >> number;
+				pol.vels[bead][d] = number;
+			}
+		}
+	}		
+}
+
+void Simulation::initialize_coords_simple()
+{
+	for(int n=0; n<polymers.size(); ++n)
+	{
+		Polymer& pol = polymers[n];
+		for(int bead=0; bead<pol.num_beads; ++bead)
+		{
+			for(int d=0; d<pol[0].size(); ++d)
+			{
+				pol[bead][d] = length_scale * ((double) bead/pol.num_beads - 0.5) * ((double) n/num_parts + 0.1);
+				pol.vels[bead][d] = 0.5;
+				pol.forces[bead][d] = 0.0;
+			}
+		}
+	}
+}
+
 
 void Simulation::thermalize()
 {
@@ -228,16 +265,17 @@ bool Simulation::converged()
 
 void Simulation::stop()
 {
-	logfile << "Name\t\tValue\t\tError with " << block << " blocks" << std::endl;
+	logfile << "Name\t\tValue\t\tSimpleErrer\tWeightedError" << std::endl;
+	logfile << "Exc_factor\t" << exc_avg << "\t" << simple_uncertainty(exc_avg,exc_avg_sq) << std::endl;
 	res_file << tau << "\t" << beta;
 	for(const auto& pair : obs)
 	{
 		const auto& ob = pair.second;
 		double avg = ob.get_avg(exc_avg);
 		double avg_sq = ob.get_avg_sq(exc_avg);
-		logfile << ob.get_name() << "\t" << avg << "\t" 
-				<< std_error(avg,avg_sq) << std::endl;
-		res_file << "\t" << avg << "\t" << std_error(avg,avg_sq);
+		logfile << ob.get_name() << "\t" << avg << "\t" << simple_uncertainty(avg,avg_sq) << "\t"
+				<< weighted_uncertainty(avg,avg_sq) << std::endl;
+		res_file << "\t" << avg << "\t" << weighted_uncertainty(avg,avg_sq);
 	}
 	res_file << std::endl;
 	logfile.close();
@@ -248,7 +286,7 @@ void Simulation::stop()
 		histogram_avg[bin] /= block;
 		histogram_sq_avg[bin] /= block;
 		hist_file << hist_size*((double) bin /num_bins - 0.5) << "\t" << histogram_avg[bin]
-					<< "\t" << std_error(histogram_avg[bin],histogram_sq_avg[bin])
+					<< "\t" << weighted_uncertainty(histogram_avg[bin],histogram_sq_avg[bin])
 					//<< "\t" << std::sqrt((histogram_sq_avg[bin]-std::pow(histogram_avg[bin],2))/(block-1)) 
 					<< std::endl;
 	}
@@ -261,7 +299,7 @@ void Simulation::stop()
 
 void Simulation::print_config()
 {
-	std::ofstream coord_file("config.xyz");
+	std::ofstream coord_file("coords.xyz");
 	std::ofstream vel_file("vels.xyz");
 	coord_file << num_parts*polymers[0].num_beads << std::endl << std::endl;
 	vel_file << num_parts*polymers[0].num_beads << std::endl << std::endl;
@@ -286,7 +324,7 @@ void Simulation::print_config()
 
 void Simulation::update_exc()
 {
-	if(num_parts==1)
+	if((num_parts==1)||(sign==0))
 		exchange_factor = 1.0;
 	else
 	{
@@ -298,14 +336,21 @@ void Simulation::update_exc()
 	exc_sum += exchange_factor;
 }
 
-double Simulation::std_error(double avg, double avg_sq) const
+double Simulation::simple_uncertainty(double avg, double avg_sq) const
+{
+	if(block>=2)
+		return std::sqrt((avg_sq - avg*avg)/(block-1.0));
+	return 0;
+}
+
+double Simulation::weighted_uncertainty(double avg, double avg_sq) const
 {
 	//standard error of the mean is std/sqrt(blocks)
 	if(block>=2)
 	{
-		double num_error = std::sqrt((avg_sq - avg*avg)/(block-1.0)); //note that avg_sq is not normalized
-		double den_error = std::sqrt((exc_avg_sq - exc_avg*exc_avg)/(block-1.0));
-		return avg/exc_avg * (num_error/avg + den_error/exc_avg);		
+		double num_error = simple_uncertainty(avg,avg_sq);
+		double den_error = simple_uncertainty(exc_avg,exc_avg_sq);
+		return abs(avg/exc_avg) * std::sqrt(std::pow(num_error/avg,2) + std::pow(den_error/exc_avg,2));		
 		//error = num/den * (num_err/num + den_err/den)
 	}
 	return 0;

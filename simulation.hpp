@@ -2,6 +2,7 @@
 #include <vector>
 #include <iostream>
 #include <fstream>
+#include <sstream>
 #include <chrono>
 #include <ctime>
 #include <map>
@@ -24,6 +25,8 @@ class Simulation{
 public:
 	Simulation(const Parameters&, std::ofstream&);
 	void setup();
+	void read_input_coords();
+	void initialize_coords_simple();
 	void thermalize();
 	void run();
 	void run_block();
@@ -39,7 +42,8 @@ public:
 	void stop();
 	void print_config();
 	void update_exc();
-	double std_error(double,double) const;
+	double simple_uncertainty(double,double) const;
+	double weighted_uncertainty(double,double) const;
 		
 	double coll_var() const;
 	Force grad_coll_var() const;
@@ -67,6 +71,7 @@ private:
 	const int num_bins;
 	const double hist_size;
 	GLE* gle;
+	const bool using_input_file;
 	const bool thermostat_on;
 	const double tolerance;
 	

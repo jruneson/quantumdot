@@ -240,9 +240,9 @@ plot(t,pot,'o-')
 plot(t,(vir-5)*100+5,'o-')
 xlim([0 10])
 
-%% 08units
+%% 08units, 10meV
 clf; hold on; clc;
-type='abc';
+type='fer';
 if(type=='dis')
     folder='run4/';
 elseif(type=='bos')
@@ -250,15 +250,15 @@ elseif(type=='bos')
 elseif(type=='fer')
     folder='run6/';
 else
-    folder='run1/';
+    folder='run3/';
 end
 
 file = importdata(strcat(folder,'results.dat'));
 data = file.data;
 %P = [100 50 20 10 5 2].';
-tau = data(:,1)*1e-6;
+tau = data(:,1);%*11.6045;
 beta = data(:,2);
-hw=1e-4;
+hw=3;
 data=data/hw;
 epot = data(:,3);
 epot_err = data(:,4);
@@ -266,49 +266,56 @@ ekin = data(:,5);
 ekin_err = data(:,6);
 evir = data(:,7);
 evir_err = data(:,8);
-x=315775./beta;
+x=11.6045./beta;
 %x=1./tau;
 errorbar(x,epot,epot_err,'o-')
 errorbar(x,ekin,ekin_err,'v-')
 errorbar(x,evir,evir_err,'^-')
 xlim([0 max(x)])
-ylim([0 2])
-%plot([0 max(x)],[50 50],'k--')
+ylim([0 6])
+%plot([0 max(x)],[0.5 0.5],'k--')
 %hw = 100;
-k=1/315775;
+k=1/11.6045;
 E = @(T) 0.5*hw + hw./(exp(hw./(k*T))-1);
 Eb = @(T) hw*(1+1./(exp(hw./(k*T))-1) + 2./(exp(2*hw./(k*T))-1))/2;
 Ef = @(T) hw*(2+1./(exp(hw./(k*T))-1) + 2./(exp(2*hw./(k*T))-1))/2;
 T = linspace(0, max(x));
 if(type=='dis')
-    title('Distinguishable')
+    title('Distinguishable, 2D')
 elseif(type=='bos')
-    title('Bosons')
+    title('Bosons, 2D')
 elseif(type=='fer')
-    title('Fermions')
+    title('Fermions, 2D')
 end
-plot(T,E(T)/hw,'k--')
-plot(T,Eb(T)/hw,'k--')
-plot(T,Ef(T)/hw,'k--')
+plot(T,2*E(T)/hw,'k--')
+plot(T,2*Eb(T)/hw,'k--')
+plot(T,2*Ef(T)/hw,'k--')
 h=legend('Potential','Kinetic','Virial','Theory','location','southeast');
 set(h,'interpreter','latex');
 xlabel('$T ~(\mathrm{K})$','interpreter','latex')
+%xlabel('$1/\tau$ (meV)')
 ylabel('Energy ($\hbar\omega_0$)','interpreter','latex')
 %title('$\hbar\omega=100\,\mathrm{\mu Ha}$','interpreter','latex')
 set(gca,'fontsize',18)
+%title('$\hbar\omega_0=3$ meV,$\quad\beta=5$ meV$^{-1}$')
+%title('$\quad\hbar\omega_0 = 3$ meV,$\quad\tau=0.15$ meV$^{-1}$')
 %set(0,'defaulttextinterpreter','latex')
 %set(0,'defaultaxesfontname','arial')
 %ax = gca;
 %xt = get(gca,'xtick');
 %yt = get(gca,'YTick');
 %set(ax,'XTick','fontsize',12)
+xp = [0.5 0.5];
+yp = [0.4 0.65];
+%annotation('textarrow',xp,yp)
+
 
 %%
 clf; hold on; clc;
 %data = load('run1/Prob_distribution.dat');
-%data = load('run1/X_coord_n1p1.dat');
-data = load('run1/Pot_energy_cl.dat');
-data = load('run1/Kin_energy_cl.dat');
+data = load('run1/X_coord_n1p1.dat');
+%data = load('run1/Pot_energy_cl.dat');
+%data = load('run1/Kin_energy_cl.dat');
 %data = load('Pot_energy.dat');
 %data = load('Kinetic_energy.dat');
 %data = load('Kin_en_virial.dat');
@@ -316,16 +323,55 @@ data = load('run1/Kin_energy_cl.dat');
 t=data(:,1);
 epot = data(:,2);
 plot(t,epot,'o')
-%xlim([0 100])
+xlim([0 10])
+xlabel('$t$ (ps)')
+ylabel('Coordinate $(a_0)$')
+title('Single bead')
+set(gca,'fontsize',18)
 %%
 hbar = 1.0545718e-34;
 m = 9.10938356e-31;
 a0 = 5.2917721067e-11;
 Eh = 4.359744650e-18;
-e = 1.602e-19;
+meV = 1.60217662e-22;
+kB = 1.38064852e-23;
 r = 50e-9;
 %hbar*hbar/(2*m*r^2) / Eh
 m/(hbar/a0/sqrt(Eh))^2;
 Eh/a0^2*1e-24;
-(1e-12/a0)^2
+(1e-12/a0)^2;
+m/(hbar/a0/sqrt(meV))^2;
+meV/a0^2*1e-24;
+1/(a0^2*1e24)
+meV/kB
 %%
+folder = 'run1/';
+file = importdata(strcat(folder,'results.dat'));
+data = file.data;
+beta = data(:,2);
+epot_cl = data(:,11)/2;
+epot_cl_e=data(:,12);
+ekin_cl = data(:,13)/2;
+ekin_cl_e=data(:,14);
+clf; hold on;
+T = 11.6045./beta;
+errorbar(T,epot_cl,epot_cl_e,'-','linewidth',1)
+errorbar(T,ekin_cl,ekin_cl_e,'-.','linewidth',1)
+%plot(T,epot_cl)
+%plot(T,ekin_cl)
+xlabel('$T$ (K)')
+ylabel('Energy (meV)')
+set(gca,'fontsize',16)
+title('Classical energies, single bead')
+%title('Classical energies, $\tau=0.15$ meV$^{-1}$')
+legend('Potential energy','Kinetic energy','location','southeast')
+f = @(x) x/11.6045*0.5;
+x = linspace(0,max(T));
+
+yyaxis right
+%plot(x,x/11.6045,'k--')
+errorbar(T,epot_cl-f(T),epot_cl_e)
+errorbar(T,ekin_cl-f(T),ekin_cl_e,'-.')
+ylabel('Energy$-k_\mathrm{B}T/2$')
+%ylim([-0.2 0.2])
+%legend('Potential energy','Kinetic energy')

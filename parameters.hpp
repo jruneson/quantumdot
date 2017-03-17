@@ -27,10 +27,11 @@ public:
 	double tolerance;
 	int steps_in_highest_mode;
 	bool with_thermostat;
+	bool using_input_file;
 	
 	double hw; //in Ha
-	double m_hbar2 = 1.0; //m/hbar^2 = 1 a_0^{-2} Ha^{-1}
-	double hbar = 2.4188843e-5; //in Ha ps
+	double m_hbar2 = 3.674932248e-5; //m/hbar^2 in  a_0^{-2} meV^{-1}
+	double hbar = 0.65821195; //in meV ps
 	double mass; //in kg
 	double charge;
 	double diel_const;

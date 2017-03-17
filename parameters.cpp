@@ -23,6 +23,8 @@ void Parameters::read_file(std::string filename)
 	int to_bool;
 	file >> name >> to_bool;
 	with_thermostat = (to_bool != 0);
+	file >> name >> to_bool;
+	using_input_file = (to_bool != 0);
 
 	file >> name >> hw;
 	file >> name >> mass;
@@ -50,14 +52,15 @@ void Parameters::read_file(std::string filename)
 void Parameters::calculate_dependencies()
 {
 	num_beads = round(beta/tau);
+	num_beads=1;
 	if(num_beads<1)
 		num_beads=1;
 	curvature = m_hbar2 * hw*hw;
 	dt_md = 2*M_PI * std::pow(1 + 4.0*num_beads/(hw*hw*beta*beta),-0.5) * hbar/hw
 			* 1.0/steps_in_highest_mode; //at least 10dt within the highest freq mode
 	//change dt_md depending on what observables are measured : 0.02 for ekin, 0.1 or 0.05 otherwise
-	dt_2m = dt_md / (2.0*mass) * 1.556893025e-21; //containing conversion factor from Ha/a_0 to kg a_0 ps^{-2}
-	temperature = 1.0/beta * 315775.13;
+	dt_2m = dt_md / (2.0*mass) * 5.7214765779e-26; //containing conversion factor from meV/a_0 to kg a_0 ps^{-2}
+	temperature = 1.0/beta * 11.60452205;
 	num_steps = (int) total_time / (dt_md * max_blocks); //per block
 	num_samples = (int) num_steps / steps_per_sample; //per block
 	spring_const = num_beads*m_hbar2/(beta*beta);
