@@ -10,9 +10,9 @@
 
 int main()
 {
-	//std::vector<double> betas = {3.0};
-	std::vector<double> betas = {0.15,0.3,0.5,1,2,5,10};
-	std::vector<double> taus = {0.15};
+	//std::vector<double> betas = {0.15,0.3,0.5,1,2,5,10};
+	//std::vector<double> taus = {0.15};
+	//std::vector<double> betas = {1.0};
 	//std::vector<double> taus = {0.07,0.1,0.15,0.2,0.3,0.5,1,2,5};
 	Parameters params;
 	params.read_file("configuration.cfg");
@@ -22,18 +22,18 @@ int main()
 	for(int id : params.to_measure)
 		results_file << "\tObsId " << id << "\t\tError\t";
 	results_file << std::endl;
-	for(double beta : betas)
+	/*for(double beta : betas)
 	{
 		params.beta = beta;
 		for(double tau : taus)
 		{
-			params.tau = tau;
+			params.tau = tau;*/
 			params.calculate_dependencies();
 			Simulation sim(params, results_file);
 			sim.setup();
 			sim.run();
-		}
-	}
+		/*}
+	}*/
 	results_file.close();
 	return 0;
 }

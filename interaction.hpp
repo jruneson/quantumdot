@@ -2,6 +2,7 @@
 #include "point.hpp"
 #include "parameters.hpp"
 #include "polymer.hpp"
+#include "bias.hpp"
 
 #ifndef INTERACTION_HPP
 #define INTERACTION_HPP
@@ -19,11 +20,11 @@ public:
 //	Force force(const Point&,const Point&,const Point&);
 	Force ext_force(const Point&) const;
 	Force spring_force(const Point&, const Point&, const Point&) ;
-	Force bias_force(const Point&);
+//	Force bias_force(const Point&);
 //	Force int_force(Point);
 	
-	void update_forces(std::vector<Polymer>&);
-	void update_one_pol_forces(Polymer&);
+	void update_forces(std::vector<Polymer>&, const Bias&);
+//	void update_one_pol_forces(Polymer&);
 	
 	double get_spring_const() const;
 	

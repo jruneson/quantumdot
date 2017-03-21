@@ -84,7 +84,7 @@ void Observable::set_print_on()
 	file.precision(8);
 }
 
-void Observable::measure(const std::vector<Polymer>& polymers, Interaction& interac, 
+void Observable::measure(const std::vector<Polymer>& polymers, const Interaction& interac, 
 						double time, double exc_factor)
 {
 	double tmp = 0;

@@ -26,16 +26,16 @@ double Interaction::bias_potential(const Point& p)
 
 //double int_potential(Point p);
 
-
+/*
 void Interaction::update_one_pol_forces(Polymer& pol)
 {
 	for(int bead=0; bead<pol.num_beads; ++bead)
 	{
 		pol.forces[bead] = ext_force(pol[bead])/pol.num_beads
 						+ spring_force(pol[bead-1],pol[bead],pol[bead+1])
-						+ bias_force(pol[bead]);
+						+ bias.calc_force(pol[bead]);
 	}
-}
+}*/
 
 /*Force Interaction::force(const Point& last, const Point& p, const Point& next)
 {
@@ -51,19 +51,24 @@ Force Interaction::spring_force(const Point& last, const Point& p, const Point& 
 	return spring_const*(last - 2*p + next);
 }
 
-Force Interaction::bias_force(const Point& p) 
+/*Force Interaction::bias_force(const Point& p, const Bias& bias) 
 {
-	return Force(p.size());
-}
+	return  Force(p.size());
+}*/
 
 //Force int_force(Point p);
 
-void Interaction::update_forces(std::vector<Polymer>& polymers)
+void Interaction::update_forces(std::vector<Polymer>& polymers, const Bias& bias)
 {
 	for(int n=0; n<polymers.size(); ++n)
 	{
 		Polymer& pol = polymers[n];
-		update_one_pol_forces(pol);
+		for(int bead=0; bead<pol.num_beads; ++bead)
+		{
+			pol.forces[bead] = ext_force(pol[bead])/pol.num_beads
+				+ spring_force(pol[bead-1],pol[bead],pol[bead+1])
+				+ bias.calc_force(polymers,bead,n);
+		}
 		//two_pol_forces
 	}
 }

@@ -28,6 +28,13 @@ public:
 	int steps_in_highest_mode;
 	bool with_thermostat;
 	bool using_input_file;
+	bool metad_on;
+	
+	int cv_id;
+	double gauss_width;
+	double bias_factor;
+	double first_height;
+	double bias_update_time;
 	
 	double hw; //in Ha
 	double m_hbar2 = 3.674932248e-5; //m/hbar^2 in  a_0^{-2} meV^{-1}

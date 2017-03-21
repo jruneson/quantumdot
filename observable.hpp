@@ -8,7 +8,7 @@
 #include "interaction.hpp"
 #include "point.hpp"
 #include "parameters.hpp"
-
+#include "bias.hpp"
 
 #ifndef OBSERVABLE_HPP
 #define OBSERVABLE_HPP
@@ -17,7 +17,8 @@ class Observable {
 public:
 	Observable(int,const Parameters&);
 	
-	void measure(const std::vector<Polymer>&, Interaction&, double, double);
+	void measure(const std::vector<Polymer>&, const Interaction&, double, 
+				double);
 	void print_measure(double, double);
 	
 	void set_zero();

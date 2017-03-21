@@ -14,7 +14,8 @@ Simulation::Simulation(const Parameters& params, std::ofstream& _res_file)
 	  thermostat_on(params.with_thermostat), res_file(_res_file),
 	  total_time(params.total_time),tolerance(params.tolerance),
 	  beta(params.beta), sign(params.sign), exc_const(params.exc_const),
-	  tau(params.tau), using_input_file(params.using_input_file)
+	  tau(params.tau), using_input_file(params.using_input_file), bias(Bias(params)),
+	  bias_update_time(params.bias_update_time)
 {
 	for(int n=0; n<num_parts; ++n)
 		polymers.push_back(Polymer(params));
@@ -33,6 +34,7 @@ Simulation::Simulation(const Parameters& params, std::ofstream& _res_file)
 	histogram.assign(params.num_bins,0);
 	histogram_avg.assign(params.num_bins,0);
 	histogram_sq_avg.assign(params.num_bins,0);
+	bias_update_counter = 0;
 }
 
 
@@ -46,7 +48,7 @@ void Simulation::setup()
 	else
 		initialize_coords_simple();
 	std::cout << "time = " << total_time << "\tP = " << polymers[0].num_beads 
-				<< "\t dt = " << dt << "\t beta = " << beta << "\t tau = " << tau << std::endl;
+				<< "\t dt = " << dt << "\t bias_dt = " << bias_update_time << std::endl;
 	std::time_t t = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
 	logfile.open("logfile_P"+std::to_string(polymers[0].num_beads));
 	logfile << std::ctime(&t);
@@ -149,6 +151,13 @@ void Simulation::run_block()
 			gle->run();
 		}
 		time += dt*steps_per_sample;
+		bias_update_counter += dt*steps_per_sample;
+		if(bias_update_counter >= bias_update_time) //check if remainder is 0
+		{
+			bias.update_bias(polymers,beta,time);
+			bias.update_cv(polymers,time,beta);
+			bias_update_counter = 0;
+		}
 		update_exc();
 		measure();
 	}
@@ -156,7 +165,7 @@ void Simulation::run_block()
 	++block;
 	print_to_file();
 	update_screen();
-	if((block>=max_blocks)||(converged()))
+	if(block>=max_blocks)
 		finished = true;
 }
 
@@ -167,7 +176,8 @@ void Simulation::verlet_step()
 		pol.update_vels();
 		pol.move();
 	}
-	interac.update_forces(polymers);
+	bias.update_cv(polymers,time,beta);
+	interac.update_forces(polymers,bias);
 	for(Polymer& pol: polymers)
 		pol.update_vels();
 
@@ -247,22 +257,6 @@ void Simulation::print_to_file()
 	logfile << std::endl;
 }
 
-bool Simulation::converged()
-{
-	/*
-	if(block>=5)
-	{
-		bool tmp = true;
-		for(const auto& pair : obs)
-		{
-			const auto& ob = pair.second;
-			tmp*=(abs(ob.std_dev()/ob.get_avg()) <= tolerance);
-		}
-		return tmp;
-	}*/
-	return false;
-}
-
 void Simulation::stop()
 {
 	logfile << "Name\t\tValue\t\tSimpleErrer\tWeightedError" << std::endl;
@@ -331,7 +325,10 @@ void Simulation::update_exc()
 		double tmp = 0;
 		for(int bead=0; bead<polymers[0].num_beads; ++bead)
 			tmp += std::exp( - exc_const * (polymers[0][bead]-polymers[1][bead])*(polymers[0][bead+1]-polymers[1][bead+1]));
-		exchange_factor = 1.0 + sign*tmp/polymers[0].num_beads;
+		tmp = 1.0 + sign*tmp/polymers[0].num_beads;
+		if(bias.metad_on)
+			tmp *= bias.get_rew_factor();
+		exchange_factor = tmp;
 	}
 	exc_sum += exchange_factor;
 }

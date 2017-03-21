@@ -240,8 +240,9 @@ plot(t,pot,'o-')
 plot(t,(vir-5)*100+5,'o-')
 xlim([0 10])
 
-%% 08units, 10meV
+%% 08units, 10meV, 12twoD
 clf; hold on; clc;
+set(0,'defaulttextinterpreter','latex')
 type='fer';
 if(type=='dis')
     folder='run4/';
@@ -250,7 +251,7 @@ elseif(type=='bos')
 elseif(type=='fer')
     folder='run6/';
 else
-    folder='run3/';
+    folder='run2/';
 end
 
 file = importdata(strcat(folder,'results.dat'));
@@ -271,25 +272,43 @@ x=11.6045./beta;
 errorbar(x,epot,epot_err,'o-')
 errorbar(x,ekin,ekin_err,'v-')
 errorbar(x,evir,evir_err,'^-')
-xlim([0 max(x)])
-ylim([0 6])
 %plot([0 max(x)],[0.5 0.5],'k--')
 %hw = 100;
 k=1/11.6045;
-E = @(T) 0.5*hw + hw./(exp(hw./(k*T))-1);
-Eb = @(T) hw*(1+1./(exp(hw./(k*T))-1) + 2./(exp(2*hw./(k*T))-1))/2;
-Ef = @(T) hw*(2+1./(exp(hw./(k*T))-1) + 2./(exp(2*hw./(k*T))-1))/2;
-T = linspace(0, max(x));
+d=2;
+tau = 0.15;
+T = linspace(2, max(x));
+beta = 1./(k*T);
+P = round(beta/tau);
+x = hw* beta./P;
+b = 1 + 0.5*x.^2 + 0.5*x.*sqrt(4+x.^2);
+bder = x + 0.5*sqrt(4+x.^2) + 0.5*x.^2./sqrt(4+x.^2);
+%E = @(T) 0.5*hw + hw./(exp(hw./(k*T))-1);
+E = 2*0.5*d*(0.5+1./(b.^P-1)).*bder./b;
+frac1 =( (b.^P-1).^2./(b.^(2*P)-1)).^d;
+frac2 = (b.^P+1)./(b.^P-1);
+frac3 = (b.^(2*P)+1)./(b.^(2*P)-1);
+%frac1 = ((exp(hw*beta)-1).^2 ./(exp(2*hw*beta)-1)).^d;
+%frac2 = coth(hw*beta/2);
+%frac3 = coth(hw*beta);
+%E = 2*0.5*d*(0.5+1./(exp(hw*beta)-1));
+Eb = 0.5*d*(frac2 + frac3.*frac1)./(1+frac1) .*bder./b;
+Ef = 0.5*d*(frac2 - frac3.*frac1)./(1-frac1) .*bder./b;
+%E = d*(0.5+1./(exp(hw*beta)-1));%.*bder./b;
+%Eb = @(T) hw*(1+1./(exp(hw./(k*T))-1) + 2./(exp(2*hw./(k*T))-1))/2;
+%Ef = @(T) hw*(2+1./(exp(hw./(k*T))-1) + 2./(exp(2*hw./(k*T))-1))/2;
 if(type=='dis')
-    title('Distinguishable, 2D')
+    title('Distinguishable, 2D $\quad\tau=0.15$ meV$^{-1}$')
 elseif(type=='bos')
     title('Bosons, 2D')
 elseif(type=='fer')
     title('Fermions, 2D')
 end
-plot(T,2*E(T)/hw,'k--')
-plot(T,2*Eb(T)/hw,'k--')
-plot(T,2*Ef(T)/hw,'k--')
+plot(T,E,'k--')
+plot(T,Eb,'k--')
+plot(T,Ef,'k--')
+xlim([0 max(T)])
+ylim([0 5])
 h=legend('Potential','Kinetic','Virial','Theory','location','southeast');
 set(h,'interpreter','latex');
 xlabel('$T ~(\mathrm{K})$','interpreter','latex')
@@ -299,7 +318,6 @@ ylabel('Energy ($\hbar\omega_0$)','interpreter','latex')
 set(gca,'fontsize',18)
 %title('$\hbar\omega_0=3$ meV,$\quad\beta=5$ meV$^{-1}$')
 %title('$\quad\hbar\omega_0 = 3$ meV,$\quad\tau=0.15$ meV$^{-1}$')
-%set(0,'defaulttextinterpreter','latex')
 %set(0,'defaultaxesfontname','arial')
 %ax = gca;
 %xt = get(gca,'xtick');

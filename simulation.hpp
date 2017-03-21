@@ -38,7 +38,6 @@ public:
 	int calc_bin(double);
 	void update_screen();
 	void print_to_file();
-	bool converged();
 	void stop();
 	void print_config();
 	void update_exc();
@@ -54,8 +53,8 @@ private:
 	const int num_parts;
 	std::vector<Polymer> polymers;
 	Bias bias;
-	//Spline v_spline;
-	//Spline f_spline;
+	const double bias_update_time;
+	double bias_update_counter;
 	const double dt;
 	Interaction interac;
 	const double length_scale;

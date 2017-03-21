@@ -25,6 +25,13 @@ void Parameters::read_file(std::string filename)
 	with_thermostat = (to_bool != 0);
 	file >> name >> to_bool;
 	using_input_file = (to_bool != 0);
+	file >> name >> to_bool;
+	metad_on = (to_bool != 0);
+
+	file >> name >> cv_id;
+	file >> name >> gauss_width;
+	file >> name >> bias_factor;
+	file >> name >> bias_update_time;
 
 	file >> name >> hw;
 	file >> name >> mass;
@@ -52,7 +59,6 @@ void Parameters::read_file(std::string filename)
 void Parameters::calculate_dependencies()
 {
 	num_beads = round(beta/tau);
-	num_beads=1;
 	if(num_beads<1)
 		num_beads=1;
 	curvature = m_hbar2 * hw*hw;
@@ -61,6 +67,7 @@ void Parameters::calculate_dependencies()
 	//change dt_md depending on what observables are measured : 0.02 for ekin, 0.1 or 0.05 otherwise
 	dt_2m = dt_md / (2.0*mass) * 5.7214765779e-26; //containing conversion factor from meV/a_0 to kg a_0 ps^{-2}
 	temperature = 1.0/beta * 11.60452205;
+	first_height = 1.0/beta;
 	num_steps = (int) total_time / (dt_md * max_blocks); //per block
 	num_samples = (int) num_steps / steps_per_sample; //per block
 	spring_const = num_beads*m_hbar2/(beta*beta);
@@ -69,6 +76,8 @@ void Parameters::calculate_dependencies()
 	kin_offset = num_beads*dim/(2.0*beta);
 	virial_offset = dim/(2.0*beta); //not sure about the dim factor
 	hist_size = length_scale * 500;	
+	
+	std::cout << "gamma: " << bias_factor << std::endl;
 }
 
 
