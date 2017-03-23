@@ -12,19 +12,19 @@ void Parameters::read_file(std::string filename)
 	file >> name >> dim;
 	file >> name >> tau;
 	file >> name >> beta;
-	file >> name >> max_blocks;
+	file >> name >> num_blocks;
 	file >> name >> total_time;
 	file >> name >> steps_per_sample;
 	file >> name >> thermalization_steps;
 	file >> name >> num_bins;
 	file >> name >> sign;
-	file >> name >> tolerance;
+	//file >> name >> tolerance;
 	file >> name >> steps_in_highest_mode;
 	int to_bool;
 	file >> name >> to_bool;
 	with_thermostat = (to_bool != 0);
-	file >> name >> to_bool;
-	using_input_file = (to_bool != 0);
+	//file >> name >> to_bool;
+	//using_input_file = (to_bool != 0);
 	file >> name >> to_bool;
 	metad_on = (to_bool != 0);
 
@@ -68,7 +68,7 @@ void Parameters::calculate_dependencies()
 	dt_2m = dt_md / (2.0*mass) * 5.7214765779e-26; //containing conversion factor from meV/a_0 to kg a_0 ps^{-2}
 	temperature = 1.0/beta * 11.60452205;
 	first_height = 1.0/beta;
-	num_steps = (int) total_time / (dt_md * max_blocks); //per block
+	num_steps = (int) total_time / (dt_md * num_blocks); //per block
 	num_samples = (int) num_steps / steps_per_sample; //per block
 	spring_const = num_beads*m_hbar2/(beta*beta);
 	exc_const = num_beads*m_hbar2/beta;
@@ -76,8 +76,6 @@ void Parameters::calculate_dependencies()
 	kin_offset = num_beads*dim/(2.0*beta);
 	virial_offset = dim/(2.0*beta); //not sure about the dim factor
 	hist_size = length_scale * 500;	
-	
-	std::cout << "gamma: " << bias_factor << std::endl;
 }
 
 

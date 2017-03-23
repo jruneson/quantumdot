@@ -18,16 +18,16 @@ public:
 	double tau; //in Ha^{-1}
 	double beta; //in Ha^{-1}
 	
-	int max_blocks;
+	int num_blocks;
 	double total_time;
 	int steps_per_sample;
 	int thermalization_steps;
 	int num_bins;
 	int sign;
-	double tolerance;
+	//double tolerance;
 	int steps_in_highest_mode;
 	bool with_thermostat;
-	bool using_input_file;
+	//bool using_input_file;
 	bool metad_on;
 	
 	int cv_id;

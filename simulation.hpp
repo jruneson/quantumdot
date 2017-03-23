@@ -23,38 +23,13 @@
 
 class Simulation{
 public:
-	Simulation(const Parameters&, std::ofstream&);
+	Simulation(const Parameters&, std::ofstream&, bool);
 	void setup();
-	void read_input_coords();
-	void initialize_coords_simple();
-	void thermalize();
 	void run();
-	void run_block();
-	void verlet_step();
-	void reset_obs();
-	void measure();
-	void update_avgs();
-	void update_histogram();
-	int calc_bin(double);
-	void update_screen();
-	void print_to_file();
-	void stop();
-	void print_config();
-	void update_exc();
-	double simple_uncertainty(double,double) const;
-	double weighted_uncertainty(double,double) const;
-		
-	double coll_var() const;
-	Force grad_coll_var() const;
 	
-
-
 private:
 	const int num_parts;
 	std::vector<Polymer> polymers;
-	Bias bias;
-	const double bias_update_time;
-	double bias_update_counter;
 	const double dt;
 	Interaction interac;
 	const double length_scale;
@@ -62,17 +37,22 @@ private:
 	bool finished;
 	double time;
 	int block;
-	const double total_time;
-	const int max_blocks;
+	double total_time;
+	int num_blocks;
 	const int num_samples;
 	const int thermalization_steps;
 	const int steps_per_sample;	
 	const int num_bins;
 	const double hist_size;
 	GLE* gle;
-	const bool using_input_file;
+	//const bool using_input_file;
 	const bool thermostat_on;
-	const double tolerance;
+	Bias bias;
+	const double bias_update_time;
+	double bias_update_counter;
+	int iteration_nbr;
+	const bool cont_sim; //continue a previous simulation
+	//const double tolerance;
 	
 	const double beta;
 	const double tau;
@@ -95,6 +75,31 @@ private:
 	
 	std::ofstream logfile;
 	std::ofstream& res_file;
+	std::ofstream exc_file;
+	std::ofstream cv_file;
+	std::ofstream rew_factor_file;
+
+	void read_input_coords();
+	void initialize_coords_simple();
+	void read_old_measurements();
+	void thermalize();
+	void run_block();
+	void verlet_step();
+	void reset_obs();
+	void measure();
+	void update_avgs();
+	void update_histogram();
+	int calc_bin(double);
+	void update_screen();
+	void print_to_file();
+	void stop();
+	void print_config();
+	void update_exc();
+	double simple_uncertainty(double,double) const;
+	double weighted_uncertainty(double,double) const;
+		
+	//double coll_var() const;
+	//Force grad_coll_var() const;
 
 };
 

@@ -26,14 +26,36 @@ void Observable::update_avg(int num_samples)
 	++blocks;
 }
 
-double Observable::get_avg(double exc_avg) const
+int Observable::get_id() const
+{
+	return id;
+}
+
+double Observable::get_avg() const
+{
+	return avg;
+}
+
+double Observable::get_avg_sq() const
+{
+	return avg_sq;
+}
+
+double Observable::get_weighted_avg(double exc_avg) const
 {
 	return avg/exc_avg;
 }
 
-double Observable::get_avg_sq(double exc_avg) const
+double Observable::get_weighted_avg_sq(double exc_avg) const
 {
 	return avg_sq/(exc_avg*exc_avg);
+}
+
+void Observable::set_avgs(double avg_, double avg_sq_, double blocks_)
+{
+	avg = avg_;
+	avg_sq = avg_sq_;
+	blocks = blocks_;
 }
 
 double Observable::get_value() const
@@ -85,7 +107,7 @@ void Observable::set_print_on()
 }
 
 void Observable::measure(const std::vector<Polymer>& polymers, const Interaction& interac, 
-						double time, double exc_factor)
+						double time, double exc_factor, double rew_factor)
 {
 	double tmp = 0;
 	for(int n=0; n<polymers.size(); ++n)
@@ -134,6 +156,7 @@ void Observable::measure(const std::vector<Polymer>& polymers, const Interaction
 		default:
 			break;
 	}
+	tmp *= rew_factor;
 	value += tmp;
 	if(print)
 		print_measure(tmp,time);

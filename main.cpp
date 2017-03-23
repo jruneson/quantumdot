@@ -8,32 +8,39 @@
 
 
 
-int main()
+int main(int argc, char* argv[])
 {
+	bool continue_sim = false;
+	if(argc > 1)
+	{
+		if((std::string(argv[1])=="-c")||(std::string(argv[1])=="--continue"))
+		{
+			continue_sim = true;
+			std::cout << "continuing" << std::endl;
+		}
+	}
 	//std::vector<double> betas = {0.15,0.3,0.5,1,2,5,10};
 	//std::vector<double> taus = {0.15};
 	//std::vector<double> betas = {1.0};
 	//std::vector<double> taus = {0.07,0.1,0.15,0.2,0.3,0.5,1,2,5};
 	Parameters params;
 	params.read_file("configuration.cfg");
-	std::ofstream results_file("results.dat");
-	results_file.precision(8);
-	results_file << "%tau\tbeta";
-	for(int id : params.to_measure)
-		results_file << "\tObsId " << id << "\t\tError\t";
-	results_file << std::endl;
-	/*for(double beta : betas)
+	params.calculate_dependencies();
+	std::ofstream results_file;
+	if(!continue_sim)
 	{
-		params.beta = beta;
-		for(double tau : taus)
-		{
-			params.tau = tau;*/
-			params.calculate_dependencies();
-			Simulation sim(params, results_file);
-			sim.setup();
-			sim.run();
-		/*}
-	}*/
+		results_file.open("results.dat");
+		results_file << "%time\t";
+		for(int id : params.to_measure)
+			results_file << "\tObsId " << id << "\t\tError\t";
+		results_file << std::endl;
+	}
+	else
+		results_file.open("results.dat", std::ios_base::app);
+	results_file.precision(8);
+	Simulation sim(params, results_file,continue_sim);
+	sim.setup();
+	sim.run();
 	results_file.close();
 	return 0;
 }
@@ -59,15 +66,15 @@ int main()
  x fermion and boson
  x make P depend on beta
  x units
- * maybe separate out error estimation from exchange factor
+ x maybe separate out error estimation from exchange factor
  * read config.xyz in/out
  x check conv with tau 
- * clean up logfiles
- * use python instead of matlab, to also run program from there
- * Bias
- * Test
- * Spline
- * Test
+ x clean up logfiles
+ x use python instead of matlab, to also run program from there
+ x Bias
+ x Test
+ x Spline
+ x Test
  * read from XML-file or similar
  * read functions from file - or choose function with an integer input
  * Interaction, several particles

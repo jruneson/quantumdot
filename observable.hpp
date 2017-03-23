@@ -18,14 +18,18 @@ public:
 	Observable(int,const Parameters&);
 	
 	void measure(const std::vector<Polymer>&, const Interaction&, double, 
-				double);
+				double, double);
 	void print_measure(double, double);
 	
 	void set_zero();
 	void update_avg(int);
+	int get_id() const;
 	double get_value() const;
-	double get_avg(double) const;
-	double get_avg_sq(double) const;
+	double get_avg() const;
+	double get_avg_sq() const;
+	double get_weighted_avg(double) const;
+	double get_weighted_avg_sq(double) const;
+	void set_avgs(double,double,double);
 	double std_dev(double,double) const;
 	std::string get_name() const;
 	
@@ -38,7 +42,7 @@ private:
 	double avg_sq;
 	std::ofstream file;
 	const int id;
-	int blocks;
+	double blocks;
 	
 	const double kin_offset;
 	const double virial_offset;

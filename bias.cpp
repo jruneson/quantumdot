@@ -9,12 +9,13 @@ Bias::Bias(const Parameters& params) : id(params.cv_id), sign(params.sign),
 			exponent_factor(1.0/(2*params.gauss_width*params.gauss_width)),
 			metad_on(params.metad_on),spline_step(gauss_width/10.0)
 {
-	cv_file.open("cv.dat");
 	cv_centers_file.open("cv_centers.dat");
 	heights_file.open("heights.dat");
-	rew_factor_file.open("rew_factor.dat");
 	v_spline = Spline(spline_step);
 	vder_spline = Spline(spline_step);
+	rew_factor = 1;
+	rew_factor_avg = 1;
+	count = 0;
 }
 	
 double Bias::coll_var(const std::vector<Polymer>& pols) const
@@ -66,6 +67,8 @@ Force Bias::two_terms(const std::vector<Polymer>& pols, int bead, int part) cons
 
 Force Bias::calc_force(const std::vector<Polymer>& pols, int bead, int part) const
 {	
+	if(!metad_on)
+		return Force(pols[0][0].size());
 	//std::cout << "before eval" << std::endl;
 	//double tmp = vder_spline.eval_spline(cv);
 	//std::cout << "after eval" << std::endl;
@@ -109,6 +112,14 @@ void Bias::update_bias(const std::vector<Polymer>& pols, double beta, double t)
 		cv_centers_file << t << "\t" << cv << std::endl;
 		heights_file << t << "\t" << h << std::endl;	
 		update_transient(beta);
+		create_splines();
+	}
+}
+
+void Bias::create_splines()
+{
+	if(metad_on)
+	{
 		std::vector<double> vs;
 		std::vector<double> vders;
 		std::vector<double> cvs;
@@ -126,6 +137,7 @@ void Bias::update_bias(const std::vector<Polymer>& pols, double beta, double t)
 		vder_spline.create_spline(cvs,vders);
 	}
 }
+
 
 void Bias::update_transient(double beta)
 {
@@ -147,12 +159,18 @@ void Bias::update_transient(double beta)
 	transient = beta*tmp_avg + std::log(tmp_int_num/tmp_int_den);
 }
 
-void Bias::update_cv(const std::vector<Polymer>& pols, double time, const double beta)
+void Bias::update_cv(const std::vector<Polymer>& pols, const double beta)
 {
 	cv = coll_var(pols);
 	rew_factor = std::exp(beta*(v_spline.eval_spline(cv)-transient));
-	cv_file << time << "\t" << cv << std::endl;
-	rew_factor_file << time << "\t" << rew_factor << "\t" << transient << "\t" << v_spline.eval_spline(cv) << std::endl;
+	rew_factor_avg = (rew_factor_avg*count + rew_factor)/(count+1.0);
+	++count;
+}
+
+void Bias::set_rew_factor_avg(double rew_factor_avg_, double count_)
+{
+	rew_factor_avg = rew_factor_avg_;
+	count = count_;
 }
 
 double Bias::get_cv() const
@@ -165,7 +183,33 @@ double Bias::get_rew_factor() const
 	return rew_factor;
 }
 
+double Bias::get_rew_factor_avg() const
+{
+	return rew_factor_avg;
+}
+
 const double Bias::get_gauss_width() const
 {
 	return gauss_width;
+}
+
+double Bias::get_count() const
+{
+	return count;
+}
+
+void Bias::add_gaussian(double height, double center)
+{
+	heights.push_back(height);
+	cv_centers.push_back(center);
+}
+
+std::vector<double> Bias::get_heights() const
+{
+	return heights;
+}
+
+std::vector<double> Bias::get_centers() const
+{
+	return cv_centers;
 }
