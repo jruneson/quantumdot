@@ -22,14 +22,14 @@ public:
 	void print_measure(double, double);
 	
 	void set_zero();
-	void update_avg(int);
+	void update_avg(int,double);
 	int get_id() const;
 	double get_value() const;
 	double get_avg() const;
 	double get_avg_sq() const;
-	double get_weighted_avg(double) const;
-	double get_weighted_avg_sq(double) const;
-	void set_avgs(double,double,double);
+	double get_weighted_avg() const;
+	double get_weighted_avg_sq() const;
+	void set_avgs(double,double,double,double,double);
 	double std_dev(double,double) const;
 	std::string get_name() const;
 	
@@ -40,6 +40,8 @@ private:
 	double value;
 	double avg;
 	double avg_sq;
+	double weighted_avg;
+	double weighted_avg_sq;
 	std::ofstream file;
 	const int id;
 	double blocks;

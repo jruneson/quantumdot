@@ -12,7 +12,7 @@
 
 class Bias{
 public:
-	Bias(const Parameters& params);
+	Bias(const Parameters&, bool);
 		
 	void update_cv(const std::vector<Polymer>&, const double);
 	double get_cv() const;
@@ -20,6 +20,7 @@ public:
 	void update_bias(const std::vector<Polymer>&,double,double);
 	void create_splines();
 	
+	double energy_diff(const std::vector<Polymer>& pols) const;
 	Force calc_force(const std::vector<Polymer>&, int, int) const;
 	double get_rew_factor() const;
 	double get_rew_factor_avg() const;

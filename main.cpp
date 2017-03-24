@@ -16,7 +16,6 @@ int main(int argc, char* argv[])
 		if((std::string(argv[1])=="-c")||(std::string(argv[1])=="--continue"))
 		{
 			continue_sim = true;
-			std::cout << "continuing" << std::endl;
 		}
 	}
 	//std::vector<double> betas = {0.15,0.3,0.5,1,2,5,10};

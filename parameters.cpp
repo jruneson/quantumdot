@@ -67,7 +67,7 @@ void Parameters::calculate_dependencies()
 	//change dt_md depending on what observables are measured : 0.02 for ekin, 0.1 or 0.05 otherwise
 	dt_2m = dt_md / (2.0*mass) * 5.7214765779e-26; //containing conversion factor from meV/a_0 to kg a_0 ps^{-2}
 	temperature = 1.0/beta * 11.60452205;
-	first_height = 1.0/beta;
+	first_height = 0.33/beta;
 	num_steps = (int) total_time / (dt_md * num_blocks); //per block
 	num_samples = (int) num_steps / steps_per_sample; //per block
 	spring_const = num_beads*m_hbar2/(beta*beta);

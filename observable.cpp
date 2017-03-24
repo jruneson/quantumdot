@@ -9,6 +9,8 @@ Observable::Observable(int _id, const Parameters& params) : id(_id),
 	value = 0;
 	avg = 0;
 	avg_sq = 0;
+	weighted_avg = 0;
+	weighted_avg_sq = 0;
 	blocks = 0;
 	print = false;
 }
@@ -18,11 +20,13 @@ void Observable::set_zero()
 	value = 0;
 }
 
-void Observable::update_avg(int num_samples)
+void Observable::update_avg(int num_samples, double exc_avg)
 {
 	double tmp = value/num_samples;
-	avg = (avg*blocks + tmp)/(blocks+1);
-	avg_sq = (avg_sq*blocks + tmp*tmp)/(blocks+1);
+	avg = (avg*blocks + tmp)/(blocks+1.0);
+	avg_sq = (avg_sq*blocks + tmp*tmp)/(blocks+1.0);
+	weighted_avg = (weighted_avg*blocks + tmp/exc_avg)/(blocks+1.0);
+	weighted_avg_sq = (weighted_avg_sq*blocks + std::pow(tmp/exc_avg,2))/(blocks+1.0);
 	++blocks;
 }
 
@@ -41,20 +45,24 @@ double Observable::get_avg_sq() const
 	return avg_sq;
 }
 
-double Observable::get_weighted_avg(double exc_avg) const
+double Observable::get_weighted_avg() const
 {
-	return avg/exc_avg;
+	return weighted_avg;
+	//return avg/exc_avg;
 }
 
-double Observable::get_weighted_avg_sq(double exc_avg) const
+double Observable::get_weighted_avg_sq() const
 {
-	return avg_sq/(exc_avg*exc_avg);
+	return weighted_avg_sq;
+	//return avg_sq/(exc_avg*exc_avg);
 }
 
-void Observable::set_avgs(double avg_, double avg_sq_, double blocks_)
+void Observable::set_avgs(double avg_, double avg_sq_, double w_avg_, double w_avg_sq_, double blocks_)
 {
 	avg = avg_;
 	avg_sq = avg_sq_;
+	weighted_avg = w_avg_;
+	weighted_avg_sq = w_avg_sq_;
 	blocks = blocks_;
 }
 

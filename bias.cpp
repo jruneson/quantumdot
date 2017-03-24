@@ -3,19 +3,32 @@
 #include "point.hpp"
 #include <algorithm>
 
-Bias::Bias(const Parameters& params) : id(params.cv_id), sign(params.sign),
+Bias::Bias(const Parameters& params, bool cont_sim) : id(params.cv_id), sign(params.sign),
 			gauss_width(params.gauss_width), bias_factor(params.bias_factor),
 			exc_const(params.exc_const), first_height(params.first_height),
 			exponent_factor(1.0/(2*params.gauss_width*params.gauss_width)),
 			metad_on(params.metad_on),spline_step(gauss_width/10.0)
 {
-	cv_centers_file.open("cv_centers.dat");
-	heights_file.open("heights.dat");
+	if(cont_sim)
+	{
+		cv_centers_file.open("cv_centers.dat",std::ios_base::app);
+		heights_file.open("heights.dat",std::ios_base::app);
+	}
+	else
+	{
+		cv_centers_file.open("cv_centers.dat");
+		heights_file.open("heights.dat");
+	}
 	v_spline = Spline(spline_step);
 	vder_spline = Spline(spline_step);
 	rew_factor = 1;
 	rew_factor_avg = 1;
 	count = 0;
+}
+
+double Bias::energy_diff(const std::vector<Polymer>& pols) const
+{
+	return -std::log(sum_exp(pols)/pols[0].num_beads);
 }
 	
 double Bias::coll_var(const std::vector<Polymer>& pols) const
@@ -27,8 +40,10 @@ double Bias::coll_var(const std::vector<Polymer>& pols) const
 			tmp = sum_exp(pols);
 			return 1.0+sign*tmp/pols[0].num_beads;
 		case 2:
-			tmp = sum_exp(pols);
-			return std::log(tmp);
+			return energy_diff(pols);
+		case 3:
+			//distance-corrected cv
+			return 1;
 		default:
 			return pols[0][0][0];
 	}
@@ -53,7 +68,7 @@ Force Bias::cv_grad(const std::vector<Polymer>& pols, int bead, int part) const
 		case 2:
 			tmp += two_terms(pols, bead, part);
 			tmp /= sum_exp(pols);
-			return tmp * exc_const * sign*std::pow(-1,part);
+			return tmp * (- exc_const * sign*std::pow(-1,part));
 		default:
 			return tmp;
 	}
