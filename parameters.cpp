@@ -14,12 +14,13 @@ void Parameters::read_file(std::string filename)
 	file >> name >> beta;
 	file >> name >> num_blocks;
 	file >> name >> total_time;
-	file >> name >> steps_per_sample;
+	file >> name >> dt_md;
+	file >> name >> dt_sample;
 	file >> name >> thermalization_steps;
 	file >> name >> num_bins;
 	file >> name >> sign;
 	//file >> name >> tolerance;
-	file >> name >> steps_in_highest_mode;
+	//file >> name >> steps_in_highest_mode;
 	int to_bool;
 	file >> name >> to_bool;
 	with_thermostat = (to_bool != 0);
@@ -31,6 +32,7 @@ void Parameters::read_file(std::string filename)
 	file >> name >> cv_id;
 	file >> name >> gauss_width;
 	file >> name >> bias_factor;
+	file >> name >> first_height;
 	file >> name >> bias_update_time;
 
 	file >> name >> hw;
@@ -62,12 +64,13 @@ void Parameters::calculate_dependencies()
 	if(num_beads<1)
 		num_beads=1;
 	curvature = m_hbar2 * hw*hw;
-	dt_md = 2*M_PI * std::pow(1 + 4.0*num_beads/(hw*hw*beta*beta),-0.5) * hbar/hw
-			* 1.0/steps_in_highest_mode; //at least 10dt within the highest freq mode
-	//change dt_md depending on what observables are measured : 0.02 for ekin, 0.1 or 0.05 otherwise
+	//dt_md = 2*M_PI * std::pow(1 + 4.0*num_beads/(hw*hw*beta*beta),-0.5) * hbar/hw
+	//		* 1.0/steps_in_highest_mode; //at least 10dt within the highest freq mode
+	//dt_md = 0.005;
+	steps_per_sample = round(dt_sample/dt_md);
 	dt_2m = dt_md / (2.0*mass) * 5.7214765779e-26; //containing conversion factor from meV/a_0 to kg a_0 ps^{-2}
 	temperature = 1.0/beta * 11.60452205;
-	first_height = 0.33/beta;
+	first_height = first_height/beta;
 	num_steps = (int) total_time / (dt_md * num_blocks); //per block
 	num_samples = (int) num_steps / steps_per_sample; //per block
 	spring_const = num_beads*m_hbar2/(beta*beta);

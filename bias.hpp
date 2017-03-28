@@ -60,6 +60,7 @@ private:
 	double gaussian(double, double, double) const;
 	Force cv_grad(const std::vector<Polymer>&, int, int) const;
 	double sum_exp(const std::vector<Polymer>&) const;
+	double sum_exp_distcorr(const std::vector<Polymer>&) const;
 	Force two_terms(const std::vector<Polymer>&, int, int) const;
 	void update_transient(double);
 	

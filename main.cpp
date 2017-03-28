@@ -29,14 +29,14 @@ int main(int argc, char* argv[])
 	if(!continue_sim)
 	{
 		results_file.open("results.dat");
-		results_file << "%time\t";
+		results_file << "%time";
 		for(int id : params.to_measure)
 			results_file << "\tObsId " << id << "\t\tError\t";
 		results_file << std::endl;
 	}
 	else
 		results_file.open("results.dat", std::ios_base::app);
-	results_file.precision(8);
+	results_file.precision(10);
 	Simulation sim(params, results_file,continue_sim);
 	sim.setup();
 	sim.run();
@@ -66,7 +66,7 @@ int main(int argc, char* argv[])
  x make P depend on beta
  x units
  x maybe separate out error estimation from exchange factor
- * read config.xyz in/out
+ x read config.xyz in/out
  x check conv with tau 
  x clean up logfiles
  x use python instead of matlab, to also run program from there
@@ -74,7 +74,7 @@ int main(int argc, char* argv[])
  x Test
  x Spline
  x Test
- * read from XML-file or similar
+ * replace gle ptr with static obj
  * read functions from file - or choose function with an integer input
  * Interaction, several particles
  * histogram at 3d

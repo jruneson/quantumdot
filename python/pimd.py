@@ -18,6 +18,7 @@ def first_run(folder): #f=folder
         os.remove(file)
     #subprocess.call(['rm '+folder+'logfile* '+folder+'*.dat'], shell=True)
     subprocess.call(['cp', '../pimd',folder])
+    subprocess.call(['cp', '../configuration.cfg',folder])
     cmd = folder+'pimd'
     try:
         #proc = subprocess.Popen("exec "+ex_path, cwd=f, shell=True).wait()
@@ -52,6 +53,8 @@ def continue_run(folder,num_runs):
 
 if __name__=="__main__":
     make()
-    folders=['../run1/','../run2/','../run3/']
-    first_run(folders[2])
-    continue_run(folders[2], 9)
+    folders=['.','../run1/','../run2/','../run3/','../run4/','../run5/','../run6/']
+    f = folders[4]
+    first_run(f)
+    continue_run(f,9)
+    print(f)

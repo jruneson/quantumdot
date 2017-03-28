@@ -20,12 +20,13 @@ public:
 	
 	int num_blocks;
 	double total_time;
-	int steps_per_sample;
+	double dt_md;
+	double dt_sample;
 	int thermalization_steps;
 	int num_bins;
 	int sign;
 	//double tolerance;
-	int steps_in_highest_mode;
+	//int steps_in_highest_mode;
 	bool with_thermostat;
 	//bool using_input_file;
 	bool metad_on;
@@ -47,7 +48,7 @@ public:
 	//dependent parameters
 	int num_beads;
 	double curvature; //in Ha a_0^{-2}
-	double dt_md;
+	int steps_per_sample;
 	double dt_2m;
 	double temperature;
 	int num_samples;

@@ -1,5 +1,6 @@
 
 #include <stdexcept>
+#include <cmath>
 #include "simulation.hpp"
 
 
@@ -57,12 +58,21 @@ void Simulation::setup()
 	{
 		read_input_coords();
 		read_old_measurements();
+		exc_file.open("exc_factor.dat", std::ios_base::app);
+		cv_file.open("cv.dat", std::ios_base::app);
+		rew_factor_file.open("rew_factor.dat", std::ios_base::app);
 	}
 	else
 	{
 		iteration_nbr = 0;
 		initialize_coords_simple();
+		exc_file.open("exc_factor.dat");
+		cv_file.open("cv.dat");
+		rew_factor_file.open("rew_factor.dat");
 	}
+	exc_file.precision(8);
+	cv_file.precision(8);
+	rew_factor_file.precision(8);
 	std::cout << iteration_nbr << std::endl;
 	std::cout << "time = " << total_time << "\tP = " << polymers[0].num_beads 
 				<< "\t dt = " << dt << "\t bias_dt = " << bias_update_time << std::endl;
@@ -77,12 +87,6 @@ void Simulation::setup()
 		logfile << "\t" << pair.second.get_name();
 	logfile << std::endl;
 	logfile.precision(8);
-	exc_file.open("exc_factor.dat");
-	exc_file.precision(8);
-	cv_file.open("cv.dat");
-	cv_file.precision(8);
-	rew_factor_file.open("rew_factor.dat");
-	rew_factor_file.precision(8);
 	if(!cont_sim)
 		thermalize();
 }
@@ -329,8 +333,6 @@ void Simulation::stop()
 	double rew_norm = bias.get_rew_factor_avg();
 	logfile << "Exc_factor\t" << exc_avg/rew_norm << "\t" << simple_uncertainty(exc_avg,exc_avg_sq)/rew_norm << std::endl;
 	res_file << total_time;
-	if(!cont_sim)
-		res_file << "\t";
 	for(const auto& pair : obs)
 	{
 		const auto& ob = pair.second;
@@ -338,7 +340,7 @@ void Simulation::stop()
 		double avg_sq = ob.get_avg_sq();
 		//double w_avg = ob.get_weighted_avg();
 		//double w_avg_sq = ob.get_weighted_avg_sq();
-		logfile << ob.get_name() << "\t" << avg/exc_avg << "\t" << simple_uncertainty(avg,avg_sq) << "\t"
+		logfile << ob.get_name() << "\t" << avg/exc_avg << "\t" << simple_uncertainty(avg,avg_sq)/rew_norm << "\t"
 				<< weighted_uncertainty(avg,avg_sq) << std::endl;
 		res_file << "\t" << avg/exc_avg << "\t" << weighted_uncertainty(avg,avg_sq);
 	}
@@ -438,7 +440,7 @@ double Simulation::weighted_uncertainty(double avg, double avg_sq) const
 		//exc_avg_sq /= (rew_avg*rew_avg);
 		double num_error = simple_uncertainty(avg,avg_sq);
 		double den_error = simple_uncertainty(exc_avg,exc_avg_sq);
-		return abs(avg/exc_avg) * std::sqrt(std::pow(num_error/avg,2) + std::pow(den_error/exc_avg,2));		
+		return std::abs(avg/exc_avg) * (num_error/avg + den_error/exc_avg);
 		//error = num/den * (num_err/num + den_err/den)
 		//relative errors do not need to be normalized by rew_factor_avg of bias
 	}

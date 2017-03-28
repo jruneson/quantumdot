@@ -42,6 +42,8 @@ double Bias::coll_var(const std::vector<Polymer>& pols) const
 		case 2:
 			return energy_diff(pols);
 		case 3:
+			tmp = sum_exp_distcorr(pols);
+			return -std::log(tmp/pols[0].num_beads);
 			//distance-corrected cv
 			return 1;
 		default:
@@ -57,18 +59,36 @@ double Bias::sum_exp(const std::vector<Polymer>& pols) const
 	return tmp;
 }
 
+double Bias::sum_exp_distcorr(const std::vector<Polymer>& pols) const
+{
+	double tmp=0;
+	for(int bead=0; bead<pols[0].num_beads; ++bead)
+	{
+		Point tmp2 = pols[0][bead]-pols[1][bead]-(pols[0][bead+1]-pols[1][bead+1]);
+		tmp += std::exp(0.5*exc_const*tmp2.sqdist0());
+	}
+	return tmp;
+}
+
 Force Bias::cv_grad(const std::vector<Polymer>& pols, int bead, int part) const
 {
 	Force tmp(pols[0][0].size());
+	Force tmp2(pols[0][0].size());
 	switch(id)
 	{
 		case 1:
 			tmp += two_terms(pols, bead, part);
-			return tmp * exc_const/pols[part].num_beads * sign*(-1)*std::pow(-1,part);
+			return tmp * exc_const/pols[part].num_beads * std::pow(-1,part);
 		case 2:
 			tmp += two_terms(pols, bead, part);
 			tmp /= sum_exp(pols);
 			return tmp * (- exc_const * sign*std::pow(-1,part));
+		case 3:
+			tmp2 = pols[0][bead]-pols[1][bead]-(pols[0][bead+1]-pols[1][bead+1]);
+			tmp = tmp2*std::exp(0.5*exc_const*tmp2.sqdist0());
+			tmp2 = pols[0][bead]-pols[1][bead]-(pols[0][bead-1]-pols[1][bead-1]);
+			tmp += tmp2*std::exp(0.5*exc_const*tmp2.sqdist0());
+			return tmp*(-std::pow(-1,part)*exc_const/sum_exp_distcorr(pols));
 		default:
 			return tmp;
 	}
@@ -156,12 +176,12 @@ void Bias::create_splines()
 
 void Bias::update_transient(double beta)
 {
-	int num_samples = 2000;
 	double smin = v_spline.get_min();
 	double smax = v_spline.get_max();
-	double step = (smax-smin)/num_samples;
+	double step = 0.01*gauss_width;
+	int num_samples = round((smax-smin)/step);
 	const double num_const = beta*bias_factor/(bias_factor-1.0);
-	const double den_const = bias_factor/(bias_factor-1.0);
+	const double den_const = beta/(bias_factor-1.0);
 	double tmp_avg, tmp_int_num, tmp_int_den = 0;
 	for(double s = smin; s<smax; s+=step)
 		tmp_avg += v_spline.eval_spline(s);
