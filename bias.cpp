@@ -34,18 +34,23 @@ double Bias::energy_diff(const std::vector<Polymer>& pols) const
 double Bias::coll_var(const std::vector<Polymer>& pols) const
 {
 	double tmp = 0;
+	double dist;
 	switch(id)
 	{
 		case 1:
 			tmp = sum_exp(pols);
 			return 1.0+sign*tmp/pols[0].num_beads;
-		case 2:
+		case 2: //energy-difference cv
 			return energy_diff(pols);
-		case 3:
+		case 3: //distance-corrected cv
 			tmp = sum_exp_distcorr(pols);
 			return -std::log(tmp/pols[0].num_beads);
-			//distance-corrected cv
-			return 1;
+		case 4:
+			dist = sq_distAB(pols);
+			//std::cout << scalar_product(pols,0) << "\t" << dist << std::endl;
+			for(int bead=0; bead<pols[0].num_beads; ++bead)
+				tmp += std::exp(-exc_const*(scalar_product(pols,bead)-dist));
+			return -std::log(tmp/pols[0].num_beads);
 		default:
 			return pols[0][0][0];
 	}
@@ -70,6 +75,24 @@ double Bias::sum_exp_distcorr(const std::vector<Polymer>& pols) const
 	return tmp;
 }
 
+double Bias::sq_distAB(const std::vector<Polymer>& pols) const
+{
+	double tmp=0;
+	for(int bead=0; bead<pols[0].num_beads; ++bead)
+		tmp += (pols[0][bead]-pols[1][bead])*(pols[0][bead]-pols[1][bead]);
+	tmp /= (pols[0].num_beads);
+	return tmp;
+}
+/*
+double Bias::sq_distAB(const std::vector<Polymer>& pols) const
+{
+	Point tmp(pols[0][0].size());
+	for(int bead=0; bead<pols[0].num_beads; ++bead)
+		tmp += pols[0][bead]-pols[1][bead];
+	tmp /= pols[0].num_beads;
+	return tmp*tmp;
+}*/
+
 Force Bias::cv_grad(const std::vector<Polymer>& pols, int bead, int part) const
 {
 	Force tmp(pols[0][0].size());
@@ -82,13 +105,19 @@ Force Bias::cv_grad(const std::vector<Polymer>& pols, int bead, int part) const
 		case 2:
 			tmp += two_terms(pols, bead, part);
 			tmp /= sum_exp(pols);
-			return tmp * (- exc_const * sign*std::pow(-1,part));
+			return tmp * (exc_const * std::pow(-1,part));
 		case 3:
 			tmp2 = pols[0][bead]-pols[1][bead]-(pols[0][bead+1]-pols[1][bead+1]);
 			tmp = tmp2*std::exp(0.5*exc_const*tmp2.sqdist0());
 			tmp2 = pols[0][bead]-pols[1][bead]-(pols[0][bead-1]-pols[1][bead-1]);
 			tmp += tmp2*std::exp(0.5*exc_const*tmp2.sqdist0());
 			return tmp*(-std::pow(-1,part)*exc_const/sum_exp_distcorr(pols));
+		case 4:
+			tmp2 = pols[0][bead+1]-pols[1][bead+1]-(pols[0][bead]-pols[1][bead])*2.0/pols[0].num_beads;
+			tmp = tmp2*std::exp(-exc_const*scalar_product(pols,bead));
+			tmp2 = pols[0][bead-1]-pols[1][bead-1]-(pols[0][bead]-pols[1][bead])*2.0/pols[0].num_beads;
+			tmp += tmp2*std::exp(-exc_const*scalar_product(pols,bead-1));
+			return tmp*(exc_const*std::pow(-1,part)/sum_exp(pols));
 		default:
 			return tmp;
 	}

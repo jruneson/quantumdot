@@ -54,7 +54,7 @@ def continue_run(folder,num_runs):
 if __name__=="__main__":
     make()
     folders=['.','../run1/','../run2/','../run3/','../run4/','../run5/','../run6/']
-    f = folders[4]
+    f = folders[3]
     first_run(f)
     continue_run(f,9)
     print(f)

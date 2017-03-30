@@ -62,6 +62,7 @@ private:
 	double sum_exp(const std::vector<Polymer>&) const;
 	double sum_exp_distcorr(const std::vector<Polymer>&) const;
 	Force two_terms(const std::vector<Polymer>&, int, int) const;
+	double sq_distAB(const std::vector<Polymer>&) const;
 	void update_transient(double);
 	
 	std::ofstream heights_file;

@@ -61,6 +61,8 @@ void Simulation::setup()
 		exc_file.open("exc_factor.dat", std::ios_base::app);
 		cv_file.open("cv.dat", std::ios_base::app);
 		rew_factor_file.open("rew_factor.dat", std::ios_base::app);
+		vmd_file.open("vmd.xyz", std::ios_base::app);
+		vmd_file2.open("vmd2.xyz", std::ios_base::app);
 	}
 	else
 	{
@@ -69,10 +71,14 @@ void Simulation::setup()
 		exc_file.open("exc_factor.dat");
 		cv_file.open("cv.dat");
 		rew_factor_file.open("rew_factor.dat");
+		vmd_file.open("vmd.xyz");
+		vmd_file2.open("vmd2.xyz");
 	}
 	exc_file.precision(8);
 	cv_file.precision(8);
 	rew_factor_file.precision(8);
+	vmd_file.precision(8);
+	vmd_file2.precision(8);
 	std::cout << iteration_nbr << std::endl;
 	std::cout << "time = " << total_time << "\tP = " << polymers[0].num_beads 
 				<< "\t dt = " << dt << "\t bias_dt = " << bias_update_time << std::endl;
@@ -145,6 +151,7 @@ void Simulation::read_old_measurements()
 		std::istringstream iss(line);
 		std::string name;
 		int obs_id; double tmp1; double tmp2; double tmp3; double tmp4;
+		int bin;
 		double prev_blocks;
 		if(iss >> name)
 		{
@@ -182,6 +189,12 @@ void Simulation::read_old_measurements()
 			{
 				iss >> tmp1 >> tmp2; //height, center
 				bias.add_gaussian(tmp1, tmp2);
+			}
+			if(name=="prob_dist")
+			{
+				iss >> bin >> tmp1 >> tmp2;
+				histogram_avg[bin] = tmp1;
+				histogram_sq_avg[bin] = tmp2;
 			}
 		}
 	}
@@ -263,14 +276,15 @@ void Simulation::measure()
 	update_histogram();
 	cv_file << time << "\t" << bias.get_cv() << "\t" << bias.energy_diff(polymers) << std::endl;
 	rew_factor_file << time << "\t" << bias.get_rew_factor() << std::endl;
-
+	if(time>movie_start_time && time<movie_end_time)
+		print_vmd();
 }
 
 void Simulation::update_avgs()
 {
 	double tmp = exc_sum/num_samples;
-	exc_avg = (exc_avg*block + tmp) / (block+1);
-	exc_avg_sq = (exc_avg_sq*block + tmp*tmp)/(block+1);
+	exc_avg = (exc_avg*block + tmp) / (block+1.0);
+	exc_avg_sq = (exc_avg_sq*block + tmp*tmp)/(block+1.0);
 	exc_sum = 0;
 	for(auto& ob : obs)
 		ob.second.update_avg(num_samples,tmp);
@@ -280,14 +294,22 @@ void Simulation::update_avgs()
 	hist_norm *= hist_size/num_bins;
 	for(int bin=0; bin<num_bins; ++bin)
 	{
-		histogram_avg[bin] += histogram[bin]/hist_norm;
-		histogram_sq_avg[bin] += std::pow(histogram[bin]/hist_norm,2);
+		histogram_avg[bin] = (histogram_avg[bin]*block + histogram[bin]/hist_norm)/(block+1.0);
+		histogram_sq_avg[bin] = (histogram_sq_avg[bin]*block + std::pow(histogram[bin]/hist_norm,2))/(block+1.0);
 		histogram[bin]=0;
 	}
 }
 
 void Simulation::update_histogram()
 {
+	double tmp=0;
+	for(int bead=0; bead<polymers[0].num_beads; ++bead)
+		tmp += polymers[0][bead].dist(polymers[1][bead]);
+	tmp /= polymers[0].num_beads;
+	int bin = calc_bin(tmp);
+	if(bin>=0 && bin<num_bins)
+		histogram[bin]+= exchange_factor * bias.get_rew_factor();
+	/*
 	for(const auto& pol : polymers)
 	{
 		for(int bead=0; bead<pol.num_beads; ++bead)
@@ -296,13 +318,18 @@ void Simulation::update_histogram()
 			if(bin>=0 && bin<num_bins)
 				histogram[bin]++;
 		}
-	}
+	}*/
 }
 
+int Simulation::calc_bin(double dist)
+{
+	return round(dist*num_bins/hist_size);
+}
+/*
 int Simulation::calc_bin(double coord)
 {
 	return round((0.5*hist_size + coord)*num_bins/hist_size);
-}
+}*/
 
 void Simulation::update_screen()
 {
@@ -346,16 +373,19 @@ void Simulation::stop()
 	}
 	res_file << std::endl;
 	
-	/*std::ofstream hist_file("Prob_distribution.dat");
+	std::ofstream hist_file("Prob_distribution.dat");
 	for(int bin = 0; bin<num_bins; ++bin)
 	{
-		histogram_avg[bin] /= block;
-		histogram_sq_avg[bin] /= block;
-		hist_file << hist_size*((double) bin /num_bins - 0.5) << "\t" << histogram_avg[bin]
+		histogram_avg[bin] /= exc_avg;
+		histogram_sq_avg[bin] /= exc_avg*exc_avg;
+		hist_file << hist_size*((double) bin/num_bins) << "\t" << histogram_avg[bin]
+					<< "\t" << simple_uncertainty(histogram_avg[bin],histogram_sq_avg[bin])
+					<< std::endl;
+		/*hist_file << hist_size*((double) bin /num_bins - 0.5) << "\t" << histogram_avg[bin]
 					<< "\t" << weighted_uncertainty(histogram_avg[bin],histogram_sq_avg[bin])
 					//<< "\t" << std::sqrt((histogram_sq_avg[bin]-std::pow(histogram_avg[bin],2))/(block-1)) 
-					<< std::endl;
-	}*/
+					<< std::endl;*/
+	}
 	print_config();
 	
 	delete gle;
@@ -404,7 +434,41 @@ void Simulation::print_config()
 	std::vector<double> centers = bias.get_centers();
 	for(int i=0; i<heights.size(); ++i)
 		outfile << "gaussian\t" << heights[i] << "\t" << centers[i] << std::endl;
+	for(int bin=0; bin<num_bins; ++bin)
+		outfile << "prob_dist\t" << bin << "\t" << histogram_avg[bin] 
+				<< "\t" << histogram_sq_avg[bin] << std::endl;
 }
+
+void Simulation::print_vmd()
+{
+	vmd_file << polymers[0].num_beads << std::endl << std::endl;
+	vmd_file2 << polymers[1].num_beads << std::endl << std::endl;
+	int dim = polymers[0][0].size();
+	for(int bead=0; bead<polymers[0].num_beads; ++bead)
+	{
+		vmd_file << "O";
+		vmd_file2 << "N";
+		for(int d=0; d<dim; ++d)
+		{
+			vmd_file << "\t" << polymers[0][bead][d];
+			vmd_file2 << "\t" << polymers[1][bead][d];
+		}
+		if(dim==2)
+		{
+			vmd_file << "\t" << 0;
+			vmd_file2<< "\t" << 0;
+		}
+		if(dim==1)
+		{
+			vmd_file << "\t" << 0 << "\t" << 0;
+			vmd_file2<< "\t" << 0 << "\t" << 0;
+		}
+		vmd_file << std::endl;
+		vmd_file2<< std::endl;
+	}
+}
+
+		
 
 void Simulation::update_exc()
 {
@@ -440,7 +504,7 @@ double Simulation::weighted_uncertainty(double avg, double avg_sq) const
 		//exc_avg_sq /= (rew_avg*rew_avg);
 		double num_error = simple_uncertainty(avg,avg_sq);
 		double den_error = simple_uncertainty(exc_avg,exc_avg_sq);
-		return std::abs(avg/exc_avg) * (num_error/avg + den_error/exc_avg);
+		return std::abs(avg/exc_avg) * (std::abs(num_error/avg) + std::abs(den_error/exc_avg));
 		//error = num/den * (num_err/num + den_err/den)
 		//relative errors do not need to be normalized by rew_factor_avg of bias
 	}

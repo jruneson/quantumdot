@@ -37,7 +37,7 @@ public:
 	double first_height;
 	double bias_update_time;
 	
-	double hw; //in Ha
+	double hw; //in meV
 	double m_hbar2 = 3.674932248e-5; //m/hbar^2 in  a_0^{-2} meV^{-1}
 	double hbar = 0.65821195; //in meV ps
 	double mass; //in kg

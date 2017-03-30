@@ -8,6 +8,84 @@ void Parameters::read_file(std::string filename)
 {
 	std::ifstream file(filename);
 	std::string name;
+	std::string line;
+	int to_bool; int tmp;
+	double tmp2;
+	while(std::getline(file, line))
+	{
+		std::istringstream iss(line);
+		if(iss >> name)
+		{
+			if(name=="num_parts")
+				iss >> num_parts;
+			else if(name=="dim")
+				iss >> dim;
+			else if(name=="tau")
+				iss >> tau;
+			else if(name=="beta")
+				iss >> beta;
+			else if(name=="num_blocks")
+				iss >> num_blocks;
+			else if(name=="total_time")
+				iss >> total_time;
+			else if(name=="dt_md")
+				iss >> dt_md;
+			else if(name=="dt_sample")
+				iss >> dt_sample;
+			else if(name=="thermalization_time")
+			{
+				iss >> tmp2;
+				thermalization_steps = tmp2/dt_md;
+			}
+			else if(name=="num_bins")
+				iss >> num_bins;
+			else if(name=="sign")
+				iss >> sign;
+			else if(name=="with_thermostat")
+			{
+				iss >> to_bool;
+				with_thermostat = (to_bool != 0);
+			}
+			else if(name=="metad_on")
+			{
+				iss >> to_bool;
+				metad_on = (to_bool != 0);
+			}
+			else if(name=="cv_id")
+				iss >> cv_id;
+			else if(name=="gauss_width")
+				iss >> gauss_width;
+			else if(name=="bias_factor")
+				iss >> bias_factor;
+			else if(name=="first_height")
+				iss >> first_height;
+			else if(name=="bias_update_time")
+				iss >> bias_update_time;
+			else if(name=="hw")
+				iss >> hw;
+			else if(name=="mass_in_m_e")
+			{	
+				iss >> mass;	
+				m_hbar2 *= mass;
+				mass *= 9.10938356e-31;
+			}
+			else if(name=="charge_in_e")
+				iss >> charge;
+			else if(name=="diel_const_rel")
+				iss >> diel_const;
+			else if(name=="length_scale")
+				iss >> length_scale;
+			else if(name=="to_measure")
+				while(iss >> tmp)
+					to_measure.push_back(tmp);
+			else if(name=="to_print_every_sample")
+				while(iss >> tmp)
+					to_print_every_sample.push_back(tmp);
+		}
+	}
+					
+				
+	/*		
 	file >> name >> num_parts;
 	file >> name >> dim;
 	file >> name >> tau;
@@ -37,8 +115,7 @@ void Parameters::read_file(std::string filename)
 
 	file >> name >> hw;
 	file >> name >> mass;
-	m_hbar2 *= mass;
-	mass *= 9.10938356e-31;
+
 	file >> name >> charge;
 	file >> name >> diel_const;
 	file >> name >> length_scale;
@@ -55,7 +132,7 @@ void Parameters::read_file(std::string filename)
 	std::istringstream iss2(line);
 	iss2 >> name;
 	while(iss2 >> id)
-		to_print_every_sample.push_back(id);
+		to_print_every_sample.push_back(id);*/
 }
 
 void Parameters::calculate_dependencies()

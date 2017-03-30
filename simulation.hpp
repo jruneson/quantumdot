@@ -72,12 +72,16 @@ private:
 	int bar_width;
 	int progress;
 	Timer timer;
+	double movie_start_time=1000;
+	double movie_end_time=1010;
 	
 	std::ofstream logfile;
 	std::ofstream& res_file;
 	std::ofstream exc_file;
 	std::ofstream cv_file;
 	std::ofstream rew_factor_file;
+	std::ofstream vmd_file;
+	std::ofstream vmd_file2;
 
 	void read_input_coords();
 	void initialize_coords_simple();
@@ -92,6 +96,7 @@ private:
 	int calc_bin(double);
 	void update_screen();
 	void print_to_file();
+	void print_vmd();
 	void stop();
 	void print_config();
 	void update_exc();
