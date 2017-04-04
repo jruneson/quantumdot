@@ -226,7 +226,10 @@ void Bias::update_transient(double beta)
 void Bias::update_cv(const std::vector<Polymer>& pols, const double beta)
 {
 	cv = coll_var(pols);
-	rew_factor = std::exp(beta*(v_spline.eval_spline(cv)-transient));
+	if(metad_on)
+		rew_factor = std::exp(beta*(v_spline.eval_spline(cv)-transient));
+	else
+		rew_factor = 1;
 	rew_factor_avg = (rew_factor_avg*count + rew_factor)/(count+1.0);
 	++count;
 }

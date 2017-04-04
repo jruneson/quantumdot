@@ -30,6 +30,8 @@ void Parameters::read_file(std::string filename)
 				iss >> total_time;
 			else if(name=="dt_md")
 				iss >> dt_md;
+			else if(name=="dt_md_slow")
+				iss >> dt_md_slow;
 			else if(name=="dt_sample")
 				iss >> dt_sample;
 			else if(name=="thermalization_time")
@@ -73,16 +75,24 @@ void Parameters::read_file(std::string filename)
 				iss >> charge;
 			else if(name=="diel_const_rel")
 				iss >> diel_const;
-			else if(name=="length_scale")
-				iss >> length_scale;
 			else if(name=="to_measure")
 				while(iss >> tmp)
 					to_measure.push_back(tmp);
 			else if(name=="to_print_every_sample")
 				while(iss >> tmp)
 					to_print_every_sample.push_back(tmp);
+			else if(name=="lj_length")
+				iss >> lj_length;
+			else if(name=="lj_energy")
+				iss >> lj_energy;
+			else if(name=="interaction_id")
+				iss >> interaction_id;
+			else
+				std::cout << name << " is not an allowed parameter" << std::endl;
 		}
 	}
+	if(dt_md_slow==0)
+		dt_md_slow = dt_md;
 					
 				
 	/*		
@@ -153,9 +163,10 @@ void Parameters::calculate_dependencies()
 	spring_const = num_beads*m_hbar2/(beta*beta);
 	exc_const = num_beads*m_hbar2/beta;
 	exc_der_const = -sign * m_hbar2/(beta*beta);
-	kin_offset = num_beads*dim/(2.0*beta);
+	kin_offset = num_parts*num_beads*dim/(2.0*beta);
 	virial_offset = dim/(2.0*beta); //not sure about the dim factor
-	hist_size = length_scale * 500;	
+	length_scale = std::sqrt(1.0/(m_hbar2*hw));
+	hist_size = length_scale * 4;	
 }
 
 

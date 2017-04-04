@@ -75,8 +75,10 @@ int main(int argc, char* argv[])
  x Spline
  x Test
  * replace gle ptr with static obj
- * read functions from file - or choose function with an integer input
- * Interaction, several particles
+ x Interaction, several particles
+ * Check energy estimators are correct
+ * Check LJ is reasonable
+ * Run LJ with+wo metad B, then F
  * histogram at 3d
  */
  

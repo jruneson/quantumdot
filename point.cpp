@@ -27,6 +27,11 @@ double Point::sqdist(const Point& p) const
 	return tmp;
 }
 
+double Point::dist0() const
+{
+	return std::sqrt(sqdist0());
+}
+
 double Point::sqdist0() const
 {
 	double tmp=0;

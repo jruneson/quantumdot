@@ -21,6 +21,7 @@ public:
 	int num_blocks;
 	double total_time;
 	double dt_md;
+	double dt_md_slow;
 	double dt_sample;
 	int thermalization_steps;
 	int num_bins;
@@ -43,7 +44,10 @@ public:
 	double mass; //in kg
 	double charge;
 	double diel_const;
-	double length_scale; //in a_0
+	
+	int interaction_id;
+	double lj_length; //Lennard-Jones sigma, in a_0
+	double lj_energy; //Lennard-Jones epsilon, in meV
 	
 	//dependent parameters
 	int num_beads;
@@ -58,6 +62,7 @@ public:
 	double exc_der_const;
 	double kin_offset;
 	double virial_offset;
+	double length_scale; //in a_0
 	double hist_size;
 	
 	//potential

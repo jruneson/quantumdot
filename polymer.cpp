@@ -10,6 +10,7 @@ Polymer::Polymer(const Parameters& params) : num_beads(params.num_beads),
 		coords.push_back(Point(params));
 		vels.push_back(Point(params));
 		forces.push_back(Force(params));
+		fast_forces.push_back(Force(params));
 	}
 }
 
@@ -35,5 +36,5 @@ void Polymer::move()
 void Polymer::update_vels()
 {
 	for(int bead=0; bead<num_beads; ++bead)
-		vels[bead] += forces[bead] * dt_2m;
+		vels[bead] += (forces[bead]+fast_forces[bead]) * dt_2m;
 }

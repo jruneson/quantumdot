@@ -102,6 +102,8 @@ std::string Observable::get_name() const
 			return "Kin_energy_cl";
 		case 22:
 			return "Total_energy_cl";
+		case 23:
+			return "Twopart_energy";
 		default:
 			return "Unknown observable";
 	}
@@ -118,41 +120,41 @@ void Observable::measure(const std::vector<Polymer>& polymers, const Interaction
 						double time, double exc_factor, double rew_factor)
 {
 	double tmp = 0;
-	for(int n=0; n<polymers.size(); ++n)
+	switch(id)
 	{
-		const Polymer& pol = polymers[n];
-		double tmp2 = 0;
-		switch(id)
-		{
-			case 0:
-				tmp2 = potential_energy(pol,interac) * exc_factor;
-				break;
-			case 1:
-				tmp2 = kinetic_energy(pol,interac) * exc_factor;
-				break;
-			case 2:
-				tmp2 = total_energy(pol,interac) * exc_factor;
-				break;
-			case 3:
-				tmp2 = kinetic_energy_virial(pol,interac) * exc_factor;
-				break;
-			case 10:
-				if(n==0)
-					tmp2 = pol[0][0]; //x-coordinate of bead 0
-				break;
-			case 20:
-				tmp2 = potential_energy_cl(pol,interac);
-				break;
-			case 21:
-				tmp2 = kinetic_energy_cl(pol);	
-				break;
-			case 22:
-				tmp2 = total_energy_cl(pol,interac);
-				break;
-		}
-		tmp += tmp2;
+		case 0:
+			tmp = potential_energy(polymers, interac);
+			/*for(int m=0; m<n; ++m)
+			{
+				const Polymer& pol2 = polymers[m];
+				tmp2 += potential_energy(pol,pol2,interac);
+			}*/
+			break;
+		case 1:
+			tmp = kinetic_energy(polymers,interac);
+			break;
+		case 2:
+			tmp = total_energy(polymers,interac);
+			break;
+		case 3:
+			tmp = kinetic_energy_virial(polymers,interac);
+			break;
+		case 10:
+			tmp = polymers[0][0][0]; //x-coordinate of bead 0
+			break;
+		case 20:
+			tmp = potential_energy_cl(polymers,interac); //note that exc_factor needs to be omitted for the last three
+			break;
+		case 21:
+			tmp = kinetic_energy_cl(polymers);	
+			break;
+		case 22:
+			tmp = total_energy_cl(polymers,interac);
+			break;
+		case 23:
+			tmp = interparticle_energy(polymers,interac);
 	}
-	//tmp *= exc_factor; //consider moving this out of the switch-case
+	tmp *= exc_factor;
 	switch(id)
 	{
 		case 1:
@@ -178,62 +180,97 @@ void Observable::print_measure(double measured_value, double time)
 
 
 
-double Observable::potential_energy(const Polymer& pol, const Interaction& interac)
+double Observable::potential_energy(const std::vector<Polymer>& pols, const Interaction& interac)
 {
 	double tmp = 0;
-	for(int bead=0; bead<pol.num_beads; ++bead)
-		tmp += interac.ext_potential(pol[bead]);
-	tmp /= pol.num_beads;
+	for(int n=0; n<pols.size(); ++n)
+	{
+		for(int m=0; m<n; ++m)
+		{
+			for(int bead=0; bead<pols[0].num_beads; ++bead)
+			{
+				tmp += interac.ext_potential(pols[n][bead]) + interac.ext_potential(pols[m][bead]);
+				tmp += interac.two_particle_pot(pols[n][bead],pols[m][bead]);
+			}
+		}
+	}
+	tmp /= pols[0].num_beads;
 	return tmp;
 }
 
-double Observable::kinetic_energy(const Polymer& pol, const Interaction& interac)
+double Observable::kinetic_energy(const std::vector<Polymer>& pols, const Interaction& interac)
 {
 	double tmp = 0;
-	for(int bead=0; bead<pol.num_beads; ++bead)
-		tmp += pol[bead].sqdist(pol[bead+1]);
-	//std::cout << kin_offset << "\t" << 0.5*interac.get_spring_const() * tmp << std::endl;
+	for(const auto& pol : pols)
+	{
+		for(int bead=0; bead<pol.num_beads; ++bead)
+			tmp += pol[bead].sqdist(pol[bead+1]);
+	}
 	return kin_offset - 0.5 * interac.get_spring_const() * tmp;
 }
 
-double Observable::total_energy(const Polymer& pol, const Interaction& interac)
+double Observable::total_energy(const std::vector<Polymer>& pols, const Interaction& interac)
 {
-	return potential_energy(pol, interac) + kinetic_energy_virial(pol, interac);
+	return potential_energy(pols, interac) + kinetic_energy_virial(pols, interac)
+			+ interparticle_energy(pols, interac);
 }
 
-double Observable::kinetic_energy_virial(const Polymer& pol, const Interaction& interac)
+double Observable::kinetic_energy_virial(const std::vector<Polymer>& pols, const Interaction& interac)
 {
 	double tmp = 0;
-	Point mean_point(pol[0].size());
-	for(int bead=0; bead<pol.num_beads; ++bead)
-		mean_point += pol[bead];
-	mean_point *= 1.0/pol.num_beads;
-	for(int bead=0; bead<pol.num_beads; ++bead)
-		tmp -= (pol[bead]-mean_point)*interac.ext_force(pol[bead]); //minus to cancel minus in force expression
-	return virial_offset + tmp/(2*pol.num_beads);
+	for(int n=0; n<pols.size(); ++n)
+	{
+		Point mean_point(pols[n][0].size());
+		for(int bead=0; bead<pols[n].num_beads; ++bead)
+			mean_point += pols[n][bead];
+		mean_point *= 1.0/pols[n].num_beads;
+		for(int bead=0; bead<pols[n].num_beads; ++bead)
+		{
+			const Point& p = pols[n][bead];
+			tmp += (p-mean_point)*interac.ext_force(p);
+			for(int m=0; m<pols.size(); ++m)
+				if(m!=n)
+					tmp += (p-mean_point)*interac.two_particle_force(p,pols[m][bead]);
+		}
+	}
+	return virial_offset + (-1)*tmp/(2*pols[0].num_beads); //minus sign since force functions above calculate minus grad V
 }
 
-double Observable::potential_energy_cl(const Polymer& pol, const Interaction& interac)
+double Observable::interparticle_energy(const std::vector<Polymer>& pols, const Interaction& interac)
+{
+	double tmp=0;
+	for(int bead=0; bead<pols[0].num_beads; ++bead)
+		tmp += interac.two_particle_pot(pols[0][bead],pols[1][bead]);
+	return tmp/pols[0].num_beads;
+}
+
+double Observable::potential_energy_cl(const std::vector<Polymer>& pols, const Interaction& interac)
 {
 	double tmp = 0;
 	double spr_c = 0.5*interac.get_spring_const();
-	for(int bead=0; bead<pol.num_beads; ++bead)
-		tmp += interac.ext_potential(pol[bead])/pol.num_beads + spr_c*pol[bead].sqdist(pol[bead+1]);
+	for(const Polymer& pol : pols)
+	{
+		for(int bead=0; bead<pol.num_beads; ++bead)
+			tmp += interac.ext_potential(pol[bead])/pol.num_beads + spr_c*pol[bead].sqdist(pol[bead+1]);
+	}
 	return tmp;
 }
 
-double Observable::kinetic_energy_cl(const Polymer& pol)
+double Observable::kinetic_energy_cl(const std::vector<Polymer>& pols)
 {
 	double tmp = 0;
-	for(int bead=0; bead<pol.num_beads; ++bead)
-		tmp += pol.vels[bead]*pol.vels[bead];
-	tmp *= 0.5*pol.mass * 1.747801e25;
+	for(const Polymer& pol : pols)
+	{
+		for(int bead=0; bead<pol.num_beads; ++bead)
+			tmp += pol.vels[bead]*pol.vels[bead];
+	}
+	tmp *= 0.5*pols[0].mass * 1.747801e25;
 	return tmp;
 }
 
-double Observable::total_energy_cl(const Polymer& pol, const Interaction& interac)
+double Observable::total_energy_cl(const std::vector<Polymer>& pols, const Interaction& interac)
 {
-	return potential_energy_cl(pol, interac) + kinetic_energy_cl(pol);
+	return potential_energy_cl(pols, interac) + kinetic_energy_cl(pols) + interparticle_energy(pols,interac);
 }
 
 double Observable::exc_der(const std::vector<Polymer>& pols) const

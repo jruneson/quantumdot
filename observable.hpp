@@ -52,13 +52,14 @@ private:
 	const double exc_der_const;
 
 	
-	double potential_energy(const Polymer&, const Interaction&);
-	double kinetic_energy(const Polymer&, const Interaction&);
-	double total_energy(const Polymer&, const Interaction&);
-	double kinetic_energy_virial(const Polymer&, const Interaction&);
-	double potential_energy_cl(const Polymer&, const Interaction&);
-	double kinetic_energy_cl(const Polymer&);
-	double total_energy_cl(const Polymer&, const Interaction&);
+	double potential_energy(const std::vector<Polymer>&, const Interaction&);
+	double kinetic_energy(const std::vector<Polymer>&, const Interaction&);
+	double total_energy(const std::vector<Polymer>&, const Interaction&);
+	double kinetic_energy_virial(const std::vector<Polymer>&, const Interaction&);
+	double interparticle_energy(const std::vector<Polymer>&, const Interaction&);
+	double potential_energy_cl(const std::vector<Polymer>&, const Interaction&);
+	double kinetic_energy_cl(const std::vector<Polymer>&);
+	double total_energy_cl(const std::vector<Polymer>&, const Interaction&);
 	
 	double exc_der(const std::vector<Polymer>&) const;
 	double exc_der_virial(const std::vector<Polymer>&) const;

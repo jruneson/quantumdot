@@ -19,6 +19,7 @@ public:
 	
 	double dist(const Point&) const; //distance to point
 	double sqdist(const Point&) const; //squared distance to point
+	double dist0() const;
 	double sqdist0() const; //squared distance to origin
 	int size() const;
 

@@ -35,6 +35,9 @@ Simulation::Simulation(const Parameters& params, std::ofstream& _res_file, bool 
 	histogram.assign(params.num_bins,0);
 	histogram_avg.assign(params.num_bins,0);
 	histogram_sq_avg.assign(params.num_bins,0);
+	histogram_1p.assign(num_parts,histogram);
+	histogram_1p_avg.assign(num_parts,histogram);
+	histogram_1p_sq_avg.assign(num_parts,histogram);
 	bias_update_counter = 0;
 }
 
@@ -134,8 +137,8 @@ void Simulation::initialize_coords_simple()
 		{
 			for(int d=0; d<pol[0].size(); ++d)
 			{
-				pol[bead][d] = length_scale * ((double) bead/pol.num_beads - 0.5) * ((double) n/num_parts + 0.1);
-				pol.vels[bead][d] = 0.5;
+				pol[bead][d] = length_scale * ((double) bead/pol.num_beads + 0.5) * std::pow(-1,n);
+				pol.vels[bead][d] = 0.1 * std::pow(-1,n);
 				pol.forces[bead][d] = 0.0;
 			}
 		}
@@ -160,7 +163,7 @@ void Simulation::read_old_measurements()
 				iss >> iteration_nbr;
 				iteration_nbr++;
 			}
-			if(name=="time")
+			else if(name=="time")
 			{
 				iss >> time;
 				prev_blocks = time/total_time * num_blocks;
@@ -169,33 +172,35 @@ void Simulation::read_old_measurements()
 				total_time += time;
 				std::cout << name << "\t" << time << std::endl;
 			}
-			if(name=="gamma")
+			else if(name=="gamma")
 			{
 				iss >> exc_avg >> exc_avg_sq;
 				std::cout << name << "\t" << exc_avg << "\t" << exc_avg_sq << std::endl;
 			}
-			if(name=="bias_reweight")
+			else if(name=="bias_reweight")
 			{
 				iss >> tmp1 >> tmp2;
 				bias.set_rew_factor_avg(tmp1,tmp2);
 				std::cout << name << "\t" << tmp1 << "\t" << tmp2 << std::endl;
 			}
-			if(name=="obs")
+			else if(name=="obs")
 			{
 				iss >> obs_id >> tmp1 >> tmp2 >> tmp3 >> tmp4; //avg, avg_sq, weighted_avg, weighted_avg_sq
 				obs.at(obs_id).set_avgs(tmp1,tmp2,tmp3,tmp4,prev_blocks);
 			}
-			if(name=="gaussian")
+			else if(name=="gaussian")
 			{
 				iss >> tmp1 >> tmp2; //height, center
 				bias.add_gaussian(tmp1, tmp2);
 			}
-			if(name=="prob_dist")
+			else if(name=="prob_dist")
 			{
 				iss >> bin >> tmp1 >> tmp2;
 				histogram_avg[bin] = tmp1;
 				histogram_sq_avg[bin] = tmp2;
 			}
+			else
+				std::cout << name << " is not a valid variable in measurement.dat" << std::endl;
 		}
 	}
 	infile.close();
@@ -221,7 +226,7 @@ void Simulation::run()
 
 void Simulation::run_block()
 {
-	reset_obs();
+	//reset_obs();
 	for(int s=0; s<num_samples; ++s)
 	{
 		for(int step=0; step<steps_per_sample; ++step)
@@ -229,8 +234,8 @@ void Simulation::run_block()
 			gle->run();
 			verlet_step();
 			gle->run();
+			time += dt;
 		}
-		time += dt*steps_per_sample;
 		bias_update_counter += dt*steps_per_sample;
 		if(bias_update_counter >= bias_update_time) //check if remainder is 0
 		{
@@ -263,11 +268,11 @@ void Simulation::verlet_step()
 
 }
 
-void Simulation::reset_obs()
+/*void Simulation::reset_obs()
 {
 	for(auto& ob : obs)
 		ob.second.set_zero();
-}
+}*/
 
 void Simulation::measure()
 {
@@ -287,28 +292,57 @@ void Simulation::update_avgs()
 	exc_avg_sq = (exc_avg_sq*block + tmp*tmp)/(block+1.0);
 	exc_sum = 0;
 	for(auto& ob : obs)
+	{
 		ob.second.update_avg(num_samples,tmp);
-	double hist_norm=0;
+		ob.second.set_zero();
+	}
+	/*double hist_norm=0;
 	for(int bin=0; bin<num_bins; ++bin)
 		hist_norm += histogram[bin];
-	hist_norm *= hist_size/num_bins;
+	hist_norm *= hist_size/num_bins;*/
 	for(int bin=0; bin<num_bins; ++bin)
 	{
-		histogram_avg[bin] = (histogram_avg[bin]*block + histogram[bin]/hist_norm)/(block+1.0);
-		histogram_sq_avg[bin] = (histogram_sq_avg[bin]*block + std::pow(histogram[bin]/hist_norm,2))/(block+1.0);
+		histogram_avg[bin] = (histogram_avg[bin]*block + histogram[bin])/(block+1.0);
+		histogram_sq_avg[bin] = (histogram_sq_avg[bin]*block + std::pow(histogram[bin],2))/(block+1.0);
 		histogram[bin]=0;
+		for(int part=0; part<num_parts; ++part)
+		{
+			histogram_1p_avg[part][bin] = (histogram_1p_avg[part][bin]*block+histogram_1p[part][bin])/(block+1.0);
+			histogram_1p_sq_avg[part][bin] = (histogram_1p_sq_avg[part][bin]*block
+									+std::pow(histogram_1p[part][bin],2))/(block+1.0);
+			histogram_1p[part][bin]=0;
+		}
 	}
 }
+/*
+void Simulation::update_histogram()
+{
+	for(int bead=0; bead<polymers[0].num_beads; ++bead)
+	{
+		int bin = calc_bin(polymers[0][bead].dist(polymers[1][bead]));
+		if(bin>=0 && bin<num_bins)
+			histogram[bin] += exchange_factor*bias.get_rew_factor();
+	}
+}*/
 
 void Simulation::update_histogram()
 {
 	double tmp=0;
+	int bin;
+	double weight = exchange_factor*bias.get_rew_factor();
 	for(int bead=0; bead<polymers[0].num_beads; ++bead)
-		tmp += polymers[0][bead].dist(polymers[1][bead]);
-	tmp /= polymers[0].num_beads;
-	int bin = calc_bin(tmp);
-	if(bin>=0 && bin<num_bins)
-		histogram[bin]+= exchange_factor * bias.get_rew_factor();
+	{
+		tmp = polymers[0][bead].dist(polymers[1][bead]);
+		bin = calc_bin(tmp);
+		if(bin>=0 && bin<num_bins)
+			histogram[bin] += weight;
+		bin = calc_bin(polymers[0][bead].dist0());
+		if(bin>=0 && bin<num_bins)
+			histogram_1p[0][bin] += 1;
+		bin = calc_bin(polymers[1][bead].dist0());
+		if(bin>=0 && bin<num_bins)
+			histogram_1p[1][bin] += 1;
+	}
 	/*
 	for(const auto& pol : polymers)
 	{
@@ -325,8 +359,8 @@ int Simulation::calc_bin(double dist)
 {
 	return round(dist*num_bins/hist_size);
 }
-/*
-int Simulation::calc_bin(double coord)
+
+/*int Simulation::calc_bin_1p(double coord)
 {
 	return round((0.5*hist_size + coord)*num_bins/hist_size);
 }*/
@@ -345,7 +379,6 @@ void Simulation::update_screen()
 	std::cout.flush();
 }
 
-
 void Simulation::print_to_file()
 {
 	logfile << block << "\t" << exc_avg/bias.get_rew_factor_avg();
@@ -356,7 +389,8 @@ void Simulation::print_to_file()
 
 void Simulation::stop()
 {
-	logfile << "Name\t\tValue\t\tFracError\tPropagatedError" << std::endl;
+	print_config();
+	logfile << "Name\t\tValue\t\tSimpleError\tTotalError" << std::endl;
 	double rew_norm = bias.get_rew_factor_avg();
 	logfile << "Exc_factor\t" << exc_avg/rew_norm << "\t" << simple_uncertainty(exc_avg,exc_avg_sq)/rew_norm << std::endl;
 	res_file << total_time;
@@ -376,17 +410,21 @@ void Simulation::stop()
 	std::ofstream hist_file("Prob_distribution.dat");
 	for(int bin = 0; bin<num_bins; ++bin)
 	{
-		histogram_avg[bin] /= exc_avg;
-		histogram_sq_avg[bin] /= exc_avg*exc_avg;
-		hist_file << hist_size*((double) bin/num_bins) << "\t" << histogram_avg[bin]
-					<< "\t" << simple_uncertainty(histogram_avg[bin],histogram_sq_avg[bin])
-					<< std::endl;
+		//histogram_avg[bin] /= exc_avg;
+		//histogram_sq_avg[bin] /= exc_avg*exc_avg;
+		hist_file << hist_size*((double) bin/num_bins) << "\t" << histogram_avg[bin]/exc_avg
+					<< "\t" << simple_uncertainty(histogram_avg[bin],histogram_sq_avg[bin])/exc_avg;
+		for(int part=0; part<num_parts; ++part)
+		{
+			hist_file << "\t" << histogram_1p_avg[part][bin]/exc_avg << "\t"
+					  << simple_uncertainty(histogram_1p_avg[part][bin],histogram_1p_sq_avg[part][bin])/exc_avg;
+		}
+		hist_file << std::endl;
 		/*hist_file << hist_size*((double) bin /num_bins - 0.5) << "\t" << histogram_avg[bin]
 					<< "\t" << weighted_uncertainty(histogram_avg[bin],histogram_sq_avg[bin])
 					//<< "\t" << std::sqrt((histogram_sq_avg[bin]-std::pow(histogram_avg[bin],2))/(block-1)) 
 					<< std::endl;*/
 	}
-	print_config();
 	
 	delete gle;
 	

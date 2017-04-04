@@ -22,6 +22,7 @@ public:
 	std::vector<Point> coords;
 	std::vector<Point> vels;
 	std::vector<Force> forces;
+	std::vector<Force> fast_forces;
 	const double dt_2m;
 	const double dt;
 	const double mass;

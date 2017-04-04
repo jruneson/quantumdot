@@ -68,6 +68,10 @@ private:
 	std::vector<double> histogram; //1D probability density. If dim>1, only the first coordinate is considered.
 	std::vector<double> histogram_avg;
 	std::vector<double> histogram_sq_avg;
+	std::vector<std::vector<double>> histogram_1p;
+	std::vector<std::vector<double>> histogram_1p_avg;
+	std::vector<std::vector<double>> histogram_1p_sq_avg;
+	
 	
 	int bar_width;
 	int progress;
@@ -89,11 +93,12 @@ private:
 	void thermalize();
 	void run_block();
 	void verlet_step();
-	void reset_obs();
+	//void reset_obs();
 	void measure();
 	void update_avgs();
 	void update_histogram();
 	int calc_bin(double);
+	//int calc_bin_1p(double);
 	void update_screen();
 	void print_to_file();
 	void print_vmd();

@@ -6,3 +6,6 @@ tests/
 *.m~
 pimd
 testspline/
+*conflict*
+logfile*
+LJ/
