@@ -104,6 +104,8 @@ std::string Observable::get_name() const
 			return "Total_energy_cl";
 		case 23:
 			return "Twopart_energy";
+		case 24:
+			return "Spring_pot_en";
 		default:
 			return "Unknown observable";
 	}
@@ -153,6 +155,10 @@ void Observable::measure(const std::vector<Polymer>& polymers, const Interaction
 			break;
 		case 23:
 			tmp = interparticle_energy(polymers,interac);
+			break;
+		case 24:
+			tmp = spring_energy_cl(polymers,interac);
+			break;
 	}
 	tmp *= exc_factor;
 	switch(id)
@@ -180,7 +186,7 @@ void Observable::print_measure(double measured_value, double time)
 
 
 
-double Observable::potential_energy(const std::vector<Polymer>& pols, const Interaction& interac)
+double Observable::potential_energy(const std::vector<Polymer>& pols, const Interaction& interac) const
 {
 	double tmp = 0;
 	for(int n=0; n<pols.size(); ++n)
@@ -198,7 +204,7 @@ double Observable::potential_energy(const std::vector<Polymer>& pols, const Inte
 	return tmp;
 }
 
-double Observable::kinetic_energy(const std::vector<Polymer>& pols, const Interaction& interac)
+double Observable::kinetic_energy(const std::vector<Polymer>& pols, const Interaction& interac) const
 {
 	double tmp = 0;
 	for(const auto& pol : pols)
@@ -209,13 +215,13 @@ double Observable::kinetic_energy(const std::vector<Polymer>& pols, const Intera
 	return kin_offset - 0.5 * interac.get_spring_const() * tmp;
 }
 
-double Observable::total_energy(const std::vector<Polymer>& pols, const Interaction& interac)
+double Observable::total_energy(const std::vector<Polymer>& pols, const Interaction& interac) const
 {
 	return potential_energy(pols, interac) + kinetic_energy_virial(pols, interac)
 			+ interparticle_energy(pols, interac);
 }
 
-double Observable::kinetic_energy_virial(const std::vector<Polymer>& pols, const Interaction& interac)
+double Observable::kinetic_energy_virial(const std::vector<Polymer>& pols, const Interaction& interac) const
 {
 	double tmp = 0;
 	for(int n=0; n<pols.size(); ++n)
@@ -236,7 +242,7 @@ double Observable::kinetic_energy_virial(const std::vector<Polymer>& pols, const
 	return virial_offset + (-1)*tmp/(2*pols[0].num_beads); //minus sign since force functions above calculate minus grad V
 }
 
-double Observable::interparticle_energy(const std::vector<Polymer>& pols, const Interaction& interac)
+double Observable::interparticle_energy(const std::vector<Polymer>& pols, const Interaction& interac) const
 {
 	double tmp=0;
 	for(int bead=0; bead<pols[0].num_beads; ++bead)
@@ -244,19 +250,31 @@ double Observable::interparticle_energy(const std::vector<Polymer>& pols, const 
 	return tmp/pols[0].num_beads;
 }
 
-double Observable::potential_energy_cl(const std::vector<Polymer>& pols, const Interaction& interac)
+double Observable::potential_energy_cl(const std::vector<Polymer>& pols, const Interaction& interac) const
 {
 	double tmp = 0;
+	for(const Polymer& pol : pols)
+	{
+		for(int bead=0; bead<pol.num_beads; ++bead)
+			tmp += interac.ext_potential(pol[bead])/pol.num_beads;
+	}
+	tmp += spring_energy_cl(pols, interac);
+	return tmp;
+}
+
+double Observable::spring_energy_cl(const std::vector<Polymer>& pols, const Interaction& interac) const
+{
+	double tmp=0;
 	double spr_c = 0.5*interac.get_spring_const();
 	for(const Polymer& pol : pols)
 	{
 		for(int bead=0; bead<pol.num_beads; ++bead)
-			tmp += interac.ext_potential(pol[bead])/pol.num_beads + spr_c*pol[bead].sqdist(pol[bead+1]);
+			tmp += spr_c*pol[bead].sqdist(pol[bead+1]);
 	}
 	return tmp;
 }
 
-double Observable::kinetic_energy_cl(const std::vector<Polymer>& pols)
+double Observable::kinetic_energy_cl(const std::vector<Polymer>& pols) const
 {
 	double tmp = 0;
 	for(const Polymer& pol : pols)
@@ -268,7 +286,7 @@ double Observable::kinetic_energy_cl(const std::vector<Polymer>& pols)
 	return tmp;
 }
 
-double Observable::total_energy_cl(const std::vector<Polymer>& pols, const Interaction& interac)
+double Observable::total_energy_cl(const std::vector<Polymer>& pols, const Interaction& interac) const
 {
 	return potential_energy_cl(pols, interac) + kinetic_energy_cl(pols) + interparticle_energy(pols,interac);
 }

@@ -17,8 +17,8 @@ def first_run(folder): #f=folder
     for file in files:
         os.remove(file)
     #subprocess.call(['rm '+folder+'logfile* '+folder+'*.dat'], shell=True)
-    #subprocess.call(['cp', '../pimd',folder])
-    #subprocess.call(['cp', '../configuration.cfg',folder])
+    subprocess.call(['cp', '../pimd',folder])
+    subprocess.call(['cp', '../configuration.cfg',folder])
     cmd = folder+'pimd'
     try:
         #proc = subprocess.Popen("exec "+ex_path, cwd=f, shell=True).wait()
@@ -57,6 +57,6 @@ if __name__=="__main__":
     LJfolders=['../LJ/dist/']
     f = folders[5]
     print(f)
-    first_run(f)
-    continue_run(f,19)
+    #first_run(f)
+    continue_run(f,1)
     print(f)

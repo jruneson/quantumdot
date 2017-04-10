@@ -39,6 +39,8 @@ private:
 	const int interaction_id;
 	const double lj_energy24;
 	const double lj_length_sq;
+	const double rcut2;
+	double vcut;
 	
 	const double dt_fast;
 	const double dt_slow;

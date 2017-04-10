@@ -89,7 +89,7 @@ void Simulation::setup()
 	logfile.open("logfile_P"+std::to_string(polymers[0].num_beads)+"_"+std::to_string(iteration_nbr));
 	logfile << std::ctime(&t);
 	logfile << "P=" << polymers[0].num_beads << " dim=" << polymers[0][0].size() << " dt=" << dt 
-			<< " maximal time=" << total_time
+			<< " time=" << total_time
 			<< " samples=" << num_blocks*num_samples << " T=" << temperature << std::endl << std::endl;
 	logfile << "Block\tExc_const";
 	for(auto& pair : obs)
@@ -137,8 +137,8 @@ void Simulation::initialize_coords_simple()
 		{
 			for(int d=0; d<pol[0].size(); ++d)
 			{
-				pol[bead][d] = length_scale * ((double) bead/pol.num_beads + 0.5) * std::pow(-1,n);
-				pol.vels[bead][d] = 0.1 * std::pow(-1,n);
+				pol[bead][d] = length_scale * ((double) bead/pol.num_beads + 1.5) * std::pow(-1,n);
+				pol.vels[bead][d] = 0.0;
 				pol.forces[bead][d] = 0.0;
 			}
 		}
@@ -203,6 +203,8 @@ void Simulation::read_old_measurements()
 				std::cout << name << " is not a valid variable in measurement.dat" << std::endl;
 		}
 	}
+	bias.restore_splines_transient(beta);
+	bias.update_cv(polymers,beta);
 	infile.close();
 }
 

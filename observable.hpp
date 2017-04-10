@@ -52,14 +52,15 @@ private:
 	const double exc_der_const;
 
 	
-	double potential_energy(const std::vector<Polymer>&, const Interaction&);
-	double kinetic_energy(const std::vector<Polymer>&, const Interaction&);
-	double total_energy(const std::vector<Polymer>&, const Interaction&);
-	double kinetic_energy_virial(const std::vector<Polymer>&, const Interaction&);
-	double interparticle_energy(const std::vector<Polymer>&, const Interaction&);
-	double potential_energy_cl(const std::vector<Polymer>&, const Interaction&);
-	double kinetic_energy_cl(const std::vector<Polymer>&);
-	double total_energy_cl(const std::vector<Polymer>&, const Interaction&);
+	double potential_energy(const std::vector<Polymer>&, const Interaction&) const;
+	double kinetic_energy(const std::vector<Polymer>&, const Interaction&) const;
+	double total_energy(const std::vector<Polymer>&, const Interaction&) const;
+	double kinetic_energy_virial(const std::vector<Polymer>&, const Interaction&) const;
+	double interparticle_energy(const std::vector<Polymer>&, const Interaction&) const;
+	double potential_energy_cl(const std::vector<Polymer>&, const Interaction&) const;
+	double kinetic_energy_cl(const std::vector<Polymer>&) const;
+	double total_energy_cl(const std::vector<Polymer>&, const Interaction&) const;
+	double spring_energy_cl(const std::vector<Polymer>&, const Interaction&) const;
 	
 	double exc_der(const std::vector<Polymer>&) const;
 	double exc_der_virial(const std::vector<Polymer>&) const;

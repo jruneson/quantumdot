@@ -18,7 +18,7 @@ public:
 	double get_cv() const;
 
 	void update_bias(const std::vector<Polymer>&,double,double);
-	void create_splines();
+	void restore_splines_transient(double);
 	
 	double energy_diff(const std::vector<Polymer>& pols) const;
 	Force calc_force(const std::vector<Polymer>&, int, int) const;
@@ -63,6 +63,7 @@ private:
 	double sum_exp_distcorr(const std::vector<Polymer>&) const;
 	Force two_terms(const std::vector<Polymer>&, int, int) const;
 	double sq_distAB(const std::vector<Polymer>&) const;
+	void create_splines();
 	void update_transient(double);
 	
 	std::ofstream heights_file;

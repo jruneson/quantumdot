@@ -12,7 +12,7 @@ Bias::Bias(const Parameters& params, bool cont_sim) : id(params.cv_id), sign(par
 	if(cont_sim)
 	{
 		cv_centers_file.open("cv_centers.dat",std::ios_base::app);
-		heights_file.open("heights.dat",std::ios_base::app);
+		heights_file.open("heights.dat",std::ios_base::app);		
 	}
 	else
 	{
@@ -175,8 +175,8 @@ void Bias::update_bias(const std::vector<Polymer>& pols, double beta, double t)
 		heights.push_back(h);
 		cv_centers_file << t << "\t" << cv << std::endl;
 		heights_file << t << "\t" << h << std::endl;	
-		update_transient(beta);
 		create_splines();
+		update_transient(beta);
 	}
 }
 
@@ -269,6 +269,12 @@ void Bias::add_gaussian(double height, double center)
 {
 	heights.push_back(height);
 	cv_centers.push_back(center);
+}
+
+void Bias::restore_splines_transient(double beta) //Used when a simulation is continued. Must be called after the old gaussians are added
+{
+	create_splines();
+	update_transient(beta);
 }
 
 std::vector<double> Bias::get_heights() const
