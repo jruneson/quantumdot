@@ -30,18 +30,22 @@ public:
 private:
 	const int num_parts;
 	std::vector<Polymer> polymers;
-	const double dt;
+	const double dt_md;
+	const double dt_sample;
 	Interaction interac;
 	const double length_scale;
 	const double temperature;
 	bool finished;
-	double time;
-	int block;
-	double total_time;
+	double overall_time; //since thermalization is finished
+	double time_sampled;
+	int block; //number of measured blocks
+	int samples; //number of samples taken in a block
+	double sampling_time; //time to sample
+	double sampling_time_per_block;
+	double non_sampling_time; //only used if not cont_sim
 	int num_blocks;
-	const int num_samples;
 	const int thermalization_steps;
-	const int steps_per_sample;	
+	//const int steps_per_sample;	
 	const int num_bins;
 	const double hist_size;
 	GLE* gle;
@@ -76,8 +80,8 @@ private:
 	int bar_width;
 	int progress;
 	Timer timer;
-	double movie_start_time=100;
-	double movie_end_time=110;
+	double movie_start_time=5100;
+	double movie_end_time=5110;
 	
 	std::ofstream logfile;
 	std::ofstream& res_file;
@@ -91,6 +95,7 @@ private:
 	void initialize_coords_simple();
 	void read_old_measurements();
 	void thermalize();
+	void run_wo_sampling();
 	void run_block();
 	void verlet_step();
 	//void reset_obs();
@@ -100,7 +105,7 @@ private:
 	int calc_bin(double);
 	//int calc_bin_1p(double);
 	void update_screen();
-	void print_to_file();
+	void print_to_logfile();
 	void print_vmd();
 	void stop();
 	void print_config();

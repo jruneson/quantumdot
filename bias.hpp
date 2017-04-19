@@ -14,7 +14,8 @@ class Bias{
 public:
 	Bias(const Parameters&, bool);
 		
-	void update_cv(const std::vector<Polymer>&, const double);
+	void update_cv(const std::vector<Polymer>&);
+	void update_cv_rew(const std::vector<Polymer>&, const double);
 	double get_cv() const;
 
 	void update_bias(const std::vector<Polymer>&,double,double);
@@ -65,9 +66,15 @@ private:
 	double sq_distAB(const std::vector<Polymer>&) const;
 	void create_splines();
 	void update_transient(double);
+	double wall_force_magn(double) const;
+	double wall_potential(double) const;
 	
 	std::ofstream heights_file;
 	std::ofstream cv_centers_file;
+	
+	const double wall_id;
+	const double wall_energy;
+	const double wall_pos;
 
 };
 

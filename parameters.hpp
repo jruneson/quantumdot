@@ -19,10 +19,11 @@ public:
 	double beta; //in Ha^{-1}
 	
 	int num_blocks;
-	double total_time;
+	double sampling_time;
 	double dt_md;
 	double dt_md_slow;
 	double dt_sample;
+	double non_sampling_time; //is set to zero in simulation.cpp if simulation is continuing a previous one
 	int thermalization_steps;
 	int num_bins;
 	int sign;
@@ -49,6 +50,10 @@ public:
 	double lj_length; //Lennard-Jones sigma, in a_0
 	double lj_energy; //Lennard-Jones epsilon, in meV
 	
+	int wall_id; //0=no wall, 1=upper, 2=lower
+	double wall_pos;
+	double wall_energy;
+	
 	//dependent parameters
 	int num_beads;
 	double curvature; //in Ha a_0^{-2}
@@ -65,7 +70,7 @@ public:
 	double length_scale; //in a_0
 	double hist_size;
 	
-	//potential
+	
 	
 	//observables to measure
 	std::vector<int> to_measure;

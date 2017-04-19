@@ -7,7 +7,9 @@ Bias::Bias(const Parameters& params, bool cont_sim) : id(params.cv_id), sign(par
 			gauss_width(params.gauss_width), bias_factor(params.bias_factor),
 			exc_const(params.exc_const), first_height(params.first_height),
 			exponent_factor(1.0/(2*params.gauss_width*params.gauss_width)),
-			metad_on(params.metad_on),spline_step(gauss_width/10.0)
+			metad_on(params.metad_on),spline_step(gauss_width/10.0),
+			wall_id(params.wall_id),wall_energy(params.wall_energy),
+			wall_pos(params.wall_pos)
 {
 	if(cont_sim)
 	{
@@ -136,7 +138,7 @@ Force Bias::calc_force(const std::vector<Polymer>& pols, int bead, int part) con
 	//std::cout << "before eval" << std::endl;
 	//double tmp = vder_spline.eval_spline(cv);
 	//std::cout << "after eval" << std::endl;
-	return vder_spline.eval_spline(cv)*cv_grad(pols,bead,part);
+	return (vder_spline.eval_spline(cv)+wall_force_magn(cv))*cv_grad(pols,bead,part);
 }
 
 double Bias::scalar_product(const std::vector<Polymer>& pols, int bead) const
@@ -174,10 +176,11 @@ void Bias::update_bias(const std::vector<Polymer>& pols, double beta, double t)
 		double h = first_height * std::exp(-beta/(bias_factor-1.0) *calc_bias(cv));
 		heights.push_back(h);
 		cv_centers_file << t << "\t" << cv << std::endl;
-		heights_file << t << "\t" << h << std::endl;	
+		heights_file << t << "\t" << h << std::endl;
 		create_splines();
 		update_transient(beta);
 	}
+	//update_cv(pols,beta);
 }
 
 void Bias::create_splines()
@@ -191,6 +194,7 @@ void Bias::create_splines()
 		double min = *it - 5*gauss_width;
 		it = std::max_element(std::begin(cv_centers),std::end(cv_centers));
 		double max = *it + 5*gauss_width;
+		//assign zeros
 		for(double s=min; s<=max; s+=spline_step)
 		{
 			cvs.push_back(s);
@@ -223,11 +227,21 @@ void Bias::update_transient(double beta)
 	transient = beta*tmp_avg + std::log(tmp_int_num/tmp_int_den);
 }
 
-void Bias::update_cv(const std::vector<Polymer>& pols, const double beta)
+void Bias::update_cv(const std::vector<Polymer>& pols)
+{
+	cv = coll_var(pols);
+}
+
+void Bias::update_cv_rew(const std::vector<Polymer>& pols, const double beta)
 {
 	cv = coll_var(pols);
 	if(metad_on)
-		rew_factor = std::exp(beta*(v_spline.eval_spline(cv)-transient));
+	{
+		rew_factor = std::exp(beta*(v_spline.eval_spline(cv)+wall_potential(cv)-transient));
+		/*rew_factor *= std::exp(beta*wall_potential(cv));
+		if(std::exp(beta*wall_potential(cv))>1.1)
+			std::cout << rew_factor << "\t" << std::exp(beta*wall_potential(cv)) << std::endl;*/
+	}
 	else
 		rew_factor = 1;
 	rew_factor_avg = (rew_factor_avg*count + rew_factor)/(count+1.0);
@@ -239,6 +253,33 @@ void Bias::set_rew_factor_avg(double rew_factor_avg_, double count_)
 	rew_factor_avg = rew_factor_avg_;
 	count = count_;
 }
+
+double Bias::wall_force_magn(double cv) const
+{
+	if(wall_id==0)
+		return 0;
+	if(wall_id==1)
+		if(cv>wall_pos)
+			return -wall_energy*(cv-wall_pos);
+	if(wall_id==2)
+		if(cv<wall_pos)
+			return -wall_energy*(wall_pos-cv);
+	return 0;
+}
+
+double Bias::wall_potential(double cv) const
+{
+	if(wall_id==0)
+		return 0;
+	if(wall_id==1)
+		if(cv>wall_pos)
+			return 0.5*wall_energy*std::pow(cv-wall_pos,2);
+	if(wall_id==2)
+		if(cv<wall_pos)
+			return 0.5*wall_energy*std::pow(wall_pos-cv,2);
+	return 0;
+}
+
 
 double Bias::get_cv() const
 {

@@ -7,13 +7,14 @@
 //Simulation::Simulation() : dt_(0.1), dt_2m_(0.05){}
 
 Simulation::Simulation(const Parameters& params, std::ofstream& _res_file, bool continue_sim)
-	: dt(params.dt_md), num_parts(params.num_parts), interac(Interaction(params)),
+	: dt_md(params.dt_md), dt_sample(params.dt_sample), num_parts(params.num_parts), interac(Interaction(params)),
 	  length_scale(params.length_scale), num_blocks(params.num_blocks),
-	  num_samples(params.num_samples), steps_per_sample(params.steps_per_sample),
+	  //steps_per_sample(params.steps_per_sample),
 	  num_bins(params.num_bins), hist_size(params.hist_size),
 	  temperature(params.temperature), thermalization_steps(params.thermalization_steps),
 	  thermostat_on(params.with_thermostat), res_file(_res_file),
-	  total_time(params.total_time),
+	  non_sampling_time(params.non_sampling_time),
+	  sampling_time(params.sampling_time), sampling_time_per_block(params.sampling_time/params.num_blocks),
 	  beta(params.beta), sign(params.sign), exc_const(params.exc_const),
 	  tau(params.tau), bias(Bias(params,continue_sim)),
 	  bias_update_time(params.bias_update_time), cont_sim(continue_sim)
@@ -22,7 +23,9 @@ Simulation::Simulation(const Parameters& params, std::ofstream& _res_file, bool 
 		polymers.push_back(Polymer(params));
 	finished = false;
 	block = 0;
-	time = 0;
+	time_sampled = 0;
+	samples = 0;
+	overall_time = 0;
 	bar_width=70;
 	progress=0;
 	std::vector<int> to_print = params.to_print_every_sample;
@@ -49,7 +52,7 @@ void Simulation::setup()
 	timer.start();
 	try 
 	{
-		gle = new GLE(polymers, dt, temperature, polymers[0].mass, polymers[0].num_beads, 
+		gle = new GLE(polymers, dt_md, temperature, polymers[0].mass, polymers[0].num_beads, 
 					num_parts, polymers[0][0].size(),thermostat_on);
 	}
 	catch(const std::exception& e)
@@ -83,21 +86,24 @@ void Simulation::setup()
 	vmd_file.precision(8);
 	vmd_file2.precision(8);
 	std::cout << iteration_nbr << std::endl;
-	std::cout << "time = " << total_time << "\tP = " << polymers[0].num_beads 
-				<< "\t dt = " << dt << "\t bias_dt = " << bias_update_time << std::endl;
+	std::cout << "cumulated time = " << non_sampling_time + sampling_time << "\tP = " << polymers[0].num_beads 
+				<< "\t dt = " << dt_md << "\t bias_dt = " << bias_update_time << std::endl;
 	std::time_t t = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
 	logfile.open("logfile_P"+std::to_string(polymers[0].num_beads)+"_"+std::to_string(iteration_nbr));
 	logfile << std::ctime(&t);
-	logfile << "P=" << polymers[0].num_beads << " dim=" << polymers[0][0].size() << " dt=" << dt 
-			<< " time=" << total_time
-			<< " samples=" << num_blocks*num_samples << " T=" << temperature << std::endl << std::endl;
+	logfile << "P=" << polymers[0].num_beads << " dim=" << polymers[0][0].size() << " dt=" << dt_md 
+			<< " sampl_time=" << sampling_time
+			<< " samples=" << std::round(sampling_time/dt_sample) << " T=" << temperature << std::endl << std::endl;
 	logfile << "Block\tExc_const";
 	for(auto& pair : obs)
 		logfile << "\t" << pair.second.get_name();
 	logfile << std::endl;
 	logfile.precision(8);
 	if(!cont_sim)
+	{
 		thermalize();
+		run_wo_sampling();
+	}
 }
 
 void Simulation::read_input_coords()
@@ -163,14 +169,15 @@ void Simulation::read_old_measurements()
 				iss >> iteration_nbr;
 				iteration_nbr++;
 			}
-			else if(name=="time")
+			else if(name=="time__samples")
 			{
-				iss >> time;
-				prev_blocks = time/total_time * num_blocks;
+				iss >> non_sampling_time >> time_sampled >> samples;
+				prev_blocks = time_sampled/sampling_time * num_blocks;
 				block += prev_blocks;
 				num_blocks += prev_blocks;
-				total_time += time;
-				std::cout << name << "\t" << time << std::endl;
+				sampling_time += time_sampled;
+				overall_time += non_sampling_time+time_sampled;
+				std::cout << "time in this run\t" << time_sampled << std::endl;
 			}
 			else if(name=="gamma")
 			{
@@ -204,7 +211,7 @@ void Simulation::read_old_measurements()
 		}
 	}
 	bias.restore_splines_transient(beta);
-	bias.update_cv(polymers,beta);
+	bias.update_cv(polymers);
 	infile.close();
 }
 
@@ -212,10 +219,28 @@ void Simulation::read_old_measurements()
 void Simulation::thermalize()
 {
 	for(int step=0; step<thermalization_steps; ++step)
-	{
-		gle->run();
 		verlet_step();
-		gle->run();
+}
+
+void Simulation::run_wo_sampling()
+{
+	double tmp2 = dt_md/(0.1*non_sampling_time);
+	double time_before_sampl=0;
+	while(time_before_sampl<non_sampling_time)
+	{
+		verlet_step();
+		time_before_sampl += dt_md;
+		bias_update_counter += dt_md;
+		overall_time += dt_md;
+		if(bias_update_counter >= bias_update_time)
+		{
+			bias.update_bias(polymers,beta,overall_time);
+			//bias.update_cv(polymers,beta);
+			bias_update_counter = 0;
+		}
+		double tmp = time_before_sampl/(0.1*non_sampling_time);
+		if(std::fmod(tmp,1.0)<tmp2)
+			update_screen();
 	}
 }
 
@@ -228,29 +253,33 @@ void Simulation::run()
 
 void Simulation::run_block()
 {
-	//reset_obs();
-	for(int s=0; s<num_samples; ++s)
+	double time_since_last_sample=0;
+	while(time_sampled<sampling_time_per_block*(block+1))
 	{
-		for(int step=0; step<steps_per_sample; ++step)
+		while(time_since_last_sample<dt_sample) //(int step=0; step<steps_per_sample; ++step)
 		{
-			gle->run();
 			verlet_step();
-			gle->run();
-			time += dt;
+			time_since_last_sample += dt_md;
 		}
-		bias_update_counter += dt*steps_per_sample;
-		if(bias_update_counter >= bias_update_time) //check if remainder is 0
-		{
-			bias.update_bias(polymers,beta,time);
-			bias.update_cv(polymers,beta);
-			bias_update_counter = 0;
-		}
+		time_since_last_sample = 0;
+		++samples;
+		time_sampled += dt_sample;
+		overall_time += dt_sample;
+		bias.update_cv_rew(polymers,beta);
 		update_exc();
 		measure();
+		bias_update_counter += dt_sample;
+		if(bias_update_counter >= bias_update_time) //check if remainder is 0
+		{
+			bias.update_bias(polymers,beta,overall_time);
+			bias.update_cv(polymers);
+			bias_update_counter = 0;
+		}
 	}
 	update_avgs();
+	samples=0;
 	++block;
-	print_to_file();
+	print_to_logfile();
 	update_screen();
 	if(block>=num_blocks)
 		finished = true;
@@ -258,16 +287,17 @@ void Simulation::run_block()
 
 void Simulation::verlet_step()
 {
+	gle->run();
 	for(Polymer& pol : polymers)
 	{
 		pol.update_vels();
 		pol.move();
 	}
-	bias.update_cv(polymers,beta);
+	bias.update_cv(polymers);
 	interac.update_forces(polymers,bias);
 	for(Polymer& pol: polymers)
 		pol.update_vels();
-
+	gle->run();
 }
 
 /*void Simulation::reset_obs()
@@ -279,23 +309,23 @@ void Simulation::verlet_step()
 void Simulation::measure()
 {
 	for(auto& pair : obs)
-		pair.second.measure(polymers,interac,time,exchange_factor,bias.get_rew_factor());
+		pair.second.measure(polymers,interac,overall_time,exchange_factor,bias.get_rew_factor());
 	update_histogram();
-	cv_file << time << "\t" << bias.get_cv() << "\t" << bias.energy_diff(polymers) << std::endl;
-	rew_factor_file << time << "\t" << bias.get_rew_factor() << std::endl;
-	if(time>movie_start_time && time<movie_end_time)
+	cv_file << overall_time << "\t" << bias.get_cv() << "\t" << bias.energy_diff(polymers) << std::endl;
+	rew_factor_file << overall_time << "\t" << bias.get_rew_factor() << std::endl;
+	if(overall_time>movie_start_time && overall_time<movie_end_time)
 		print_vmd();
 }
 
 void Simulation::update_avgs()
 {
-	double tmp = exc_sum/num_samples;
+	double tmp = exc_sum/samples;
 	exc_avg = (exc_avg*block + tmp) / (block+1.0);
 	exc_avg_sq = (exc_avg_sq*block + tmp*tmp)/(block+1.0);
 	exc_sum = 0;
 	for(auto& ob : obs)
 	{
-		ob.second.update_avg(num_samples,tmp);
+		ob.second.update_avg(samples,tmp);
 		ob.second.set_zero();
 	}
 	/*double hist_norm=0;
@@ -338,23 +368,13 @@ void Simulation::update_histogram()
 		bin = calc_bin(tmp);
 		if(bin>=0 && bin<num_bins)
 			histogram[bin] += weight;
-		bin = calc_bin(polymers[0][bead].dist0());
+		/*bin = calc_bin(polymers[0][bead].dist0());
 		if(bin>=0 && bin<num_bins)
 			histogram_1p[0][bin] += 1;
 		bin = calc_bin(polymers[1][bead].dist0());
 		if(bin>=0 && bin<num_bins)
-			histogram_1p[1][bin] += 1;
+			histogram_1p[1][bin] += 1;*/
 	}
-	/*
-	for(const auto& pol : polymers)
-	{
-		for(int bead=0; bead<pol.num_beads; ++bead)
-		{
-			int bin = calc_bin(pol[bead][0]);
-			if(bin>=0 && bin<num_bins)
-				histogram[bin]++;
-		}
-	}*/
 }
 
 int Simulation::calc_bin(double dist)
@@ -370,7 +390,7 @@ int Simulation::calc_bin(double dist)
 void Simulation::update_screen()
 {
 	std::cout << "[";
-	progress = (int) bar_width*block/num_blocks;
+	progress = (int) bar_width*overall_time/(non_sampling_time + sampling_time);
 	for(int i=0; i<bar_width; ++i)
 	{
 		if(i<progress) std::cout << "=";
@@ -381,7 +401,7 @@ void Simulation::update_screen()
 	std::cout.flush();
 }
 
-void Simulation::print_to_file()
+void Simulation::print_to_logfile()
 {
 	logfile << block << "\t" << exc_avg/bias.get_rew_factor_avg();
 	for(auto& ob : obs)
@@ -395,7 +415,7 @@ void Simulation::stop()
 	logfile << "Name\t\tValue\t\tSimpleError\tTotalError" << std::endl;
 	double rew_norm = bias.get_rew_factor_avg();
 	logfile << "Exc_factor\t" << exc_avg/rew_norm << "\t" << simple_uncertainty(exc_avg,exc_avg_sq)/rew_norm << std::endl;
-	res_file << total_time;
+	res_file << sampling_time;
 	for(const auto& pair : obs)
 	{
 		const auto& ob = pair.second;
@@ -463,7 +483,7 @@ void Simulation::print_config()
 	std::ofstream outfile("measurements.dat");
 	outfile.precision(10);
 	outfile << "iteration_nbr\t" << iteration_nbr << std::endl;
-	outfile << "time\t" << time << std::endl;
+	outfile << "time__samples\t" << non_sampling_time << "\t" << time_sampled << "\t" << samples << std::endl;
 	outfile << "gamma\t" << exc_avg << "\t" << exc_avg_sq << std::endl;
 	outfile << "bias_reweight\t" << bias.get_rew_factor_avg() << "\t" << bias.get_count() << std::endl;
 	for(auto& pair : obs)
@@ -520,10 +540,11 @@ void Simulation::update_exc()
 		for(int bead=0; bead<polymers[0].num_beads; ++bead)
 			tmp += std::exp( - exc_const * (polymers[0][bead]-polymers[1][bead])*(polymers[0][bead+1]-polymers[1][bead+1]));
 		exchange_factor = 1.0 + sign*tmp/polymers[0].num_beads;
+		//if(tmp>2)
+		std::cout << exchange_factor << std::endl;
 	}
-	exc_file << time << "\t" << exchange_factor << std::endl;
+	//exc_file << overall_time << "\t" << exchange_factor << std::endl;
 	exc_sum += exchange_factor * bias.get_rew_factor();
-
 }
 
 double Simulation::simple_uncertainty(double avg, double avg_sq) const

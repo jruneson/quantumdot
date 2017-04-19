@@ -26,14 +26,16 @@ void Parameters::read_file(std::string filename)
 				iss >> beta;
 			else if(name=="num_blocks")
 				iss >> num_blocks;
-			else if(name=="total_time")
-				iss >> total_time;
+			else if(name=="sampling_time")
+				iss >> sampling_time;
 			else if(name=="dt_md")
 				iss >> dt_md;
 			else if(name=="dt_md_slow")
 				iss >> dt_md_slow;
 			else if(name=="dt_sample")
 				iss >> dt_sample;
+			else if(name=="non_sampling_time")
+				iss >> non_sampling_time; 
 			else if(name=="thermalization_time")
 			{
 				iss >> tmp2;
@@ -87,6 +89,12 @@ void Parameters::read_file(std::string filename)
 				iss >> lj_energy;
 			else if(name=="interaction_id")
 				iss >> interaction_id;
+			else if(name=="wall_id")
+				iss >> wall_id;
+			else if(name=="wall_pos")
+				iss >> wall_pos;
+			else if(name=="wall_energy")
+				iss >> wall_energy;
 			else
 				std::cout << name << " is not an allowed parameter" << std::endl;
 		}
@@ -154,12 +162,12 @@ void Parameters::calculate_dependencies()
 	//dt_md = 2*M_PI * std::pow(1 + 4.0*num_beads/(hw*hw*beta*beta),-0.5) * hbar/hw
 	//		* 1.0/steps_in_highest_mode; //at least 10dt within the highest freq mode
 	//dt_md = 0.005;
-	steps_per_sample = round(dt_sample/dt_md);
+	//steps_per_sample = round(dt_sample/dt_md);
 	dt_2m = dt_md / (2.0*mass) * 5.7214765779e-26; //containing conversion factor from meV/a_0 to kg a_0 ps^{-2}
 	temperature = 1.0/beta * 11.60452205;
 	first_height = first_height/beta;
-	num_steps = (int) total_time / (dt_md * num_blocks); //per block
-	num_samples = (int) num_steps / steps_per_sample; //per block
+	//num_steps = (int) sampl_time / (dt_md * num_blocks); //per block
+	//num_samples = (int) num_steps / steps_per_sample; //per block
 	spring_const = num_beads*m_hbar2/(beta*beta);
 	exc_const = num_beads*m_hbar2/beta;
 	exc_der_const = -sign * m_hbar2/(beta*beta);
