@@ -67,6 +67,8 @@ private:
 	double exc_sum;
 	double exc_avg;
 	double exc_avg_sq;
+	double exc_sq; // <Gamma^2> within a block
+	double exc_sq_avg; // <Gamma^2> over all blocks, for standard deviation calculation
 	
 	std::map<int,Observable> obs;	
 	std::vector<double> histogram; //1D probability density. If dim>1, only the first coordinate is considered.

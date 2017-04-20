@@ -171,7 +171,7 @@ void Simulation::read_old_measurements()
 			}
 			else if(name=="time__samples")
 			{
-				iss >> non_sampling_time >> time_sampled >> samples;
+				iss >> non_sampling_time >> time_sampled;
 				prev_blocks = time_sampled/sampling_time * num_blocks;
 				block += prev_blocks;
 				num_blocks += prev_blocks;
@@ -181,8 +181,8 @@ void Simulation::read_old_measurements()
 			}
 			else if(name=="gamma")
 			{
-				iss >> exc_avg >> exc_avg_sq;
-				std::cout << name << "\t" << exc_avg << "\t" << exc_avg_sq << std::endl;
+				iss >> exc_avg >> exc_avg_sq >> exc_sq_avg;
+				std::cout << name << "\t" << exc_avg << "\t" << exc_avg_sq << "\t" << exc_sq_avg << std::endl;
 			}
 			else if(name=="bias_reweight")
 			{
@@ -322,6 +322,8 @@ void Simulation::update_avgs()
 	double tmp = exc_sum/samples;
 	exc_avg = (exc_avg*block + tmp) / (block+1.0);
 	exc_avg_sq = (exc_avg_sq*block + tmp*tmp)/(block+1.0);
+	exc_sq_avg = (exc_sq_avg*block + exc_sq)/(block+1.0);
+	exc_sq = 0;
 	exc_sum = 0;
 	for(auto& ob : obs)
 	{
@@ -412,9 +414,10 @@ void Simulation::print_to_logfile()
 void Simulation::stop()
 {
 	print_config();
-	logfile << "Name\t\tValue\t\tSimpleError\tTotalError" << std::endl;
+	logfile << "Name\t\tValue\t\tSimpleError\tStd_or_TotalError" << std::endl;
 	double rew_norm = bias.get_rew_factor_avg();
-	logfile << "Exc_factor\t" << exc_avg/rew_norm << "\t" << simple_uncertainty(exc_avg,exc_avg_sq)/rew_norm << std::endl;
+	logfile << "Exc_factor\t" << exc_avg/rew_norm << "\t" << simple_uncertainty(exc_avg,exc_avg_sq)/rew_norm 
+			<< "\t" << std::sqrt(exc_sq_avg-exc_avg*exc_avg) << std::endl; // sqrt(n/(n-1)) unnecessary for large n
 	res_file << sampling_time;
 	for(const auto& pair : obs)
 	{
@@ -483,8 +486,8 @@ void Simulation::print_config()
 	std::ofstream outfile("measurements.dat");
 	outfile.precision(10);
 	outfile << "iteration_nbr\t" << iteration_nbr << std::endl;
-	outfile << "time__samples\t" << non_sampling_time << "\t" << time_sampled << "\t" << samples << std::endl;
-	outfile << "gamma\t" << exc_avg << "\t" << exc_avg_sq << std::endl;
+	outfile << "time__samples\t" << non_sampling_time << "\t" << time_sampled << std::endl;
+	outfile << "gamma\t" << exc_avg << "\t" << exc_avg_sq << "\t" << exc_sq_avg << std::endl;
 	outfile << "bias_reweight\t" << bias.get_rew_factor_avg() << "\t" << bias.get_count() << std::endl;
 	for(auto& pair : obs)
 		outfile << "obs\t" << pair.second.get_id() << "\t" << pair.second.get_avg()
@@ -541,10 +544,12 @@ void Simulation::update_exc()
 			tmp += std::exp( - exc_const * (polymers[0][bead]-polymers[1][bead])*(polymers[0][bead+1]-polymers[1][bead+1]));
 		exchange_factor = 1.0 + sign*tmp/polymers[0].num_beads;
 		//if(tmp>2)
-		std::cout << exchange_factor << std::endl;
+		//std::cout << exchange_factor << std::endl;
 	}
-	//exc_file << overall_time << "\t" << exchange_factor << std::endl;
-	exc_sum += exchange_factor * bias.get_rew_factor();
+	exc_file << overall_time << "\t" << exchange_factor << std::endl;
+	double exc_weighted = exchange_factor * bias.get_rew_factor();
+	exc_sum += exc_weighted;
+	exc_sq = (exc_sq*samples + exc_weighted*exc_weighted)/(samples+1.0);
 }
 
 double Simulation::simple_uncertainty(double avg, double avg_sq) const
