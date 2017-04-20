@@ -54,6 +54,8 @@ void Parameters::read_file(std::string filename)
 			{
 				iss >> to_bool;
 				metad_on = (to_bool != 0);
+				if(sign==0)
+					metad_on=false;
 			}
 			else if(name=="cv_id")
 				iss >> cv_id;

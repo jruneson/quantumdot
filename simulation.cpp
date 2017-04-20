@@ -87,7 +87,7 @@ void Simulation::setup()
 	vmd_file2.precision(8);
 	std::cout << iteration_nbr << std::endl;
 	std::cout << "cumulated time = " << non_sampling_time + sampling_time << "\tP = " << polymers[0].num_beads 
-				<< "\t dt = " << dt_md << "\t bias_dt = " << bias_update_time << std::endl;
+				<< "\tsign = " << sign << "\t dt = " << dt_md << "\t bias_dt = " << bias_update_time << std::endl;
 	std::time_t t = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
 	logfile.open("logfile_P"+std::to_string(polymers[0].num_beads)+"_"+std::to_string(iteration_nbr));
 	logfile << std::ctime(&t);

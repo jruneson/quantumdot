@@ -5,17 +5,21 @@ from matplotlib import rcParams, interactive
 from scipy.special import jv
 import copy
 
-from theoretical_energy import half_energy
+#from theoretical_energy import half_energy
 
 plt.rc('text',usetex=True)
 plt.rc('font',family='helvetica')
-rcParams.update({'font.size': 26})
+rcParams.update({'font.size': 28})
 
 kB = 1/11.6045
 hw = 3.0
 
-def plot_cv(f,fig_nr,opt=None):
-    data = np.loadtxt(f+'cv.dat')
+def plot_cv(f,fig_nr,n=0,opt=None):
+    if(n==0):
+        data = np.loadtxt(f+'cv.dat')
+    else:
+        data = np.genfromtxt(f+'cv.dat',max_rows=n)
+    #data = np.loadtxt(f+'cv.dat')
     t = data[:,0]
     cv = data[:,1]
     plt.figure(fig_nr)
@@ -29,7 +33,12 @@ def plot_cv(f,fig_nr,opt=None):
         data = np.loadtxt(f+'rew_factor.dat')
         rw = data[:,1]
         plt.plot(t,10*rw,label='10*rew-factor')
-        plt.legend(loc='upper right',fontsize=22)
+        plt.legend(loc='upper right',fontsize=20)
+    if(opt=='bdE'):
+        bdE = data[:,2]
+        plt.plot(t,bdE,label=r'$\beta\Delta E$')
+        plt.legend(loc='upper right',fontsize=20)
+        
         
     
 def plot_gauss_data(f,fig_nr,opt='Ws',xlim=None,name=None):
@@ -81,7 +90,7 @@ def plot_cont_sint(f,fig_nr,block_size,opt='Gamma'):
     #line1, = ax.plot(cvs,his_rew)
     count = 0
     for cv_line, rw_line in zip(cv_f,rw_f):
-        if(opt=='Gamma'):
+        if(opt=='Gamma' or opt=='FESbdE'):
             s = float(cv_line.split()[2])
         elif(opt=='FES'):
             s = float(cv_line.split()[1])
@@ -102,7 +111,7 @@ def plot_cont_sint(f,fig_nr,block_size,opt='Gamma'):
             if(opt=='Gamma'): 
                 plt.plot(cvs,his_rew_norm*(1-np.exp(-cvs)),label=str(t)+' ps')
                 plt.ylabel(r'$\Gamma(s)~p(s)$')
-            elif(opt=='FES'):
+            elif(opt=='FES' or opt=='FESbdE'):
                 plt.plot(cvs,-np.log(his_rew_norm)/beta,label=str(t)+' ps')                
                 plt.ylabel(r'$F(s)=-\frac{1}{\beta}\log\,p(s)$')
             plt.legend(loc='upper right')
@@ -115,7 +124,7 @@ def plot_cont_sint(f,fig_nr,block_size,opt='Gamma'):
         plt.plot(cvs,his_rew_norm*(1-np.exp(-cvs)))
         plt.ylabel(r'$\Gamma(s)~p(s)$')
         print(sum(his_rew_norm*(1-np.exp(-cvs)))*ds)
-    elif(opt=='FES'):
+    elif(opt=='FES' or opt=='FESbdE'):
         plt.plot(cvs,-np.log(his_rew_norm)/beta,label=r'$-\frac{1}{\beta}\log\,p(s)$')
         plt.ylabel(r'$F(s)~\mathrm{(meV)}$') 
         
@@ -139,7 +148,7 @@ def plot_cont(f, fig_nr,sign,block_size,cv='G',samp_start_time=0):
             file=cv_f
     if(sign==-1):
         if(cv=='G'):
-            Gmin = -100
+            Gmin = -20
             Gmax = 2
             file = cv_f
         if(cv=='bdE'):
@@ -483,13 +492,16 @@ if __name__=="__main__":
     t=['t100000/']
     ff = f0+interac[1]+sym[2]
     f=f0+interac[0]+sym[2]
-    flab = '../workstation_lab/metaD_test3/'
+    flab = '../workstation_lab/metaD_test4/'
     flab1= flab+'run1/'
     flab2= flab+'run2/'
     flab3= flab+'run3/'
     flab4= flab+'run4/'
     flab5= flab+'run5/'
     flab6= flab+'run6/'
+    flab7= flab+'run7/'
+    flab8= flab+'run8/'
+    flab9= flab+'run9/'
     
     fi = flab+'run1/'
     if(f!='.'):
@@ -500,8 +512,8 @@ if __name__=="__main__":
         plt.plot(np.insert(time,0,0),e*np.ones(len(time)+1),'k--',label='Theory')
         plt.legend(loc='upper right',fontsize=18)
         plt.xlim([0,max(time)+1])"""
-        plot_gauss_data(f5,7,'Wt',name='W1')
-        plot_gauss_data(f6,8,'Wt',name='W0.5')
+        plot_gauss_data(f1,7,'Wt',name='old cv')
+        plot_gauss_data(f9,8,'Wt',name='new cv')
         #plot_rABs(fs)
         #plt.figure(4)
         #plt.title(r' ')
@@ -510,14 +522,15 @@ if __name__=="__main__":
         #plot_cont(f+P[1]+dt[2],4,-1,100000,'bdE')
         #plot_cont(f5[0],5,-1,100000,'bdE')
         #plot_cont(f+P[3]+dt[2],6,-1,100000,'bdE')
-        #plot_cv(f6,0)
+        #plot_cv(f5,0,n=500000)
         #plot_cont(f4[0],4,-1,100000,'bdE')
         #plot_cont(f2[0],5,-1,100000,'bdE')
-        plot_rAB(f2,1,1,'b',name='dis')
-        r=plot_rAB(flab5,1,0,'r',name='bos')
-        plot_rAB(flab1,1,0,'g',name='fer')
-        #plot_rAB_th(1,r,'fer')
+        plot_rAB(f1,1,1,'b',name='Old cv')
+        r=plot_rAB(f9,1,0,'r',name='New cv')
+        #r=plot_rAB(f9,1,0,'g',name='Fermion')
+        plot_rAB_th(1,r,'fer')
         plt.legend(loc='upper right',fontsize=20)
+        #plt.title(r'$\sigma_\mathrm{LJ}=100\,a_0$')
         """plot_rAB(f1[0],2,1,'b',name='P=10')
         plot_rAB(flab+'run4/',2,0,'c',name='P=20')
         r=plot_rAB(fi,2,0,'r',name='P=50')
@@ -527,15 +540,17 @@ if __name__=="__main__":
         #plt.figure(0)
         #plt.title('P=10, With wall')
         if 0:
-            plot_cont_sint(f6,3,200000,'FES')
-            plt.title('new cv')
-            #plot_cont_sint(f4[0],4,200000,'FES')
-            #plt.title('fer')
+            plot_cont_sint(f1,3,200000,'FES')
+            plt.title('p(old cv), bias old cv')
+            plot_cont_sint(f9,4,200000,'FESbdE')
+            plt.title('p(old cv), bias new cv')
+            plot_cont_sint(f9,0,200000,'FES')
+            plt.title('p(new cv), new cv')
         if 1:
-            plot_cont(f5,5,-1,200000,'bdE')
-            plt.title('no int')
-            plot_cont(f6,6,-1,200000,'bdE')
-            plt.title('fer')
+            plot_cont(flab6,5,-1,200000,'bdE')
+            plt.title('old cv')
+            plot_cont(flab9,6,-1,200000,'bdE')
+            plt.title('new cv')
         if 0:
             plot_cont(f5[0],5,-1,200000,'G')
         #plot_cont(f6,7,-1,200000,'bdE')
@@ -575,7 +590,7 @@ if __name__=="__main__":
         V_LJ = 4*eps*((sigma/r)**12-(sigma/r)**5)
         plt.plot(r,V_LJ,color='magenta',label='$V_\mathrm{LJ}(r)$ (arb.u.)')
         plt.ylim([-0.5,2])"""
-        plt.legend(loc='upper right',fontsize=16)
+        #plt.legend(loc='upper right',fontsize=16)
     else:
         #plot_energies_vs_t(f,1)
         plot_coord(f,2)

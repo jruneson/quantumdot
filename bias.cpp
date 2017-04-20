@@ -57,7 +57,14 @@ double Bias::coll_var(const std::vector<Polymer>& pols) const
 		case 5:
 			s = energy_diff(pols);
 			return 0.5*(1+s+(1-s)*std::tanh(s));
+		case 6:
+			s = energy_diff(pols);
+			return 0.5*(1.1*s-0.9*s*std::tanh(s));
+		case 7:
+			s = energy_diff(pols);
+			return 0.5*(1.1*s+20-(0.9*s-20)*std::tanh(0.2*(s-20)));
 		default:
+			std::cout << "Not a valid CV option" << std::endl;
 			return pols[0][0][0];
 	}
 }
@@ -110,8 +117,25 @@ Force Bias::cv_grad(const std::vector<Polymer>& pols, int bead, int part) const
 			return tmp * exc_const/pols[part].num_beads * std::pow(-1,part);
 		case 2:
 		case 5:
+		case 6:
+		case 7:
 			tmp += two_terms(pols, bead, part);
 			tmp /= sum_exp(pols);
+			if(id==5)
+			{
+				double t = std::tanh(cv);
+				tmp *= 0.5*(1-t+(1-cv)*(1-t*t));
+			}
+			else if(id==6)
+			{
+				double t = std::tanh(cv);
+				tmp *= 0.5*(1.1-0.9*(t + cv*(1-t*t)));
+			}
+			else if(id==7)
+			{
+				double t = std::tanh(0.2*(cv-20));
+				tmp *= 0.5*(1.1-0.9*t-0.2*(0.9*cv-20)*(1-t*t));
+			}
 			return tmp * (exc_const * std::pow(-1,part));
 		case 3:
 			tmp2 = pols[0][bead]-pols[1][bead]-(pols[0][bead+1]-pols[1][bead+1]);
@@ -164,11 +188,11 @@ double Bias::calc_bias_der(double cv) const
 	double tmp=0;
 	for(int index=0; index<heights.size(); ++index)
 		tmp += (cv-cv_centers[index])*gaussian(cv,cv_centers[index],heights[index]);
-	if(id==5)
+	/*if(id==5)
 	{
 		double tan = std::tanh(cv);
 		tmp *= 0.5*(1-tan+(1-cv)*(1-tan*tan));
-	}
+	}*/
 	return tmp/std::pow(gauss_width,2);
 }
 
