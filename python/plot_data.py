@@ -143,7 +143,7 @@ def plot_cont(f, fig_nr,sign,block_size,cv='G',samp_start_time=0):
             Gmax = 1000
             file=cv_f
         if(cv=='bdE'):
-            Gmin = -50
+            Gmin = -80
             Gmax = 50
             file=cv_f
     if(sign==-1):
@@ -152,7 +152,7 @@ def plot_cont(f, fig_nr,sign,block_size,cv='G',samp_start_time=0):
             Gmax = 2
             file = cv_f
         if(cv=='bdE'):
-            Gmin = -50
+            Gmin = -80
             Gmax = 50
             file= cv_f
     nbins = 1000
@@ -418,7 +418,7 @@ def plot_rABs(fs):
     tmp = tic.MaxNLocator(8)
     ax1.xaxis.set_major_locator(tmp)
     
-def plot_rAB(f,fig_nr,clear=True,color='blue',name=None,linestyle='-',show_errors=True):
+def plot_rAB(f,fig_nr,clear=True,color='blue',marker='x',name=None,linestyle='-',show_errors=1):
     if name is None:
         name=f[-25:]
     data = np.loadtxt(f+'Prob_distribution.dat')
@@ -431,10 +431,11 @@ def plot_rAB(f,fig_nr,clear=True,color='blue',name=None,linestyle='-',show_error
     plt.figure(fig_nr)
     if(clear):
         plt.clf()
-    marker='x'
-    plt.plot(r,p,color=color,linestyle=linestyle,label=name)
-    if(show_errors):
-        plt.errorbar(r[::],p[::],p_err[::],linestyle='None',marker=marker,color=color)
+    plt.plot(r,p,color=color,linestyle=linestyle)
+    if(show_errors==1):
+        plt.errorbar(r[::],p[::],p_err[::],linestyle='None',label=name,marker=marker,color=color)
+    if(show_errors==3):
+        plt.errorbar(r[::3],p[::3],p_err[::3],linestyle='None',label=name,marker=marker,color=color)
     plt.xlabel('$r~(a_0)$')
     plt.ylabel('$p(r_\mathrm{AB})/10^{-6}$')
     return r
@@ -470,7 +471,8 @@ def plot_rAB_th(fig_nr,r,sym):
     normalize(p2part,0,r,2,1)
     scale=1e6
     plt.figure(fig_nr)
-    plt.plot(r,p2part*scale,color=color,marker='.',label='Theory '+sym)
+    plt.plot(r,p2part*scale,color=color,marker='.',label='Theory Fermion')
+    
 
 if __name__=="__main__":
     f0 = '../'
@@ -492,7 +494,8 @@ if __name__=="__main__":
     t=['t100000/']
     ff = f0+interac[1]+sym[2]
     f=f0+interac[0]+sym[2]
-    flab = '../workstation_lab/metaD_test4/'
+    flab = '../workstation_lab/metaD_test4_30ns/'
+    flabb= '../workstation_lab/metaD_test4_20ns/'
     flab1= flab+'run1/'
     flab2= flab+'run2/'
     flab3= flab+'run3/'
@@ -502,6 +505,7 @@ if __name__=="__main__":
     flab7= flab+'run7/'
     flab8= flab+'run8/'
     flab9= flab+'run9/'
+    flab10=flab+'run10/'
     
     fi = flab+'run1/'
     if(f!='.'):
@@ -512,90 +516,34 @@ if __name__=="__main__":
         plt.plot(np.insert(time,0,0),e*np.ones(len(time)+1),'k--',label='Theory')
         plt.legend(loc='upper right',fontsize=18)
         plt.xlim([0,max(time)+1])"""
-        plot_gauss_data(f1,7,'Wt',name='old cv')
-        plot_gauss_data(f9,8,'Wt',name='new cv')
+        plot_gauss_data(flab6,7,'Ws',name='cv2')
+        plot_gauss_data(flab10,8,'Ws',name='cv7')
         #plot_rABs(fs)
-        #plt.figure(4)
-        #plt.title(r' ')
-        #plot_cont(f[0],2,100000,'FES')    
-        #plot_fes(f,2)
-        #plot_cont(f+P[1]+dt[2],4,-1,100000,'bdE')
-        #plot_cont(f5[0],5,-1,100000,'bdE')
-        #plot_cont(f+P[3]+dt[2],6,-1,100000,'bdE')
-        #plot_cv(f5,0,n=500000)
-        #plot_cont(f4[0],4,-1,100000,'bdE')
-        #plot_cont(f2[0],5,-1,100000,'bdE')
-        plot_rAB(f1,1,1,'b',name='Old cv')
-        r=plot_rAB(f9,1,0,'r',name='New cv')
-        #r=plot_rAB(f9,1,0,'g',name='Fermion')
-        plot_rAB_th(1,r,'fer')
-        plt.legend(loc='upper right',fontsize=20)
-        #plt.title(r'$\sigma_\mathrm{LJ}=100\,a_0$')
-        """plot_rAB(f1[0],2,1,'b',name='P=10')
-        plot_rAB(flab+'run4/',2,0,'c',name='P=20')
-        r=plot_rAB(fi,2,0,'r',name='P=50')
-        plot_rAB_th(2,r,'fer')
-        plt.legend(loc='upper right',fontsize=20)"""
-        #plot_cont_sint(f2[0],0,200000,'FES')
-        #plt.figure(0)
-        #plt.title('P=10, With wall')
-        if 0:
-            plot_cont_sint(f1,3,200000,'FES')
-            plt.title('p(old cv), bias old cv')
-            plot_cont_sint(f9,4,200000,'FESbdE')
-            plt.title('p(old cv), bias new cv')
-            plot_cont_sint(f9,0,200000,'FES')
-            plt.title('p(new cv), new cv')
+        plot_rAB(flab6,1,1,'b','x',name='Distinguishable')
+        plot_rAB(flab10,1,0,'r','o',name='Boson')
+        #r=plot_rAB(flab9,1,0,'g','v',name='Fermion')
+        #plot_rAB_th(1,r,'fer')
+        plt.legend(loc='upper right',fontsize=18)
+        plt.title(r'$\sigma_\mathrm{LJ}=20\,a_0$')
+        plt.title(r'$\mathrm{No~interaction}$')
         if 1:
+            plot_cont_sint(flab6,3,200000,'FES')
+            plt.title('p(old cv), bias old cv')
+            plot_cont_sint(flab10,4,200000,'FESbdE')
+            plt.title('p(old cv), bias new cv')
+            plot_cont_sint(flab10,0,200000,'FES')
+            plt.title('p(new cv), new cv')
+        if 0:
             plot_cont(flab6,5,-1,200000,'bdE')
-            plt.title('old cv')
-            plot_cont(flab9,6,-1,200000,'bdE')
-            plt.title('new cv')
+            plt.title('cv2')
+            plot_cont(flab10,6,-1,200000,'bdE')
+            plt.title('cv7')
         if 0:
             plot_cont(f5[0],5,-1,200000,'G')
         #plot_cont(f6,7,-1,200000,'bdE')
         #plt.title('New cv')
-        #plot_cont(f0+interac[0]+sym[2]+P[0]+dt[1]+t[0]+'metaD/',0,-1,100000,'bdE')
-        #plot_cont(f3[0],4,-1,100000,'bdE')
-        #plot_energies_vs_t(f1[0],1,40000)
-        #plot_energies_vs_t(f+s[0],1)
-        #plt.ylim([0, 100])
-        """plot_rAB(f+P[0]+dt[1],2,1,'r')
-        plot_rAB(f+P[1]+dt[2],2,0,'g')
-        r=plot_rAB(f+P[3]+dt[2],2,0,'k')"""
-        #plot_rAB(f+P[3]+dt[3],2,0,'b')
-        #plot_rAB(f0+interac[0]+sym[0]+P[3]+dt[3],2,0,'b')
-        #plot_rAB(f5[0],2,0,'b')
-        """s_i=1
-        plot_rAB(f0+interac[0]+sym[0]+P[0]+t[0],3,1,'r')
-        plot_rAB(f0+interac[0]+sym[1]+P[0]+'metaD/',3,0,'b')
-        plot_rAB(f0+interac[0]+sym[2]+P[0]+dt[1]+t[0]+'metaD/',3,0,'g')
-        plot_rAB_th(3,r,'dis')
-        plot_rAB_th(3,r,'bos')
-        plot_rAB_th(3,r,'fer')
-        plt.legend(loc='upper right',fontsize=16)"""
         #plot_rAB(f0+interac[1]+sym[2]+P[3]+s[0]+'woMetaD/',2,0,'k')
 
-
-        #plot_rAB(f+P[4]+s[1],3,0,'k')
-        #plt.ylim([0,1.6])
-        #plot_rAB(f8,2,0,'k',r'$\sigma=100\,a_0$')
-        #plot_rAB(f7,2,0,'r',r'$\varepsilon=0.1\,\hbar\omega$')
-        #plot_rAB(f8,2,0,'k',r'$\varepsilon=1\,\hbar\omega$')
-
-        #plt.title('Fermions')
-        """r=np.linspace(20,400,1000)
-        eps = 0.03*10
-        sigma=50
-        V_LJ = 4*eps*((sigma/r)**12-(sigma/r)**5)
-        plt.plot(r,V_LJ,color='magenta',label='$V_\mathrm{LJ}(r)$ (arb.u.)')
-        plt.ylim([-0.5,2])"""
-        #plt.legend(loc='upper right',fontsize=16)
-    else:
-        #plot_energies_vs_t(f,1)
-        plot_coord(f,2)
-        #plot_rAB_dist(f,4)
-        #plot_cv(f,1)
     plt.show()
     
     """plt.figure(0)

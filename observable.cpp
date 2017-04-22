@@ -217,8 +217,8 @@ double Observable::kinetic_energy(const std::vector<Polymer>& pols, const Intera
 
 double Observable::total_energy(const std::vector<Polymer>& pols, const Interaction& interac) const
 {
-	return potential_energy(pols, interac) + kinetic_energy_virial(pols, interac)
-			+ interparticle_energy(pols, interac);
+	return potential_energy(pols, interac) + kinetic_energy_virial(pols, interac);
+			//+ interparticle_energy(pols, interac);
 }
 
 double Observable::kinetic_energy_virial(const std::vector<Polymer>& pols, const Interaction& interac) const
