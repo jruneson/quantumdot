@@ -42,6 +42,8 @@ Simulation::Simulation(const Parameters& params, std::ofstream& _res_file, bool 
 	histogram_1p_avg.assign(num_parts,histogram);
 	histogram_1p_sq_avg.assign(num_parts,histogram);
 	bias_update_counter = 0;
+	movie_start_time = non_sampling_time + sampling_time/2.0;
+	movie_end_time = movie_start_time + dt_sample*10000;
 }
 
 
@@ -86,8 +88,8 @@ void Simulation::setup()
 	vmd_file.precision(8);
 	vmd_file2.precision(8);
 	std::cout << iteration_nbr << std::endl;
-	std::cout << "cumulated time = " << non_sampling_time + sampling_time << "\tP = " << polymers[0].num_beads 
-				<< "\tsign = " << sign << "\t dt = " << dt_md << "\t bias_dt = " << bias_update_time << std::endl;
+	std::cout << "cumulated time = " << non_sampling_time + sampling_time << ", P = " << polymers[0].num_beads 
+				<< ", sign = " << sign << ", dt = " << dt_md << ", bias_dt = " << bias_update_time << std::endl;
 	std::time_t t = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
 	logfile.open("logfile_P"+std::to_string(polymers[0].num_beads)+"_"+std::to_string(iteration_nbr));
 	logfile << std::ctime(&t);
@@ -418,7 +420,7 @@ void Simulation::stop()
 	double rew_norm = bias.get_rew_factor_avg();
 	logfile << "Exc_factor\t" << exc_avg/rew_norm << "\t" << simple_uncertainty(exc_avg,exc_avg_sq)/rew_norm 
 			<< "\t" << std::sqrt(exc_sq_avg-exc_avg*exc_avg) << std::endl; // sqrt(n/(n-1)) unnecessary for large n
-	res_file << sampling_time;
+	res_file << beta;//polymers[0].num_beads;//sampling_time;
 	for(const auto& pair : obs)
 	{
 		const auto& ob = pair.second;

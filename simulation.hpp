@@ -82,8 +82,8 @@ private:
 	int bar_width;
 	int progress;
 	Timer timer;
-	double movie_start_time=5100;
-	double movie_end_time=5110;
+	double movie_start_time;
+	double movie_end_time;
 	
 	std::ofstream logfile;
 	std::ofstream& res_file;

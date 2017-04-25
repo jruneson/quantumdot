@@ -12,7 +12,10 @@ plt.rc('font',family='helvetica')
 rcParams.update({'font.size': 28})
 
 kB = 1/11.6045
-hw = 3.0
+hw = 4.828
+#hw=1.21
+en_scale = 1#hw/2
+offset = 2*hw*0
 
 def plot_cv(f,fig_nr,n=0,opt=None):
     if(n==0):
@@ -51,17 +54,17 @@ def plot_gauss_data(f,fig_nr,opt='Ws',xlim=None,name=None):
         plt.xlabel('$s_k$')
         plt.ylabel('$W_k~(k_\mathrm{B}T)$')
     if(opt=='st'):
-        plt.plot(centers[:,0],centers[:,1])
-        plt.xlabel('$t\,(ps)$')
+        plt.plot(centers[:,0]/1000,centers[:,1])
+        plt.xlabel('$t\,(ns)$')
         plt.ylabel('$s_k$')
     if(opt=='Wt'):
-        plt.plot(heights[:,0],heights[:,1],'x')
-        plt.xlabel('$t\,(ps)$')
+        plt.plot(heights[:,0]/1000,heights[:,1],'x')
+        plt.xlabel('$t\,(ns)$')
         plt.ylabel('$W_k$')
     if(opt=='Wst'):
-        plt.plot(centers[:,0],centers[:,1],'x',label='$s_k$')
-        plt.plot(heights[:,0],100*heights[:,1],'x',label='$100W_k$')
-        plt.xlabel('$t\,(ps)$')
+        plt.plot(centers[:,0]/1000,centers[:,1],'x',label='$s_k$')
+        plt.plot(heights[:,0]/1000,100*heights[:,1],'x',label='$100W_k$')
+        plt.xlabel('$t\,(ns)$')
         plt.legend(loc='upper right',fontsize=22)
     if xlim is not None:
         plt.xlim(xlim)
@@ -128,10 +131,12 @@ def plot_cont_sint(f,fig_nr,block_size,opt='Gamma'):
         plt.plot(cvs,-np.log(his_rew_norm)/beta,label=r'$-\frac{1}{\beta}\log\,p(s)$')
         plt.ylabel(r'$F(s)~\mathrm{(meV)}$') 
         
-def plot_cont(f, fig_nr,sign,block_size,cv='G',samp_start_time=0):
+def plot_cont(f, fig_nr,sign,block_size,cv='bdE',obs='etot'):
     g_f = open(f+'exc_factor.dat')
     cv_f = open(f+'cv.dat')
     rw_f = open(f+'rew_factor.dat')
+    if(obs=='etot'):
+        obs_f = open(f+'Total_energy.dat')
     plt.figure(fig_nr)
     plt.clf()
     plt.xlabel(r'$s$')
@@ -143,8 +148,8 @@ def plot_cont(f, fig_nr,sign,block_size,cv='G',samp_start_time=0):
             Gmax = 1000
             file=cv_f
         if(cv=='bdE'):
-            Gmin = -80
-            Gmax = 50
+            Gmin = -50
+            Gmax = 40
             file=cv_f
     if(sign==-1):
         if(cv=='G'):
@@ -152,8 +157,8 @@ def plot_cont(f, fig_nr,sign,block_size,cv='G',samp_start_time=0):
             Gmax = 2
             file = cv_f
         if(cv=='bdE'):
-            Gmin = -80
-            Gmax = 50
+            Gmin = -50
+            Gmax = 40
             file= cv_f
     nbins = 1000
     Gs = np.linspace(Gmin,Gmax,nbins)
@@ -161,21 +166,22 @@ def plot_cont(f, fig_nr,sign,block_size,cv='G',samp_start_time=0):
     his_rew = np.zeros(nbins)
     #line1, = ax.plot(cvs,his_rew)
     count = 0
-    for line, rw_line in zip(file,rw_f):
+    for line, rw_line,obs_l in zip(file,rw_f,obs_f):
         if(cv=='G'):
             G = float(line.split()[1])
             G = 1+sign*np.exp(-G)
         elif(cv=='bdE'):
             G = float(line.split()[2])
         rw = float(rw_line.split()[1])
+        ob = float(obs_l.split()[1])
+        rw *= ob
         b = np.round((G-Gmin)/(Gmax-Gmin)*(nbins-1))
         if b>=nbins:
             b=nbins-1
         if b<0:
             b=0
         t = float(line.split()[0])
-        if t>samp_start_time:
-            his_rew[b] += rw
+        his_rew[b] += rw
         count += 1
         if(count==block_size):
             his_rew_norm = his_rew / (sum(his_rew)*dG)
@@ -190,7 +196,7 @@ def plot_cont(f, fig_nr,sign,block_size,cv='G',samp_start_time=0):
                 plt.plot(Gs,his_rew_norm*(1+sign*np.exp(-Gs)),label=str(t)+' ps')
                 plt.xlabel(r'$\beta\Delta E$')    
                 plt.ylabel(r'$[1-\exp(-\beta\Delta E)]p(\beta\Delta E)$')
-                plt.ylim([-0.1,0.25])
+                #plt.ylim([-0.1,0.4])
             if(sign==1):
                 plt.legend(loc='upper right')
             if(sign==-1):
@@ -207,7 +213,7 @@ def plot_cont(f, fig_nr,sign,block_size,cv='G',samp_start_time=0):
         plt.plot(Gs,his_rew_norm*(1+sign*np.exp(-Gs)))
         plt.xlabel(r'$\beta\Delta E$')
         plt.ylabel(r'$[1-\exp(-\beta\Delta E)]p(\beta\Delta E)$')
-        plt.ylim([-0.1,0.25])
+        #plt.ylim([-0.1,0.25])
     print(sum(his_rew_norm*dG))
     plt.grid()
     
@@ -243,28 +249,63 @@ def plot_cv_hist(fig_nr,cv,rf,exc):
     plt.ylabel('$\Gamma(s) p(s)$')
     plt.legend(loc='upper right',fontsize=18)
     
-def plot_energies(f,fig_nr):
+def plot_energies(f,fig_nr,clear=1,var='beta',linestyle='-',plot_all=False):
     data = np.loadtxt(f+'results.dat',comments='%')
+    if(data.ndim==1):
+        data = [data,float('NaN')*np.ones(len(data))]
     if(data.ndim>1):
-        time = data[:,0]*0.001
-        epot = data[:,1]/hw    
-        epot_e = data[:,2]/hw
-        ekin = data[:,3]/hw
-        ekin_e = data[:,4]/hw
-        evir = data[:,5]/hw
-        evir_e = data[:,6]/hw    
+        x = data[:,0]
+        epot = data[:,1]/en_scale
+        epot_e = data[:,2]/en_scale
+        ekin = data[:,3]/en_scale
+        ekin_e = data[:,4]/en_scale
+        etot = data[:,5]/en_scale-offset
+        etot_e = data[:,6]/en_scale
+        evir = data[:,7]/en_scale
+        evir_e = data[:,8]/en_scale    
         plt.figure(fig_nr)
-        plt.clf()
-        plt.errorbar(time,epot,epot_e,marker='x',label='Potential energy')
-        plt.errorbar(time,ekin,ekin_e,marker='o',label='Kinetic energy')
-        plt.errorbar(time,evir,evir_e,marker='v',label='Virial energy')   
-        plt.xlabel('Time (ns)')
-        plt.ylabel('Energy $(\hbar\omega)$')
+        if(clear):
+            plt.clf()
+        if(var=='P'):
+            plt.xlabel(r'$P$')
+        elif(var=='beta'):
+            plt.xlabel(r'$T\,(\mathrm{K})$')
+            x = 11.6045/x
+        elif(var=='tau'):
+            plt.xlabel(r'$1/\tau~(\mathrm{meV})$')
+        plt.errorbar(x,etot,etot_e,marker='^',color='k',label='Total energy',linestyle=linestyle)
+        if(plot_all==True):   
+            plt.errorbar(x,epot,epot_e,marker='x',color='b',label='Potential energy',linestyle=linestyle)
+            plt.errorbar(x,ekin,ekin_e,marker='o',color='r',label='Kinetic energy',linestyle=linestyle)
+            plt.errorbar(x,evir,evir_e,marker='v',color='g',label='Virial kinetic',linestyle=linestyle)   
+
+        #plt.ylabel(r'$\mathrm{Energy}~(\hbar\omega_0/2)$')
+        plt.ylabel(r'$\mathrm{Energy}~(\mathrm{meV})$')
         #plt.ylim([0.7, 2.6])
-    #plt.title('Energy difference-CV, $k_\mathrm{B}T=1\,\mathrm{meV}$')
-    #plt.title('Distance-corrected CV, $k_\mathrm{B}T=1\,\mathrm{meV}$')
-        return time
-    return data[0]*0.001
+        #plt.title('Energy difference-CV, $k_\mathrm{B}T=1\,\mathrm{meV}$')
+        #plt.title('Distance-corrected CV, $k_\mathrm{B}T=1\,\mathrm{meV}$')
+        return x,etot
+    """    
+    time = data[0]*0.001
+    epot = data[1]/en_scale
+    epot_e = data[2]/en_scale
+    ekin = data[3]/en_scale
+    ekin_e = data[4]/en_scale
+    evir = data[7]/en_scale
+    evir_e = data[8]/en_scale    
+    plt.figure(fig_nr)
+    if(clear):
+        plt.clf()
+    if(P!=0):
+        time=P
+        plt.xlabel('$P$')
+    plt.errorbar(time,epot,epot_e,marker='x',color=color,label='Potential energy')
+    plt.errorbar(time,ekin,ekin_e,marker='o',color=color,label='Kinetic energy')
+    plt.errorbar(time,evir,evir_e,marker='v',color=color,label='Virial energy')   
+    if(P==0):   
+        plt.xlabel('Time (ns)')
+    plt.ylabel('Energy $(\hbar\omega_0/2)$')
+    return data[0]*0.001"""
 
 def plot_fes(f,fig_nr):
     centers = np.loadtxt(f+'cv_centers.dat')[:,1]
@@ -353,17 +394,18 @@ def load_lines(filename,num_lines):
     print(head)
     return head
     
-def plot_energies_vs_t(f,fig_nr,n=10000):
-    """data = np.loadtxt(f+'Pot_energy.dat')
-    #t = data[:,0]
-    #epot = data[:,1]
-    data = np.loadtxt(f+'Kinetic_energy.dat')
+def plot_energies_vs_t(f,fig_nr,n=50000):
+    data = np.genfromtxt(f+'Pot_energy.dat',max_rows=n)
+    epot = data[:,1]
+    data = np.genfromtxt(f+'Kinetic_energy.dat',max_rows=n)
     ekin = data[:,1]    
-    data = np.loadtxt(f+'Kin_en_virial.dat')
-    evir = data[:,1]"""
+    data = np.genfromtxt(f+'Kin_en_virial.dat',max_rows=n)
+    evir = data[:,1]
     #data = load_lines(f+'Total_energy_cl.dat',n)
     data = np.genfromtxt(f+'Total_energy.dat',max_rows=n)
-    etotc = data[:,1]
+    etot = data[:,1]
+    #data = np.genfromtxt(f+'Total_energy_cl.dat',max_rows=n)
+    #etotc= data[:,1]
     t = data[:,0]
     """data = np.genfromtxt(f+'Pot_energy_cl.dat',max_rows=n)
     epotc = data[:,1]
@@ -375,10 +417,11 @@ def plot_energies_vs_t(f,fig_nr,n=10000):
     esprc = data[:,1]"""
     plt.figure(fig_nr)
     plt.clf()
-    plt.plot(t,etotc)
-    """plt.plot(t,epotc,marker='.')
-    plt.plot(t,ekinc,marker='.')
-    plt.plot(t,eintc,marker='.')"""
+    plt.plot(t,etot,marker='.',label='etot')
+    plt.plot(t,epot,marker='.',label='epot')
+    #plt.plot(t,ekin,marker='.',label='ekin')
+    plt.plot(t,evir,marker='.',label='evir')
+    #plt.plot(t,etotc,marker='.',label='etotc')
     #plt.plot(t,esprc,marker='.')
     #plt.xlim([0,10])
     #plt.plot(t,ekin)
@@ -426,8 +469,8 @@ def plot_rAB(f,fig_nr,clear=True,color='blue',marker='x',name=None,linestyle='-'
     p = data[:,1]
     p_err = data[:,2]
     normalize(p,p_err,r,2)
-    p *= 1e6
-    p_err *= 1e6
+    p *= 1e8
+    p_err *= 1e8
     plt.figure(fig_nr)
     if(clear):
         plt.clf()
@@ -437,8 +480,8 @@ def plot_rAB(f,fig_nr,clear=True,color='blue',marker='x',name=None,linestyle='-'
     if(show_errors==3):
         plt.errorbar(r[::3],p[::3],p_err[::3],linestyle='None',label=name,marker=marker,color=color)
     plt.xlabel('$r~(a_0)$')
-    plt.ylabel('$p(r_\mathrm{AB})/10^{-6}$')
-    return r
+    plt.ylabel('$p(r_\mathrm{AB})/10^{-8}$')
+    return r,p
     
 def plot_rAB_th(fig_nr,r,sym):
     P = 10
@@ -494,7 +537,7 @@ if __name__=="__main__":
     t=['t100000/']
     ff = f0+interac[1]+sym[2]
     f=f0+interac[0]+sym[2]
-    flab = '../workstation_lab/metaD_test4_30ns/'
+    flab = '../workstation_lab/metaD_test5/'
     flabb= '../workstation_lab/metaD_test4_20ns/'
     flab1= flab+'run1/'
     flab2= flab+'run2/'
@@ -509,35 +552,56 @@ if __name__=="__main__":
     
     fi = flab+'run1/'
     if(f!='.'):
-        """time = plot_energies(f[0],0)
-        print(time)
-        e = half_energy(0.1,2,1.0,3.0,'bos')/hw
-        #if(time.dtype!='float64'):
-        plt.plot(np.insert(time,0,0),e*np.ones(len(time)+1),'k--',label='Theory')
-        plt.legend(loc='upper right',fontsize=18)
-        plt.xlim([0,max(time)+1])"""
-        plot_gauss_data(flab6,7,'Ws',name='cv2')
-        plot_gauss_data(flab10,8,'Ws',name='cv7')
+        plot_gauss_data(f6,7,'Wt',name='fer')
+        plot_gauss_data(f7,8,'Wt',name='bos')
         #plot_rABs(fs)
-        plot_rAB(flab6,1,1,'b','x',name='Distinguishable')
-        plot_rAB(flab10,1,0,'r','o',name='Boson')
-        #r=plot_rAB(flab9,1,0,'g','v',name='Fermion')
+        plot_energies_vs_t(f6,1,n=50000)
+        #plt.legend(loc='upper right',fontsize=18)
+        #plot_rAB(f,2,1,'b','^',name='Dist')
+        [r,p1]=plot_rAB(f7,2,1,'r','o',name='Singlet')
+        [r,p2]=plot_rAB(f6,2,0,'g','v',name='Triplet')
+        plt.plot(r,(p1-p2),color='k',marker='.',label='S$-$T')
+        plt.ylim([-1,4])
+        #plt.grid(True)
+        #r=plot_rAB(f4,2,0,'c','v',name='dt=0.1fs')
         #plot_rAB_th(1,r,'fer')
         plt.legend(loc='upper right',fontsize=18)
-        plt.title(r'$\sigma_\mathrm{LJ}=20\,a_0$')
-        plt.title(r'$\mathrm{No~interaction}$')
-        if 1:
-            plot_cont_sint(flab6,3,200000,'FES')
-            plt.title('p(old cv), bias old cv')
-            plot_cont_sint(flab10,4,200000,'FESbdE')
-            plt.title('p(old cv), bias new cv')
-            plot_cont_sint(flab10,0,200000,'FES')
-            plt.title('p(new cv), new cv')
+        plt.title(r'$\mathrm{With MetaD},\quad \beta=1\,\mathrm{meV}^{-1}$')
+        #plt.title(r'$\mathrm{No~interaction}$')
+        #plot_energies(f1,3,1,'b')
+        #plot_energies(f2,3,1,'g')
+        #plot_energies(f3,3,1,'r')
+        r,ef = plot_energies(f1,3,1,'beta','-',True)
+        plt.legend(loc='upper left',fontsize=18)
+        r,eb = plot_energies(f2,3,0,'beta','--',True)
+        #plt.plot(r,ef-eb,'y')
+        """plot_energies(f4,3,0,'r',P=20)
+        plot_energies(f5,3,0,'k',P=20)
+        plot_energies(f6,3,0,'r',P=50)
+        plot_energies(f7,3,0,'g',P=50)
+        plot_energies(f8,3,0,'b',P=5)
+        plot_energies(f9,3,0,'g',P=30)"""
+        #plt.title(r'$\mathrm{Boson}$')
+        plt.title(r'$\mathrm{GaAs,}\quad R_W=1.34$')
+        plt.xlim([0,40])
+        plt.ylim([0,32])
+        
+        #plot_cv(f3,4,200000)        
+        
         if 0:
-            plot_cont(flab6,5,-1,200000,'bdE')
-            plt.title('cv2')
-            plot_cont(flab10,6,-1,200000,'bdE')
-            plt.title('cv7')
+            plot_cont_sint(f6,3,200000,'FES')
+            plt.title('fer')
+            plot_cont_sint(f7,4,200000,'FES')
+            plt.title('bos')
+        if 1:
+            #plot_cont(f6,5,-1,200000,'bdE','etot')
+            plt.figure(5)
+            plt.ylabel(r'$E\, \Gamma(s) p(s)$')
+            plt.title('Fermion')
+            #plot_cont(f7,6,1,200000,'bdE','etot')
+            plt.figure(6)            
+            plt.ylabel(r'$E\, \Gamma(s) p(s)$')
+            plt.title('Boson')
         if 0:
             plot_cont(f5[0],5,-1,200000,'G')
         #plot_cont(f6,7,-1,200000,'bdE')

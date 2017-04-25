@@ -18,10 +18,12 @@ int main(int argc, char* argv[])
 			continue_sim = true;
 		}
 	}
-	//std::vector<double> betas = {0.15,0.3,0.5,1,2,5,10};
-	//std::vector<double> taus = {0.15};
+	//std::vector<double> betas = {0.3,0.5,1,2,3,5,10};
+	//std::vector<double> betas = {2.0};
+	//std::vector<double> taus = {0.1};
 	//std::vector<double> betas = {1.0};
-	//std::vector<double> taus = {0.07,0.1,0.15,0.2,0.3,0.5,1,2,5};
+	//std::vector<double> taus = {0.02,0.025,0.033,0.05,0.1,0.2,0.33,0.5,1.0};
+	//std::vector<double> taus = {1.0};
 	Parameters params;
 	params.read_file("configuration.cfg");
 	params.calculate_dependencies();
@@ -37,9 +39,14 @@ int main(int argc, char* argv[])
 	else
 		results_file.open("results.dat", std::ios_base::app);
 	results_file.precision(10);
+	/*for(auto beta : betas)
+	{
+		params.beta = beta;
+		params.calculate_dependencies();*/
 	Simulation sim(params, results_file,continue_sim);
 	sim.setup();
 	sim.run();
+	//}
 	results_file.close();
 	return 0;
 }

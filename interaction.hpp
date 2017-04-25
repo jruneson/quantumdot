@@ -33,8 +33,9 @@ public:
 private:
 	const double curvature; //=mw^2 for a harmonic oscillator
 	const double spring_const;
-	const double charge;
-	const double diel_const;
+	const double electrost_factor;
+	//const double charge;
+	//const double diel_const;
 	
 	const int interaction_id;
 	const double lj_energy24;

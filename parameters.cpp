@@ -63,12 +63,12 @@ void Parameters::read_file(std::string filename)
 				iss >> gauss_width;
 			else if(name=="bias_factor")
 				iss >> bias_factor;
-			else if(name=="first_height")
-				iss >> first_height;
+			else if(name=="first_height_in_kBT")
+				iss >> first_height_in_kBT;
 			else if(name=="bias_update_time")
 				iss >> bias_update_time;
-			else if(name=="hw")
-				iss >> hw;
+			else if(name=="wigner_parameter")
+				iss >> wigner_parameter;
 			else if(name=="mass_in_m_e")
 			{	
 				iss >> mass;	
@@ -78,7 +78,12 @@ void Parameters::read_file(std::string filename)
 			else if(name=="charge_in_e")
 				iss >> charge;
 			else if(name=="diel_const_rel")
+			{
 				iss >> diel_const;
+				diel_const *= 3.674932e-5;
+			}
+			else if(name=="screening_factor")
+				iss >> screening_factor;
 			else if(name=="to_measure")
 				while(iss >> tmp)
 					to_measure.push_back(tmp);
@@ -105,54 +110,6 @@ void Parameters::read_file(std::string filename)
 		dt_md_slow = dt_md;
 					
 				
-	/*		
-	file >> name >> num_parts;
-	file >> name >> dim;
-	file >> name >> tau;
-	file >> name >> beta;
-	file >> name >> num_blocks;
-	file >> name >> total_time;
-	file >> name >> dt_md;
-	file >> name >> dt_sample;
-	file >> name >> thermalization_steps;
-	file >> name >> num_bins;
-	file >> name >> sign;
-	//file >> name >> tolerance;
-	//file >> name >> steps_in_highest_mode;
-	int to_bool;
-	file >> name >> to_bool;
-	with_thermostat = (to_bool != 0);
-	//file >> name >> to_bool;
-	//using_input_file = (to_bool != 0);
-	file >> name >> to_bool;
-	metad_on = (to_bool != 0);
-
-	file >> name >> cv_id;
-	file >> name >> gauss_width;
-	file >> name >> bias_factor;
-	file >> name >> first_height;
-	file >> name >> bias_update_time;
-
-	file >> name >> hw;
-	file >> name >> mass;
-
-	file >> name >> charge;
-	file >> name >> diel_const;
-	file >> name >> length_scale;
-	
-	std::string line;
-	int id;
-	getline(file, line);
-	getline(file, line);
-	std::istringstream iss(line);
-	iss >> name;
-	while(iss >> id)
-		to_measure.push_back(id);
-	getline(file, line);
-	std::istringstream iss2(line);
-	iss2 >> name;
-	while(iss2 >> id)
-		to_print_every_sample.push_back(id);*/
 }
 
 void Parameters::calculate_dependencies()
@@ -160,6 +117,9 @@ void Parameters::calculate_dependencies()
 	num_beads = round(beta/tau);
 	if(num_beads<1)
 		num_beads=1;
+	electrost_factor = screening_factor*charge*charge/diel_const;
+	hw = electrost_factor*electrost_factor*m_hbar2/(wigner_parameter*wigner_parameter);
+	//electrost_factor *= screening_factor;
 	curvature = m_hbar2 * hw*hw;
 	//dt_md = 2*M_PI * std::pow(1 + 4.0*num_beads/(hw*hw*beta*beta),-0.5) * hbar/hw
 	//		* 1.0/steps_in_highest_mode; //at least 10dt within the highest freq mode
@@ -167,16 +127,18 @@ void Parameters::calculate_dependencies()
 	//steps_per_sample = round(dt_sample/dt_md);
 	dt_2m = dt_md / (2.0*mass) * 5.7214765779e-26; //containing conversion factor from meV/a_0 to kg a_0 ps^{-2}
 	temperature = 1.0/beta * 11.60452205;
-	first_height = first_height/beta;
+	first_height = first_height_in_kBT/beta;
 	//num_steps = (int) sampl_time / (dt_md * num_blocks); //per block
 	//num_samples = (int) num_steps / steps_per_sample; //per block
 	spring_const = num_beads*m_hbar2/(beta*beta);
 	exc_const = num_beads*m_hbar2/beta;
 	exc_der_const = -sign * m_hbar2/(beta*beta);
 	kin_offset = num_parts*num_beads*dim/(2.0*beta);
-	virial_offset = dim/(2.0*beta); //not sure about the dim factor
+	virial_offset = num_parts*dim/(2.0*beta); //not sure about the dim factor
 	length_scale = std::sqrt(1.0/(m_hbar2*hw));
 	hist_size = length_scale * 4;	
+	
+	std::cout << hw << std::endl;
 }
 
 

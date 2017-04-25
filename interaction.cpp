@@ -1,7 +1,7 @@
 #include "interaction.hpp"
 
 Interaction::Interaction(Parameters params) 
-	: charge(params.charge), diel_const(params.diel_const),
+	: electrost_factor(params.electrost_factor),
 	  curvature(params.curvature), spring_const(params.spring_const),
 	  lj_energy24(24*params.lj_energy), 
 	  lj_length_sq(params.lj_length*params.lj_length),
@@ -15,11 +15,6 @@ Interaction::Interaction(Parameters params)
 	vcut = lj_energy24/6.0 * tmp*(tmp-1);
 }
 
-/*
-double Interaction::potential(const Point& p)
-{
-	return 0;
-}*/
 
 double Interaction::ext_potential(const Point& p) const
 {
@@ -30,7 +25,7 @@ double Interaction::two_particle_pot(const Point& p1, const Point& p2) const
 {
 	switch(interaction_id)
 	{
-		case 1:
+		case 1: //Lennard-Jones
 		{
 			double sqdist = p1.sqdist(p2);
 			if(sqdist>rcut2)
@@ -38,38 +33,14 @@ double Interaction::two_particle_pot(const Point& p1, const Point& p2) const
 			double tmp = std::pow(lj_length_sq/sqdist,3);
 			return lj_energy24/6.0*tmp*(tmp-1.0)-vcut;
 		}
+		case 2: //Electrostatic interaction
+		{
+			return electrost_factor/p1.dist(p2);
+		}
 		default:
 			return 0;
 	}
 }
-
-/*
-double Interaction::spring_potential(const Point& last, const Point& p, const Point& next) 
-{
-	return 0;
-}
-double Interaction::bias_potential(const Point& p) 
-{
-	return 0;
-}*/
-
-//double int_potential(Point p);
-
-/*
-void Interaction::update_one_pol_forces(Polymer& pol)
-{
-	for(int bead=0; bead<pol.num_beads; ++bead)
-	{
-		pol.forces[bead] = ext_force(pol[bead])/pol.num_beads
-						+ spring_force(pol[bead-1],pol[bead],pol[bead+1])
-						+ bias.calc_force(pol[bead]);
-	}
-}*/
-
-/*Force Interaction::force(const Point& last, const Point& p, const Point& next)
-{
-	return ext_force(p) + spring_force(last,p,next) + bias_force(p);
-}*/
 
 Force Interaction::ext_force(const Point& p) const
 {
@@ -82,6 +53,7 @@ Force Interaction::spring_force(const Point& last, const Point& p, const Point& 
 
 Force Interaction::two_particle_force(const Point& p1, const Point& p2) const
 {
+	//On bead p1 by bead p2
 	switch(interaction_id)
 	{
 		case 1: //Lennard-Jones
@@ -90,10 +62,11 @@ Force Interaction::two_particle_force(const Point& p1, const Point& p2) const
 			if(sqdist>rcut2)
 				break;
 			double tmp = std::pow(lj_length_sq/sqdist,3); // (sigma/r)^6
-			//std::cout << (p1-p2).dist0() << "\t" << std::sqrt(sqdist) << std::endl;
-			//if(std::sqrt(sqdist)<10000)
-			//	std::cout << std::sqrt(sqdist) << "\t" << spring_const << "\t" << (lj_energy24*(2*tmp*tmp-tmp)/sqdist) << std::endl;
 			return (p1-p2)*(lj_energy24*(2*tmp*tmp-tmp)/sqdist);
+		}
+		case 2: //Electrostatic interaction
+		{
+			return (p1-p2)*(electrost_factor/std::pow(p1.dist(p2),3));
 		}
 	}
 	return Point(p1.size()); //No inter-particle interaction

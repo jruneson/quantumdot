@@ -166,6 +166,7 @@ void Observable::measure(const std::vector<Polymer>& polymers, const Interaction
 		case 1:
 			tmp += exc_der(polymers);
 			break;
+		case 2:
 		case 3:
 			tmp += exc_der_virial(polymers);
 			break;
@@ -193,6 +194,7 @@ double Observable::potential_energy(const std::vector<Polymer>& pols, const Inte
 	{
 		for(int m=0; m<n; ++m)
 		{
+			//std::cout << n << "\t" << m << std::endl;
 			for(int bead=0; bead<pols[0].num_beads; ++bead)
 			{
 				tmp += interac.ext_potential(pols[n][bead]) + interac.ext_potential(pols[m][bead]);
@@ -218,7 +220,6 @@ double Observable::kinetic_energy(const std::vector<Polymer>& pols, const Intera
 double Observable::total_energy(const std::vector<Polymer>& pols, const Interaction& interac) const
 {
 	return potential_energy(pols, interac) + kinetic_energy_virial(pols, interac);
-			//+ interparticle_energy(pols, interac);
 }
 
 double Observable::kinetic_energy_virial(const std::vector<Polymer>& pols, const Interaction& interac) const
@@ -236,7 +237,7 @@ double Observable::kinetic_energy_virial(const std::vector<Polymer>& pols, const
 			tmp += (p-mean_point)*interac.ext_force(p);
 			for(int m=0; m<pols.size(); ++m)
 				if(m!=n)
-					tmp += (p-mean_point)*interac.two_particle_force(p,pols[m][bead]);
+					tmp += (p-mean_point)*interac.two_particle_force(p,pols[m][bead]); //double-counting?
 		}
 	}
 	return virial_offset + (-1)*tmp/(2*pols[0].num_beads); //minus sign since force functions above calculate minus grad V
@@ -293,7 +294,7 @@ double Observable::total_energy_cl(const std::vector<Polymer>& pols, const Inter
 
 double Observable::exc_der(const std::vector<Polymer>& pols) const
 {
-	if(pols.size()==1)
+	if((pols.size()==1)||(exc_der_const==0))
 		return 0;
 	double tmp=0;
 	for(int bead=0; bead<pols[0].num_beads; ++bead)
@@ -306,7 +307,7 @@ double Observable::exc_der(const std::vector<Polymer>& pols) const
 
 double Observable::exc_der_virial(const std::vector<Polymer>& pols) const
 {
-	if(pols.size()==1)
+	if((pols.size()==1)||(exc_der_const==0))
 		return 0;
 	Point tmp(pols[0][0].size());
 	Point mean0(pols[0][0].size());

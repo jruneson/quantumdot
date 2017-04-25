@@ -36,15 +36,19 @@ public:
 	int cv_id;
 	double gauss_width;
 	double bias_factor;
+	double first_height_in_kBT;
 	double first_height;
 	double bias_update_time;
 	
+	double wigner_parameter; //electrostatic energy scale / hw
 	double hw; //in meV
 	double m_hbar2 = 3.674932248e-5; //m/hbar^2 in  a_0^{-2} meV^{-1}
 	double hbar = 0.65821195; //in meV ps
 	double mass; //in kg
-	double charge;
-	double diel_const;
+	double charge; //in e
+	double diel_const; // 4\pi\eps0\eps_r in meV^{-1} e^2 a0^{-1}
+	double screening_factor;
+	double electrost_factor; //e^2/diel_const * screening_factor
 	
 	int interaction_id;
 	double lj_length; //Lennard-Jones sigma, in a_0
