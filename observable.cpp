@@ -160,6 +160,7 @@ void Observable::measure(const std::vector<Polymer>& polymers, const Interaction
 			tmp = spring_energy_cl(polymers,interac);
 			break;
 	}
+	double bare_value = tmp;
 	tmp *= exc_factor;
 	switch(id)
 	{
@@ -176,12 +177,12 @@ void Observable::measure(const std::vector<Polymer>& polymers, const Interaction
 	tmp *= rew_factor;
 	value += tmp;
 	if(print)
-		print_measure(tmp,time);
+		print_measure(time,tmp,bare_value);
 }
 
-void Observable::print_measure(double measured_value, double time)
+void Observable::print_measure(double time, double weighted_value, double bare_value)
 {
-	file << time << "\t" << measured_value << std::endl;
+	file << time << "\t" << weighted_value << "\t" << bare_value << std::endl;
 }
 
 
@@ -243,6 +244,7 @@ double Observable::kinetic_energy_virial(const std::vector<Polymer>& pols, const
 	return virial_offset + (-1)*tmp/(2*pols[0].num_beads); //minus sign since force functions above calculate minus grad V
 }
 
+	
 double Observable::interparticle_energy(const std::vector<Polymer>& pols, const Interaction& interac) const
 {
 	double tmp=0;

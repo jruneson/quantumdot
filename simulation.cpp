@@ -322,11 +322,15 @@ void Simulation::measure()
 void Simulation::update_avgs()
 {
 	double tmp = exc_sum/samples;
+	double tmp2 = e_s_sum/samples;
 	exc_avg = (exc_avg*block + tmp) / (block+1.0);
 	exc_avg_sq = (exc_avg_sq*block + tmp*tmp)/(block+1.0);
 	exc_sq_avg = (exc_sq_avg*block + exc_sq)/(block+1.0);
 	exc_sq = 0;
 	exc_sum = 0;
+	e_s_avg = (e_s_avg*block + tmp2)/(block+1.0);
+	e_s_avg_sq = (e_s_avg_sq*block + tmp2*tmp2)/(block+1.0);
+	e_s_sum = 0;
 	for(auto& ob : obs)
 	{
 		ob.second.update_avg(samples,tmp);
@@ -420,6 +424,8 @@ void Simulation::stop()
 	double rew_norm = bias.get_rew_factor_avg();
 	logfile << "Exc_factor\t" << exc_avg/rew_norm << "\t" << simple_uncertainty(exc_avg,exc_avg_sq)/rew_norm 
 			<< "\t" << std::sqrt(exc_sq_avg-exc_avg*exc_avg)/rew_norm << std::endl; // sqrt(n/(n-1)) unnecessary for large n
+	logfile << "Exp_en_diff\t" << e_s_avg/rew_norm << "\t" << simple_uncertainty(e_s_avg,e_s_avg_sq)/rew_norm
+			<< std::endl;
 	res_file << sampling_time;//polymers[0].num_beads;//sampling_time;
 	for(const auto& pair : obs)
 	{
@@ -538,6 +544,7 @@ void Simulation::print_vmd()
 
 void Simulation::update_exc()
 {
+	double e_s = 0;
 	if((num_parts==1)||(sign==0))
 		exchange_factor = 1.0;
 	else
@@ -545,14 +552,15 @@ void Simulation::update_exc()
 		double tmp = 0;
 		for(int bead=0; bead<polymers[0].num_beads; ++bead)
 			tmp += std::exp( - exc_const * (polymers[0][bead]-polymers[1][bead])*(polymers[0][bead+1]-polymers[1][bead+1]));
-		exchange_factor = 1.0 + sign*tmp/polymers[0].num_beads;
-		//if(tmp>2)
-		//std::cout << exchange_factor << std::endl;
+		e_s = tmp/polymers[0].num_beads;
+		exchange_factor = 1.0 + sign*e_s;
 	}
 	exc_file << overall_time << "\t" << exchange_factor << std::endl;
 	double exc_weighted = exchange_factor * bias.get_rew_factor();
+	double e_s_weighted = e_s * bias.get_rew_factor();
 	exc_sum += exc_weighted;
 	exc_sq = (exc_sq*samples + exc_weighted*exc_weighted)/(samples+1.0);
+	e_s_sum += e_s_weighted;
 }
 
 double Simulation::simple_uncertainty(double avg, double avg_sq) const

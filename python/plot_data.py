@@ -609,7 +609,12 @@ def gaussian(s,h,cvc):
     #print(np.exp(-(s-cvc)**2/(2*sigma**2)))
     return h*np.exp(-(s-cvc)**2/(2*sigma**2))
             
-            
+def free_energy_diff(f,n=10000):
+    exc = np.genfromtxt(f+'exc_factor.dat',n) #is not reweighted
+    rew = np.genfromtxt(f+'rew_factor.dat',n)
+    es = sum(exc-1)
+    #en = np.genfromtxt(f+'Total_energy.dat',n) #is reweighted
+    
     
     
 
@@ -625,15 +630,19 @@ if __name__=="__main__":
     f8 = '../run8/'
     f9 = '../run9/'
     fs=[f1,f2,f3,f4,f5]
-    interac = ['noInt/','LJ/']
-    sym = ['Dist/','Boson/','Fermion/']
+    interac = ['noInt/','LJ/','coulomb/RW1-34/']
+    beta=['beta2/']
+    md=['noMetaD/','MetaD/']
+    sym = ['bos/','fer/']
     P=['P10/','P20/','P40/','P50/','P60/']
     s=['noLJ/','s20/','s50/','s100/']
     dt=['','dt5e-3/','dt1e-3/','dt1e-4/']
     t=['t100000/']
-    ff = f0+interac[1]+sym[2]
-    f=f0+interac[0]+sym[2]
-    flab = '../workstation_lab/metaD_test5/'
+    fa1 = f0+interac[2]+beta[0]+sym[0]+md[0]
+    fa2 = f0+interac[2]+beta[0]+sym[1]+md[0]
+    fa3 = f0+interac[2]+beta[0]+sym[0]+md[1]
+    fa4 = f0+interac[2]+beta[0]+sym[1]+md[1]
+    flab = '../workstation_lab/varybeta/'
     flabb= '../workstation_lab/metaD_test4_20ns/'
     flab1= flab+'run1/'
     flab2= flab+'run2/'
@@ -649,35 +658,40 @@ if __name__=="__main__":
     fi = flab+'run1/'
     if(f!='.'):
         #cv_t = np.genfromtxt(f5+'cv.dat',500*500)
-        
+        x = 0.627067#0.773775
+        b = 1.0
+        dx = 0.0376996#0.03219
+        print(str(-1.0/b*np.log((1-x)/(1+x)))+' +/- '+str(2.0/b *dx/(1.0-x**2)))
         #c_t_comparison(f5)
         #plt.figure(1)
         #plt.legend(loc='lower right',fontsize=20)
-        #plot_gauss_data(f1,7,'Wt',name='fer')
-        #plot_gauss_data(f2,8,'Wt',name='bos')
+        plot_gauss_data(f3,7,'Wt',name='fer')
+        plot_gauss_data(f4,8,'Wt',name='bos')
         #plot_rABs(fs)
         #plot_energies_vs_t(f8,1,n=50000)
         #plt.legend(loc='upper right',fontsize=18)
         #plot_rAB(f,2,1,'b','^',name='Dist')
-        [r,p1]=plot_rAB(f1,2,1,'r','o',name='Singlet')
-        [r,p2]=plot_rAB(f2,2,0,'g','v',name='Triplet')
-        plt.plot(r,(p1-p2),color='k',marker='.',label='S$-$T')
-        plt.ylim([-1,4])
+        [r,p1]=plot_rAB(f9,2,1,'r','o',name='Singlet')
+        [r,p2]=plot_rAB(f8,2,0,'g','v',name='Triplet')
+        #plt.plot(r,(p1-p2),color='k',marker='.',label='S$-$T')
+        plt.ylim([-1,4.5])
+        #plot_rAB(f8,4,1,'r','o',name='dt = 5 fs')
+        #plot_rAB(fa2,4,0,'g','v',name='dt = 2.5 fs')
         #plt.grid(True)
         #r=plot_rAB(f4,2,0,'c','v',name='dt=0.1fs')
         #plot_rAB_th(1,r,'fer')
         plt.legend(loc='upper right',fontsize=18)
-        plt.title(r'$\mathrm{Without~MetaD},\quad \beta=2\,\mathrm{meV}^{-1}$')
+        plt.title(r'$\mathrm{Without~MetaD},\quad \beta=1\,\mathrm{meV}^{-1}$')
         #plt.title(r'$\mathrm{No~interaction}$')
         #plot_energies(f1,3,1,'b')
         #plot_energies(f2,3,1,'g')
         #plot_energies(f3,3,1,'r')
-        r,ef = plot_energies(f3,3,1,'beta','-',True)
-        plt.legend(loc='upper left',fontsize=16)
-        r,eb = plot_energies(f4,3,0,'beta','--',True)
+        #r,ef = plot_energies(flab1,3,1,'beta','-',True)
+        #plt.legend(loc='upper left',fontsize=16)
+        r,eb = plot_energies(flab2,3,1,'beta','--',True)
         plt.ylim([0,35])
         plt.xlim([0,50])
-        plt.title(r'$\tau=0.05\,\mathrm{meV}^{-1},~dt=1\,\mathrm{fs}$')
+        plt.title(r'$\tau=0.067\,\mathrm{meV}^{-1},~dt=1\,\mathrm{fs}$')
         #plt.title(r'$\beta=2\,\mathrm{meV}^{-1}$')
         #plt.plot(r,ef-eb,'y')
         """plot_energies(f4,3,0,'r',P=20)
@@ -691,25 +705,25 @@ if __name__=="__main__":
         plt.xlim([0,40])
         plt.ylim([0,32])"""
         
-        #plot_cv(f3,4,200000)        
+        plot_cv(fa1,0,200000)        
         
         if 0:
-            plot_cont_sint(f6,3,200000,'FES')
+            plot_cont_sint(f3,3,200000,'FES')
             plt.title('fer')
-            plot_cont_sint(f7,4,200000,'FES')
-            plt.title('bos')
+            #plot_cont_sint(f4,4,200000,'FES')
+            #plt.title('bos')
         if 0:
-            plot_cont(f1,5,-1,200000,'bdE')
+            plot_cont(f3,5,-1,200000,'bdE','etot')
             plt.figure(5)
             plt.xlabel('$s$')
-            plt.ylabel(r'$\Gamma(s) p(s)$')
-            plt.title(r'Fermion, $\beta=2\,\mathrm{meV}^{-1}$')
+            plt.ylabel(r'$E\,\Gamma(s) p(s)$')
+            plt.title(r'Fermion, $\beta=1\,\mathrm{meV}^{-1}$')
             plt.xlim([-40,20])
-            plot_cont(f2,6,1,200000,'bdE')
+            plot_cont(f4,6,1,200000,'bdE','etot')
             plt.figure(6)  
             plt.xlabel('$s$')
-            plt.ylabel(r'$\Gamma(s) p(s)$')
-            plt.title(r'Boson, $\beta=2\,\mathrm{meV}^{-1}$')
+            plt.ylabel(r'$E\,\Gamma(s) p(s)$')
+            plt.title(r'Boson, $\beta=1\,\mathrm{meV}^{-1}$')
             plt.xlim([-40,20])
         if 0:
             plot_cont(f5[0],5,-1,200000,'G')

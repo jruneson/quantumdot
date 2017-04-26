@@ -19,7 +19,7 @@ public:
 	
 	void measure(const std::vector<Polymer>&, const Interaction&, double, 
 				double, double);
-	void print_measure(double, double);
+	void print_measure(double, double, double);
 	
 	void set_zero();
 	void update_avg(int,double);
