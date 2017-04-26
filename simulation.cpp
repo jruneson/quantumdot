@@ -171,7 +171,7 @@ void Simulation::read_old_measurements()
 				iss >> iteration_nbr;
 				iteration_nbr++;
 			}
-			else if(name=="time__samples")
+			else if(name=="times")
 			{
 				iss >> non_sampling_time >> time_sampled;
 				prev_blocks = time_sampled/sampling_time * num_blocks;
@@ -338,16 +338,16 @@ void Simulation::update_avgs()
 	hist_norm *= hist_size/num_bins;*/
 	for(int bin=0; bin<num_bins; ++bin)
 	{
-		histogram_avg[bin] = (histogram_avg[bin]*block + histogram[bin])/(block+1.0);
-		histogram_sq_avg[bin] = (histogram_sq_avg[bin]*block + std::pow(histogram[bin],2))/(block+1.0);
+		histogram_avg[bin] = (histogram_avg[bin]*block + histogram[bin]/tmp)/(block+1.0);
+		histogram_sq_avg[bin] = (histogram_sq_avg[bin]*block + std::pow(histogram[bin]/tmp,2))/(block+1.0);
 		histogram[bin]=0;
-		for(int part=0; part<num_parts; ++part)
+		/*for(int part=0; part<num_parts; ++part)
 		{
 			histogram_1p_avg[part][bin] = (histogram_1p_avg[part][bin]*block+histogram_1p[part][bin])/(block+1.0);
 			histogram_1p_sq_avg[part][bin] = (histogram_1p_sq_avg[part][bin]*block
 									+std::pow(histogram_1p[part][bin],2))/(block+1.0);
 			histogram_1p[part][bin]=0;
-		}
+		}*/
 	}
 }
 /*
@@ -409,28 +409,29 @@ void Simulation::print_to_logfile()
 {
 	logfile << block << "\t" << exc_avg/bias.get_rew_factor_avg();
 	for(auto& ob : obs)
-		logfile <<	"\t" << ob.second.get_avg()/exc_avg; 
+		logfile <<	"\t" << ob.second.get_weighted_avg(); 
 	logfile << std::endl;
 }
 
 void Simulation::stop()
 {
 	print_config();
-	logfile << "Name\t\tValue\t\tSimpleError\tStd_or_TotalError" << std::endl;
+	logfile << "Name\t\tMeanValue\tErrorOfMean\tStandDev" << std::endl;
 	double rew_norm = bias.get_rew_factor_avg();
 	logfile << "Exc_factor\t" << exc_avg/rew_norm << "\t" << simple_uncertainty(exc_avg,exc_avg_sq)/rew_norm 
-			<< "\t" << std::sqrt(exc_sq_avg-exc_avg*exc_avg) << std::endl; // sqrt(n/(n-1)) unnecessary for large n
-	res_file << beta;//polymers[0].num_beads;//sampling_time;
+			<< "\t" << std::sqrt(exc_sq_avg-exc_avg*exc_avg)/rew_norm << std::endl; // sqrt(n/(n-1)) unnecessary for large n
+	res_file << sampling_time;//polymers[0].num_beads;//sampling_time;
 	for(const auto& pair : obs)
 	{
 		const auto& ob = pair.second;
-		double avg = ob.get_avg();
-		double avg_sq = ob.get_avg_sq();
-		//double w_avg = ob.get_weighted_avg();
-		//double w_avg_sq = ob.get_weighted_avg_sq();
-		logfile << ob.get_name() << "\t" << avg/exc_avg << "\t" << simple_uncertainty(avg,avg_sq)/rew_norm << "\t"
-				<< weighted_uncertainty(avg,avg_sq) << std::endl;
-		res_file << "\t" << avg/exc_avg << "\t" << weighted_uncertainty(avg,avg_sq);
+		//double avg = ob.get_avg();
+		//double avg_sq = ob.get_avg_sq();
+		double w_avg = ob.get_weighted_avg();
+		double w_avg_sq = ob.get_weighted_avg_sq();
+		logfile << ob.get_name() << "\t" << w_avg << "\t" << simple_uncertainty(w_avg,w_avg_sq) << "\t"
+				<< std::endl;
+				//<< weighted_uncertainty(w_avg,w_avg_sq) << std::endl;
+		res_file << "\t" << w_avg << "\t" << simple_uncertainty(w_avg,w_avg_sq);
 	}
 	res_file << std::endl;
 	
@@ -439,14 +440,14 @@ void Simulation::stop()
 	{
 		//histogram_avg[bin] /= exc_avg;
 		//histogram_sq_avg[bin] /= exc_avg*exc_avg;
-		hist_file << hist_size*((double) bin/num_bins) << "\t" << histogram_avg[bin]/exc_avg
-					<< "\t" << simple_uncertainty(histogram_avg[bin],histogram_sq_avg[bin])/exc_avg;
-		for(int part=0; part<num_parts; ++part)
+		hist_file << hist_size*((double) bin/num_bins) << "\t" << histogram_avg[bin]
+					<< "\t" << simple_uncertainty(histogram_avg[bin],histogram_sq_avg[bin]) << std::endl;
+		/*for(int part=0; part<num_parts; ++part)
 		{
-			hist_file << "\t" << histogram_1p_avg[part][bin]/exc_avg << "\t"
-					  << simple_uncertainty(histogram_1p_avg[part][bin],histogram_1p_sq_avg[part][bin])/exc_avg;
+			hist_file << "\t" << histogram_1p_avg[part][bin] << "\t"
+					  << simple_uncertainty(histogram_1p_avg[part][bin],histogram_1p_sq_avg[part][bin]);
 		}
-		hist_file << std::endl;
+		hist_file << std::endl;*/
 		/*hist_file << hist_size*((double) bin /num_bins - 0.5) << "\t" << histogram_avg[bin]
 					<< "\t" << weighted_uncertainty(histogram_avg[bin],histogram_sq_avg[bin])
 					//<< "\t" << std::sqrt((histogram_sq_avg[bin]-std::pow(histogram_avg[bin],2))/(block-1)) 
@@ -488,7 +489,7 @@ void Simulation::print_config()
 	std::ofstream outfile("measurements.dat");
 	outfile.precision(10);
 	outfile << "iteration_nbr\t" << iteration_nbr << std::endl;
-	outfile << "time__samples\t" << non_sampling_time << "\t" << time_sampled << std::endl;
+	outfile << "times\t" << non_sampling_time << "\t" << time_sampled << std::endl;
 	outfile << "gamma\t" << exc_avg << "\t" << exc_avg_sq << "\t" << exc_sq_avg << std::endl;
 	outfile << "bias_reweight\t" << bias.get_rew_factor_avg() << "\t" << bias.get_count() << std::endl;
 	for(auto& pair : obs)

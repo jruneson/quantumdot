@@ -206,8 +206,8 @@ void Bias::update_bias(const std::vector<Polymer>& pols, double beta, double t)
 	if(metad_on)
 	{
 		double cv = coll_var(pols);
+		double h = first_height * std::exp(-beta/(bias_factor-1.0)*calc_bias(cv));
 		cv_centers.push_back(cv);
-		double h = first_height * std::exp(-beta/(bias_factor-1.0) *calc_bias(cv));
 		heights.push_back(h);
 		cv_centers_file << t << "\t" << cv << std::endl;
 		heights_file << t << "\t" << h << std::endl;

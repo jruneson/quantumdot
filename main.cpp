@@ -18,11 +18,11 @@ int main(int argc, char* argv[])
 			continue_sim = true;
 		}
 	}
-	//std::vector<double> betas = {0.3,0.5,1,2,3,5,10};
+	std::vector<double> betas = {0.05,0.1,0.2,0.3,0.5,1,2,3,4};
 	//std::vector<double> betas = {2.0};
 	//std::vector<double> taus = {0.1};
 	//std::vector<double> betas = {1.0};
-	//std::vector<double> taus = {0.02,0.025,0.033,0.05,0.1,0.2,0.33,0.5,1.0};
+	//std::vector<double> taus = {2.0,1.0,0.5,0.4,0.3,0.2,0.15,0.1,0.067,0.05,0.04};
 	//std::vector<double> taus = {1.0};
 	Parameters params;
 	params.read_file("configuration.cfg");
@@ -31,7 +31,7 @@ int main(int argc, char* argv[])
 	if(!continue_sim)
 	{
 		results_file.open("results.dat");
-		results_file << "%time";
+		results_file << "%tau";
 		for(int id : params.to_measure)
 			results_file << "\tObsId " << id << "\t\tError\t";
 		results_file << std::endl;

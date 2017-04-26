@@ -131,12 +131,11 @@ def plot_cont_sint(f,fig_nr,block_size,opt='Gamma'):
         plt.plot(cvs,-np.log(his_rew_norm)/beta,label=r'$-\frac{1}{\beta}\log\,p(s)$')
         plt.ylabel(r'$F(s)~\mathrm{(meV)}$') 
         
-def plot_cont(f, fig_nr,sign,block_size,cv='bdE',obs='etot'):
+def plot_cont(f, fig_nr,sign,block_size,cv='bdE',obs=None):
     g_f = open(f+'exc_factor.dat')
     cv_f = open(f+'cv.dat')
     rw_f = open(f+'rew_factor.dat')
-    if(obs=='etot'):
-        obs_f = open(f+'Total_energy.dat')
+    obs_f = open(f+'Total_energy.dat')
     plt.figure(fig_nr)
     plt.clf()
     plt.xlabel(r'$s$')
@@ -173,8 +172,9 @@ def plot_cont(f, fig_nr,sign,block_size,cv='bdE',obs='etot'):
         elif(cv=='bdE'):
             G = float(line.split()[2])
         rw = float(rw_line.split()[1])
-        ob = float(obs_l.split()[1])
-        rw *= ob
+        if(obs=='etot'):
+            ob = float(obs_l.split()[1])
+            rw *= ob
         b = np.round((G-Gmin)/(Gmax-Gmin)*(nbins-1))
         if b>=nbins:
             b=nbins-1
@@ -272,6 +272,8 @@ def plot_energies(f,fig_nr,clear=1,var='beta',linestyle='-',plot_all=False):
             plt.xlabel(r'$T\,(\mathrm{K})$')
             x = 11.6045/x
         elif(var=='tau'):
+            x = 1.0/x
+            plt.grid(True)
             plt.xlabel(r'$1/\tau~(\mathrm{meV})$')
         plt.errorbar(x,etot,etot_e,marker='^',color='k',label='Total energy',linestyle=linestyle)
         if(plot_all==True):   
@@ -516,6 +518,100 @@ def plot_rAB_th(fig_nr,r,sym):
     plt.figure(fig_nr)
     plt.plot(r,p2part*scale,color=color,marker='.',label='Theory Fermion')
     
+def c_t_comparison(f):
+    beta = 2.0
+    gamma = 6.0
+    exp1 = beta*gamma/(gamma-1)
+    exp2 = exp1/gamma
+    cv_f = open(f+'cv.dat')
+    #rw_f = open(f+'rew_factor.dat')
+    hs = open(f+'heights.dat')
+    cvcs = open(f+'cv_centers.dat')
+    dt_bias_update = 10.0
+    dt = 0.005
+    NG = round(dt_bias_update/dt)
+    t = 0.0
+    maxtime = 1000.0
+    count = 0
+    h_arr = np.array([])
+    cvc_arr = np.array([])
+    ts = np.array([])
+    i1_t=np.array([])
+    i2_t=np.array([])
+    i3_t=np.array([])
+    n = 100
+    smin = -30
+    smax = 20
+    s_int = np.linspace(smin,smax,n)
+    s_hist = np.zeros(n)
+    ds = (smax-smin)/n
+    bias_started=False
+    plot_count = 0
+    while (t<maxtime):
+        cv_l = cv_f.readline()
+        t = float(cv_l.split()[0])
+        cv = float(cv_l.split()[1])
+        b = (cv-smin)/(smax-smin)*(n-1)
+        if(b>=0 and b<n):
+            s_hist[b]+=1
+        s_hist_normed = s_hist/sum(s_hist)
+        count += 1
+        if(count==NG):
+            count = 0
+            h_l = hs.readline()
+            h_arr = np.append(h_arr, float(h_l.split()[1]))
+            cvc_l = cvcs.readline()
+            cvc_arr = np.append(cvc_arr, float(cvc_l.split()[1]))
+            last_h = h_arr[-1]
+            last_cvc = cvc_arr[-1]
+            print(str(cv)+" "+str(cvc_arr[-1]))
+            bias_started = True
+        if(bias_started):
+            plot_count += 1
+        if(bias_started and plot_count==20):
+            plot_count = 0
+            integral1 = 0
+            integral2 = 0
+            integral3_a=0
+            integral3_b=0
+            for s in s_int:
+                V = bias(s,h_arr,cvc_arr)
+                integral1 += np.exp(beta*V)*gaussian(s,last_h,last_cvc)
+                b = (s-smin)/(smax-smin)*(n-1)
+                integral2 += np.exp(beta*V)*s_hist_normed[b]
+                integral3_a += np.exp(exp1*V)
+                integral3_b += np.exp(exp2*V)
+            integral1 *= ds
+            integral2 *= ds
+            integral3 = (integral3_a/integral3_b)
+            i1_t = np.append(i1_t,integral1)
+            i2_t = np.append(i2_t,integral2)
+            i3_t = np.append(i3_t,integral3)
+            ts = np.append(ts,t)
+            
+    plt.figure(0)
+    plt.clf()
+    plt.plot(ts,np.log(i1_t),label='eqn 13 TP with g(s-s(t))')
+    plt.plot(ts,np.log(i2_t),label='eqn 13 TP with p(s)')
+    plt.plot(ts,np.log(i3_t),label='eqn 22 OV')
+    plt.ylabel('$c(t)$')
+    plt.xlabel('$t$ (ps)')
+    
+def bias(s,h_arr,cvc_arr):
+    value = 0
+    for h,cvc in zip(h_arr,cvc_arr):
+        value += gaussian(s,h,cvc)
+    return value
+
+def gaussian(s,h,cvc):
+    sigma = 4
+    #print(h)
+    #print(np.exp(-(s-cvc)**2/(2*sigma**2)))
+    return h*np.exp(-(s-cvc)**2/(2*sigma**2))
+            
+            
+    
+    
 
 if __name__=="__main__":
     f0 = '../'
@@ -552,28 +648,37 @@ if __name__=="__main__":
     
     fi = flab+'run1/'
     if(f!='.'):
-        plot_gauss_data(f6,7,'Wt',name='fer')
-        plot_gauss_data(f7,8,'Wt',name='bos')
+        #cv_t = np.genfromtxt(f5+'cv.dat',500*500)
+        
+        #c_t_comparison(f5)
+        #plt.figure(1)
+        #plt.legend(loc='lower right',fontsize=20)
+        #plot_gauss_data(f1,7,'Wt',name='fer')
+        #plot_gauss_data(f2,8,'Wt',name='bos')
         #plot_rABs(fs)
-        plot_energies_vs_t(f6,1,n=50000)
+        #plot_energies_vs_t(f8,1,n=50000)
         #plt.legend(loc='upper right',fontsize=18)
         #plot_rAB(f,2,1,'b','^',name='Dist')
-        [r,p1]=plot_rAB(f7,2,1,'r','o',name='Singlet')
-        [r,p2]=plot_rAB(f6,2,0,'g','v',name='Triplet')
+        [r,p1]=plot_rAB(f1,2,1,'r','o',name='Singlet')
+        [r,p2]=plot_rAB(f2,2,0,'g','v',name='Triplet')
         plt.plot(r,(p1-p2),color='k',marker='.',label='S$-$T')
         plt.ylim([-1,4])
         #plt.grid(True)
         #r=plot_rAB(f4,2,0,'c','v',name='dt=0.1fs')
         #plot_rAB_th(1,r,'fer')
         plt.legend(loc='upper right',fontsize=18)
-        plt.title(r'$\mathrm{With MetaD},\quad \beta=1\,\mathrm{meV}^{-1}$')
+        plt.title(r'$\mathrm{Without~MetaD},\quad \beta=2\,\mathrm{meV}^{-1}$')
         #plt.title(r'$\mathrm{No~interaction}$')
         #plot_energies(f1,3,1,'b')
         #plot_energies(f2,3,1,'g')
         #plot_energies(f3,3,1,'r')
-        r,ef = plot_energies(f1,3,1,'beta','-',True)
-        plt.legend(loc='upper left',fontsize=18)
-        r,eb = plot_energies(f2,3,0,'beta','--',True)
+        r,ef = plot_energies(f3,3,1,'beta','-',True)
+        plt.legend(loc='upper left',fontsize=16)
+        r,eb = plot_energies(f4,3,0,'beta','--',True)
+        plt.ylim([0,35])
+        plt.xlim([0,50])
+        plt.title(r'$\tau=0.05\,\mathrm{meV}^{-1},~dt=1\,\mathrm{fs}$')
+        #plt.title(r'$\beta=2\,\mathrm{meV}^{-1}$')
         #plt.plot(r,ef-eb,'y')
         """plot_energies(f4,3,0,'r',P=20)
         plot_energies(f5,3,0,'k',P=20)
@@ -582,9 +687,9 @@ if __name__=="__main__":
         plot_energies(f8,3,0,'b',P=5)
         plot_energies(f9,3,0,'g',P=30)"""
         #plt.title(r'$\mathrm{Boson}$')
-        plt.title(r'$\mathrm{GaAs,}\quad R_W=1.34$')
+        """plt.title(r'$\mathrm{GaAs,}\quad R_W=1.34$')
         plt.xlim([0,40])
-        plt.ylim([0,32])
+        plt.ylim([0,32])"""
         
         #plot_cv(f3,4,200000)        
         
@@ -593,15 +698,19 @@ if __name__=="__main__":
             plt.title('fer')
             plot_cont_sint(f7,4,200000,'FES')
             plt.title('bos')
-        if 1:
-            #plot_cont(f6,5,-1,200000,'bdE','etot')
+        if 0:
+            plot_cont(f1,5,-1,200000,'bdE')
             plt.figure(5)
-            plt.ylabel(r'$E\, \Gamma(s) p(s)$')
-            plt.title('Fermion')
-            #plot_cont(f7,6,1,200000,'bdE','etot')
-            plt.figure(6)            
-            plt.ylabel(r'$E\, \Gamma(s) p(s)$')
-            plt.title('Boson')
+            plt.xlabel('$s$')
+            plt.ylabel(r'$\Gamma(s) p(s)$')
+            plt.title(r'Fermion, $\beta=2\,\mathrm{meV}^{-1}$')
+            plt.xlim([-40,20])
+            plot_cont(f2,6,1,200000,'bdE')
+            plt.figure(6)  
+            plt.xlabel('$s$')
+            plt.ylabel(r'$\Gamma(s) p(s)$')
+            plt.title(r'Boson, $\beta=2\,\mathrm{meV}^{-1}$')
+            plt.xlim([-40,20])
         if 0:
             plot_cont(f5[0],5,-1,200000,'G')
         #plot_cont(f6,7,-1,200000,'bdE')
