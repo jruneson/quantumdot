@@ -69,6 +69,10 @@ void Parameters::read_file(std::string filename)
 				iss >> bias_update_time;
 			else if(name=="wigner_parameter")
 				iss >> wigner_parameter;
+			else if(name=="hwx")
+				iss >> hwx;
+			else if(name=="hwy")
+				iss >> hwy;
 			else if(name=="mass_in_m_e")
 			{	
 				iss >> mass;	
@@ -80,7 +84,7 @@ void Parameters::read_file(std::string filename)
 			else if(name=="diel_const_rel")
 			{
 				iss >> diel_const;
-				diel_const *= 3.674932e-5;
+				diel_const *= 6.94461548e-4;//3.674932e-5;
 			}
 			else if(name=="screening_factor")
 				iss >> screening_factor;
@@ -118,14 +122,20 @@ void Parameters::calculate_dependencies()
 	if(num_beads<1)
 		num_beads=1;
 	electrost_factor = screening_factor*charge*charge/diel_const;
-	hw = electrost_factor*electrost_factor*m_hbar2/(wigner_parameter*wigner_parameter);
+	//hw = electrost_factor*electrost_factor*m_hbar2/(wigner_parameter*wigner_parameter);
+	hw = std::sqrt((hwx*hwx+hwy*hwy)/2);
+	wigner_parameter = electrost_factor*std::sqrt(m_hbar2/hw);
+	//electrost_factor = 0;
+	//hwx = 5.1;//4.23;
+	//hwy = 5.1;//5.84;
 	//electrost_factor *= screening_factor;
-	curvature = m_hbar2 * hw*hw;
+	curvature_x = m_hbar2 * hwx*hwx;
+	curvature_y = m_hbar2 * hwy*hwy;
 	//dt_md = 2*M_PI * std::pow(1 + 4.0*num_beads/(hw*hw*beta*beta),-0.5) * hbar/hw
 	//		* 1.0/steps_in_highest_mode; //at least 10dt within the highest freq mode
 	//dt_md = 0.005;
 	//steps_per_sample = round(dt_sample/dt_md);
-	dt_2m = dt_md / (2.0*mass) * 5.7214765779e-26; //containing conversion factor from meV/a_0 to kg a_0 ps^{-2}
+	dt_2m = dt_md / (2.0*mass) * 1.60217662e-28;//5.7214765779e-26; //containing conversion factor from meV/nm to kg nm ps^{-2}
 	temperature = 1.0/beta * 11.60452205;
 	first_height = first_height_in_kBT/beta;
 	//num_steps = (int) sampl_time / (dt_md * num_blocks); //per block
@@ -138,7 +148,7 @@ void Parameters::calculate_dependencies()
 	length_scale = std::sqrt(1.0/(m_hbar2*hw));
 	hist_size = length_scale * 4;	
 	
-	std::cout << hw << std::endl;
+	std::cout << hwx << "\t" << hwy << "\t" << wigner_parameter << std::endl;
 }
 
 

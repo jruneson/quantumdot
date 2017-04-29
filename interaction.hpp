@@ -31,7 +31,10 @@ public:
 	double get_spring_const() const;
 	
 private:
-	const double curvature; //=mw^2 for a harmonic oscillator
+	Point curvature; //=mw^2 for a harmonic oscillator
+	const double curvature_x;
+	const double curvature_y;
+	const double curvature_z;
 	const double spring_const;
 	const double electrost_factor;
 	//const double charge;

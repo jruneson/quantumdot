@@ -42,7 +42,9 @@ public:
 	
 	double wigner_parameter; //electrostatic energy scale / hw
 	double hw; //in meV
-	double m_hbar2 = 3.674932248e-5; //m/hbar^2 in  a_0^{-2} meV^{-1}
+	double hwx;
+	double hwy;
+	double m_hbar2 = 0.013234213;//3.674932248e-5; //m/hbar^2 in  nm^{-2} meV^{-1}
 	double hbar = 0.65821195; //in meV ps
 	double mass; //in kg
 	double charge; //in e
@@ -61,6 +63,9 @@ public:
 	//dependent parameters
 	int num_beads;
 	double curvature; //in Ha a_0^{-2}
+	double curvature_x;
+	double curvature_y; //not used it d<2
+	double curvature_z; //not used if d<3
 	int steps_per_sample;
 	double dt_2m;
 	double temperature;

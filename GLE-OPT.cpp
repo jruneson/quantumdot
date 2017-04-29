@@ -187,7 +187,7 @@ void GLE::computeMatrices()
 	int s;
 	double temp=T;
 	double kB=1.38064852e-23;
-	double conv = 3.5710648e-4;
+	double conv = 1e-6;//3.5710648e-4;
 	
 	ifstream inp("Amatrix.txt");
 	if(!(inp.good()))

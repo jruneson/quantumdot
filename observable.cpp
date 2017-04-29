@@ -126,11 +126,6 @@ void Observable::measure(const std::vector<Polymer>& polymers, const Interaction
 	{
 		case 0:
 			tmp = potential_energy(polymers, interac);
-			/*for(int m=0; m<n; ++m)
-			{
-				const Polymer& pol2 = polymers[m];
-				tmp2 += potential_energy(pol,pol2,interac);
-			}*/
 			break;
 		case 1:
 			tmp = kinetic_energy(polymers,interac);
@@ -193,12 +188,11 @@ double Observable::potential_energy(const std::vector<Polymer>& pols, const Inte
 	double tmp = 0;
 	for(int n=0; n<pols.size(); ++n)
 	{
-		for(int m=0; m<n; ++m)
+		for(int bead=0; bead<pols[0].num_beads; ++bead)
 		{
-			//std::cout << n << "\t" << m << std::endl;
-			for(int bead=0; bead<pols[0].num_beads; ++bead)
+			tmp += interac.ext_potential(pols[n][bead]);
+			for(int m=0; m<n; ++m)
 			{
-				tmp += interac.ext_potential(pols[n][bead]) + interac.ext_potential(pols[m][bead]);
 				tmp += interac.two_particle_pot(pols[n][bead],pols[m][bead]);
 			}
 		}

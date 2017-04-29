@@ -2,7 +2,10 @@
 
 Interaction::Interaction(Parameters params) 
 	: electrost_factor(params.electrost_factor),
-	  curvature(params.curvature), spring_const(params.spring_const),
+	  curvature(params.dim), curvature_x(params.curvature_x),
+	  curvature_y(params.curvature_y),
+	  curvature_z(params.curvature_z),
+	  spring_const(params.spring_const),
 	  lj_energy24(24*params.lj_energy), 
 	  lj_length_sq(params.lj_length*params.lj_length),
 	  rcut2(2.5*2.5*params.lj_length*params.lj_length),
@@ -10,6 +13,12 @@ Interaction::Interaction(Parameters params)
 	  dt_fast(params.dt_md), dt_slow(params.dt_md_slow)
 {
 	time_since_slow_update = 0;
+	curvature[0] = curvature_x;
+	int d = curvature.size();
+	if(d>=2)
+		curvature[1] = curvature_y;
+	if(d>=3)
+		curvature[2] = curvature_z;
 	
 	double tmp = std::pow(lj_length_sq/rcut2,3);
 	vcut = lj_energy24/6.0 * tmp*(tmp-1);
@@ -18,7 +27,11 @@ Interaction::Interaction(Parameters params)
 
 double Interaction::ext_potential(const Point& p) const
 {
-	return 0.5 * curvature * p.sqdist0(); //note that this must be changed if masses are to be unequal
+	double tmp = 0;
+	for(int d=0; d<p.size(); ++d)
+		tmp += curvature[d]*std::pow(p[d],2);
+	return 0.5*tmp;
+	//return 0.5 * curvature * p.sqdist0(); //note that this must be changed if masses are to be unequal
 }
 
 double Interaction::two_particle_pot(const Point& p1, const Point& p2) const
@@ -44,7 +57,10 @@ double Interaction::two_particle_pot(const Point& p1, const Point& p2) const
 
 Force Interaction::ext_force(const Point& p) const
 {
-	return (-curvature) * p;
+	Force f = Force(p.size());
+	for(int d=0; d<f.size(); ++d)
+		f[d] = -curvature[d]*p[d];
+	return f;
 }
 Force Interaction::spring_force(const Point& last, const Point& p, const Point& next) 
 {
