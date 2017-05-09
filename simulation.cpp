@@ -28,6 +28,8 @@ Simulation::Simulation(const Parameters& params, std::ofstream& _res_file, bool 
 	overall_time = 0;
 	bar_width=70;
 	progress=0;
+	exchange_factor=1.0;
+	exc_sum=exc_avg=exc_avg_sq=exc_sq=exc_sq_avg=e_s_sum=e_s_avg=e_s_avg_sq=0;
 	std::vector<int> to_print = params.to_print_every_sample;
 	for(int id : params.to_measure)
 	{
@@ -41,9 +43,22 @@ Simulation::Simulation(const Parameters& params, std::ofstream& _res_file, bool 
 	histogram_1p.assign(num_parts,histogram);
 	histogram_1p_avg.assign(num_parts,histogram);
 	histogram_1p_sq_avg.assign(num_parts,histogram);
+	hist_de_num_bins = round((hist_de_max-hist_de_min)/hist_de_resolution);
+	histogram_delta_e.assign(hist_de_num_bins,0);
+	hist_de_width=hist_de_max-hist_de_min;
 	bias_update_counter = 0;
 	movie_start_time = non_sampling_time + sampling_time/2.0;
 	movie_end_time = movie_start_time + dt_sample*10000;
+	try 
+	{
+		gle = GLE(polymers, dt_md, temperature, polymers[0].mass, polymers[0].num_beads, 
+					num_parts, polymers[0][0].size(),thermostat_on);
+	}
+	catch(const std::exception& e)
+	{
+		std::cout << "exception: " << e.what() << std::endl;
+		return;
+	}
 }
 
 
@@ -52,16 +67,7 @@ Simulation::Simulation(const Parameters& params, std::ofstream& _res_file, bool 
 void Simulation::setup() 
 {
 	timer.start();
-	try 
-	{
-		gle = new GLE(polymers, dt_md, temperature, polymers[0].mass, polymers[0].num_beads, 
-					num_parts, polymers[0][0].size(),thermostat_on);
-	}
-	catch(const std::exception& e)
-	{
-		std::cout << "exception: " << e.what() << std::endl;
-		return;
-	}
+
 	if(cont_sim)
 	{
 		read_input_coords();
@@ -248,6 +254,7 @@ void Simulation::run_wo_sampling()
 
 void Simulation::run() 
 {
+	setup();
 	while(!finished)
 		run_block();
 	stop();
@@ -283,13 +290,14 @@ void Simulation::run_block()
 	++block;
 	print_to_logfile();
 	update_screen();
+	std::cout << block << std::endl; //
 	if(block>=num_blocks)
 		finished = true;
 }
 
 void Simulation::verlet_step()
 {
-	gle->run();
+	gle.run();
 	for(Polymer& pol : polymers)
 	{
 		pol.update_vels();
@@ -299,7 +307,7 @@ void Simulation::verlet_step()
 	interac.update_forces(polymers,bias);
 	for(Polymer& pol: polymers)
 		pol.update_vels();
-	gle->run();
+	gle.run();
 }
 
 /*void Simulation::reset_obs()
@@ -311,7 +319,7 @@ void Simulation::verlet_step()
 void Simulation::measure()
 {
 	for(auto& pair : obs)
-		pair.second.measure(polymers,interac,overall_time,exchange_factor,bias.get_rew_factor());
+		pair.second.measure(polymers,interac,overall_time,exchange_factor,bias.get_rew_factor());	
 	update_histogram();
 	cv_file << overall_time << "\t" << bias.get_cv() << "\t" << bias.energy_diff(polymers) << std::endl;
 	rew_factor_file << overall_time << "\t" << bias.get_rew_factor() << std::endl;
@@ -372,8 +380,11 @@ void Simulation::update_histogram()
 	double weight = exchange_factor*bias.get_rew_factor();
 	for(int bead=0; bead<polymers[0].num_beads; ++bead)
 	{
-		tmp = polymers[0][bead].dist(polymers[1][bead]);
-		bin = calc_bin(tmp);
+		if(polymers[0].connected)
+			tmp = polymers[0][bead].dist(polymers[0][bead+polymers[0].num_beads/2]);		
+		else
+			tmp = polymers[0][bead].dist(polymers[1][bead]);
+		bin = calc_bin(tmp,num_bins,hist_size);
 		if(bin>=0 && bin<num_bins)
 			histogram[bin] += weight;
 		/*bin = calc_bin(polymers[0][bead].dist0());
@@ -383,17 +394,17 @@ void Simulation::update_histogram()
 		if(bin>=0 && bin<num_bins)
 			histogram_1p[1][bin] += 1;*/
 	}
+	double cv_rel = bias.get_cv()-hist_de_min;
+	bin = calc_bin(cv_rel,hist_de_num_bins,hist_de_width);
+
+	if((bin<hist_de_num_bins)&(bin>=0))
+		histogram_delta_e[bin] += bias.get_rew_factor();
 }
 
-int Simulation::calc_bin(double dist)
+int Simulation::calc_bin(double dist, int nbins, double hsize)
 {
-	return round(dist*num_bins/hist_size);
+	return round(dist*nbins/hsize);
 }
-
-/*int Simulation::calc_bin_1p(double coord)
-{
-	return round((0.5*hist_size + coord)*num_bins/hist_size);
-}*/
 
 void Simulation::update_screen()
 {
@@ -426,7 +437,7 @@ void Simulation::stop()
 			<< "\t" << std::sqrt(exc_sq_avg-exc_avg*exc_avg)/rew_norm << std::endl; // sqrt(n/(n-1)) unnecessary for large n
 	logfile << "Exp_en_diff\t" << e_s_avg/rew_norm << "\t" << simple_uncertainty(e_s_avg,e_s_avg_sq)/rew_norm
 			<< std::endl;
-	res_file << sampling_time;//polymers[0].num_beads;//sampling_time;
+	res_file << polymers.size();//polymers[0].num_beads;//sampling_time;
 	for(const auto& pair : obs)
 	{
 		const auto& ob = pair.second;
@@ -459,8 +470,13 @@ void Simulation::stop()
 					//<< "\t" << std::sqrt((histogram_sq_avg[bin]-std::pow(histogram_avg[bin],2))/(block-1)) 
 					<< std::endl;*/
 	}
+	std::ofstream de_file("DeltaE_hist_N"+std::to_string(polymers.size())+".dat");
+	for(int bin = 0; bin<hist_de_num_bins; ++bin)
+	{
+		de_file << hist_de_width*((double) bin/hist_de_num_bins) << "\t" << histogram_delta_e[bin] << std::endl;
+	}
 	
-	delete gle;
+	//delete gle;
 	
 	timer.stop();
 	logfile << "Finished in " << timer.duration() << " s" << std::endl;
@@ -545,13 +561,24 @@ void Simulation::print_vmd()
 void Simulation::update_exc()
 {
 	double e_s = 0;
-	if((num_parts==1)||(sign==0))
+	if(sign==0)
 		exchange_factor = 1.0;
+	else if(polymers[0].connected)
+	{
+		double tmp = 0;
+		int num_beads_1p = polymers[0].num_beads/2;
+		for(int bead=0; bead<num_beads_1p; ++bead)
+			tmp += std::exp(exc_const*(polymers[0][bead]-polymers[0][bead+num_beads_1p])*(polymers[0][bead+1]-polymers[0][bead+num_beads_1p+1]));
+			//note positive sign of exponent
+		e_s = tmp/polymers[0].num_beads;
+		exchange_factor = sign + e_s;
+	}
 	else
 	{
 		double tmp = 0;
 		for(int bead=0; bead<polymers[0].num_beads; ++bead)
 			tmp += std::exp( - exc_const * (polymers[0][bead]-polymers[1][bead])*(polymers[0][bead+1]-polymers[1][bead+1]));
+			//note negative sign of exponent
 		e_s = tmp/polymers[0].num_beads;
 		exchange_factor = 1.0 + sign*e_s;
 	}
@@ -570,6 +597,7 @@ double Simulation::simple_uncertainty(double avg, double avg_sq) const
 	return 0;
 }
 
+/*
 double Simulation::weighted_uncertainty(double avg, double avg_sq) const
 {
 	//standard error of the mean is std/sqrt(blocks)
@@ -586,4 +614,4 @@ double Simulation::weighted_uncertainty(double avg, double avg_sq) const
 		//relative errors do not need to be normalized by rew_factor_avg of bias
 	}
 	return 0;
-}
+}*/

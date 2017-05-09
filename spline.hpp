@@ -8,7 +8,7 @@
 class Spline{
 public:
 	Spline();
-	Spline(double);
+	explicit Spline(double);
 
 	
 	void create_spline(const std::vector<double>&, const std::vector<double>&);

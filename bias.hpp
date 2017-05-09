@@ -58,11 +58,13 @@ private:
 	double coll_var(const std::vector<Polymer>&) const;
 	double coll_var_der(const std::vector<Polymer>&) const;
 	double scalar_product(const std::vector<Polymer>&, int) const;
+	double scalar_product_conn(const std::vector<Polymer>&, int, int) const;
 	double gaussian(double, double, double) const;
 	Force cv_grad(const std::vector<Polymer>&, int, int) const;
-	double sum_exp(const std::vector<Polymer>&) const;
+	double sum_exp(const std::vector<Polymer>&, int) const;
 	double sum_exp_distcorr(const std::vector<Polymer>&) const;
 	Force two_terms(const std::vector<Polymer>&, int, int) const;
+	Force two_terms_conn(const std::vector<Polymer>&, int, int, int) const;
 	double sq_distAB(const std::vector<Polymer>&) const;
 	void create_splines();
 	void update_transient(double);

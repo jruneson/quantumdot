@@ -11,8 +11,8 @@
 
 class Point{ //storing components of coordinates, velocities, etc
 public:
-	Point(const Parameters&);
-	Point(int);
+	explicit Point(const Parameters&);
+	explicit Point(int);
 
 	//int dim;
 	std::vector<double> point_coords;

@@ -9,7 +9,7 @@
 
 class Interaction{
 public:
-	Interaction(Parameters);
+	explicit Interaction(Parameters);
 
 //	double potential(const Point&) const;
 	double ext_potential(const Point&) const;

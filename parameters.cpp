@@ -121,6 +121,15 @@ void Parameters::calculate_dependencies()
 	num_beads = round(beta/tau);
 	if(num_beads<1)
 		num_beads=1;
+	if(connected)
+	{
+		num_parts = 1;
+		num_beads *= 2;
+	}
+	else
+	{
+		num_parts = 2;
+	}
 	electrost_factor = screening_factor*charge*charge/diel_const;
 	//hw = electrost_factor*electrost_factor*m_hbar2/(wigner_parameter*wigner_parameter);
 	hw = std::sqrt((hwx*hwx+hwy*hwy)/2);

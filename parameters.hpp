@@ -17,6 +17,7 @@ public:
 	int dim;
 	double tau; //in Ha^{-1}
 	double beta; //in Ha^{-1}
+	bool connected;
 	
 	int num_blocks;
 	double sampling_time;

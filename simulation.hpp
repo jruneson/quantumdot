@@ -24,7 +24,7 @@
 class Simulation{
 public:
 	Simulation(const Parameters&, std::ofstream&, bool);
-	void setup();
+
 	void run();
 	
 private:
@@ -48,7 +48,7 @@ private:
 	//const int steps_per_sample;	
 	const int num_bins;
 	const double hist_size;
-	GLE* gle;
+	GLE gle;
 	//const bool using_input_file;
 	const bool thermostat_on;
 	Bias bias;
@@ -80,6 +80,12 @@ private:
 	std::vector<std::vector<double>> histogram_1p;
 	std::vector<std::vector<double>> histogram_1p_avg;
 	std::vector<std::vector<double>> histogram_1p_sq_avg;
+	std::vector<double> histogram_delta_e;
+	double hist_de_resolution=0.5;
+	double hist_de_max=50;
+	double hist_de_min=-50;
+	double hist_de_width;
+	double hist_de_num_bins;
 	
 	
 	int bar_width;
@@ -96,6 +102,7 @@ private:
 	std::ofstream vmd_file;
 	std::ofstream vmd_file2;
 
+	void setup();
 	void read_input_coords();
 	void initialize_coords_simple();
 	void read_old_measurements();
@@ -107,7 +114,7 @@ private:
 	void measure();
 	void update_avgs();
 	void update_histogram();
-	int calc_bin(double);
+	int calc_bin(double,int,double);
 	//int calc_bin_1p(double);
 	void update_screen();
 	void print_to_logfile();

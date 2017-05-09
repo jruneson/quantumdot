@@ -3,7 +3,7 @@
 
 
 Polymer::Polymer(const Parameters& params) : num_beads(params.num_beads),
-		dt(params.dt_md), dt_2m(params.dt_2m), mass(params.mass)
+		dt(params.dt_md), dt_2m(params.dt_2m), mass(params.mass), connected(params.connected)
 {
 	for(int bead=0; bead<num_beads; ++bead)
 	{

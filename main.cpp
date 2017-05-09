@@ -26,12 +26,12 @@ int main(int argc, char* argv[])
 	//std::vector<double> taus = {1.0};
 	Parameters params;
 	params.read_file("configuration.cfg");
-	params.calculate_dependencies();
+	//params.calculate_dependencies();
 	std::ofstream results_file;
 	if(!continue_sim)
 	{
 		results_file.open("results.dat");
-		results_file << "%tau";
+		results_file << "%N";
 		for(int id : params.to_measure)
 			results_file << "\tObsId " << id << "\t\tError\t";
 		results_file << std::endl;
@@ -39,14 +39,18 @@ int main(int argc, char* argv[])
 	else
 		results_file.open("results.dat", std::ios_base::app);
 	results_file.precision(10);
-	//for(auto beta : betas)
-	//{
-	//	params.beta = beta;
-	//	params.calculate_dependencies();
+
+	params.connected = true;
+	params.calculate_dependencies();
 	Simulation sim(params, results_file,continue_sim);
-	sim.setup();
 	sim.run();
-	//}
+	
+	/*params.read_file("configuration.cfg");
+	params.connected = false;
+	params.calculate_dependencies();
+	Simulation sim2(params, results_file, continue_sim);
+	sim2.run();*/
+	
 	results_file.close();
 	return 0;
 }
@@ -81,12 +85,12 @@ int main(int argc, char* argv[])
  x Test
  x Spline
  x Test
- * replace gle ptr with static obj
+ x replace gle ptr with static obj
  x Interaction, several particles
- * Check energy estimators are correct
- * Check LJ is reasonable
- * Run LJ with+wo metad B, then F
- * histogram at 3d
+ x Check LJ is reasonable
+ x Run LJ with+wo metad B, then F
+ * histogram in 2d
+ * Bennett method
  */
  
  /*

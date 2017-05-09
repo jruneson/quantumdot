@@ -10,7 +10,7 @@
 class Polymer{
 public:
 	//Polymer();
-	Polymer(const Parameters&);
+	explicit Polymer(const Parameters&);
 	
 	const Point& operator[](int) const; //use this operator to reach coordinate Points
 	Point& operator[](int);
@@ -26,6 +26,7 @@ public:
 	const double dt_2m;
 	const double dt;
 	const double mass;
+	const bool connected;
 };
 
 #endif

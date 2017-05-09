@@ -30,7 +30,16 @@ Bias::Bias(const Parameters& params, bool cont_sim) : id(params.cv_id), sign(par
 
 double Bias::energy_diff(const std::vector<Polymer>& pols) const
 {
-	return -std::log(sum_exp(pols)/pols[0].num_beads);
+	if(pols[0].connected)
+	{
+		int num_beads_1p = pols[0].num_beads/2;
+		return -std::log(sum_exp(pols,num_beads_1p)/num_beads_1p);
+	}
+	else
+	{
+		int num_beads = pols[0].num_beads;
+		return -std::log(sum_exp(pols,num_beads)/num_beads);
+	}
 }
 	
 double Bias::coll_var(const std::vector<Polymer>& pols) const
@@ -41,7 +50,7 @@ double Bias::coll_var(const std::vector<Polymer>& pols) const
 	switch(id)
 	{
 		case 1:
-			tmp = sum_exp(pols);
+			tmp = sum_exp(pols,pols[0].num_beads);
 			return 1.0+sign*tmp/pols[0].num_beads;
 		case 2: //energy-difference cv
 			return energy_diff(pols);
@@ -69,11 +78,19 @@ double Bias::coll_var(const std::vector<Polymer>& pols) const
 	}
 }
 
-double Bias::sum_exp(const std::vector<Polymer>& pols) const
+double Bias::sum_exp(const std::vector<Polymer>& pols, int num_beads) const
 {
 	double tmp = 0;
-	for(int bead=0; bead<pols[0].num_beads; ++bead)
-		tmp += std::exp(-exc_const * scalar_product(pols,bead));
+	if(pols[0].connected)
+	{
+		for(int bead=0; bead<num_beads; ++bead)
+			tmp += std::exp(-exc_const * scalar_product_conn(pols,bead,num_beads));
+	}
+	else
+	{
+		for(int bead=0; bead<num_beads; ++bead)
+			tmp += std::exp(-exc_const * scalar_product(pols,bead));
+	}
 	return tmp;
 }
 
@@ -110,6 +127,7 @@ Force Bias::cv_grad(const std::vector<Polymer>& pols, int bead, int part) const
 {
 	Force tmp(pols[0][0].size());
 	Force tmp2(pols[0][0].size());
+	int num_beads;
 	switch(id)
 	{
 		case 1:
@@ -119,8 +137,15 @@ Force Bias::cv_grad(const std::vector<Polymer>& pols, int bead, int part) const
 		case 5:
 		case 6:
 		case 7:
-			tmp += two_terms(pols, bead, part);
-			tmp /= sum_exp(pols);
+			num_beads = pols[0].num_beads;
+			if(pols[0].connected)
+			{
+				num_beads /= 2;
+				tmp += two_terms_conn(pols, bead, part,num_beads);
+			}
+			else 
+				tmp += two_terms(pols,bead,part);
+			tmp /= sum_exp(pols,num_beads);
 			if(id==5)
 			{
 				double t = std::tanh(cv);
@@ -148,7 +173,7 @@ Force Bias::cv_grad(const std::vector<Polymer>& pols, int bead, int part) const
 			tmp = tmp2*std::exp(-exc_const*scalar_product(pols,bead));
 			tmp2 = pols[0][bead-1]-pols[1][bead-1]-(pols[0][bead]-pols[1][bead])*2.0/pols[0].num_beads;
 			tmp += tmp2*std::exp(-exc_const*scalar_product(pols,bead-1));
-			return tmp*(exc_const*std::pow(-1,part)/sum_exp(pols));
+			return tmp*(exc_const*std::pow(-1,part)/sum_exp(pols,pols[0].num_beads));
 		default:
 			return tmp;
 	}
@@ -158,6 +183,12 @@ Force Bias::two_terms(const std::vector<Polymer>& pols, int bead, int part) cons
 {
 	return (pols[0][bead+1]-pols[1][bead+1])*std::exp(-exc_const*scalar_product(pols,bead)) +
 		   (pols[0][bead-1]-pols[1][bead-1])*std::exp(-exc_const*scalar_product(pols,bead-1));			
+}
+
+Force Bias::two_terms_conn(const std::vector<Polymer>& pols, int bead, int part, int num_beads) const
+{
+	return (pols[0][bead+1]-pols[0][bead+1+num_beads])*std::exp(-exc_const*scalar_product_conn(pols,bead,num_beads)) +
+		   (pols[0][bead-1]-pols[0][bead-1+num_beads])*std::exp(-exc_const*scalar_product_conn(pols,bead-1,num_beads));
 }
 
 Force Bias::calc_force(const std::vector<Polymer>& pols, int bead, int part) const
@@ -173,6 +204,11 @@ Force Bias::calc_force(const std::vector<Polymer>& pols, int bead, int part) con
 double Bias::scalar_product(const std::vector<Polymer>& pols, int bead) const
 {
 	return (pols[0][bead]-pols[1][bead])*(pols[0][bead+1]-pols[1][bead+1]);
+}
+
+double Bias::scalar_product_conn(const std::vector<Polymer>& pols, int bead, int num_beads) const
+{
+	return (pols[0][bead]-pols[0][bead+num_beads])*(pols[0][bead+1]-pols[0][bead+num_beads+1]);
 }
 
 double Bias::calc_bias(double cv) const

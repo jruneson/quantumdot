@@ -396,7 +396,12 @@ def load_lines(filename,num_lines):
     print(head)
     return head
     
-def plot_energies_vs_t(f,fig_nr,n=50000):
+def autocorr(x):
+    x -= np.mean(x)
+    result = np.correlate(x,x,mode='full')
+    return result[result.size/2:]/result[result.size/2]
+    
+def plot_energies_vs_t(f,fig_nr,n=100000):
     data = np.genfromtxt(f+'Pot_energy.dat',max_rows=n)
     epot = data[:,1]
     data = np.genfromtxt(f+'Kinetic_energy.dat',max_rows=n)
@@ -420,14 +425,29 @@ def plot_energies_vs_t(f,fig_nr,n=50000):
     plt.figure(fig_nr)
     plt.clf()
     plt.plot(t,etot,marker='.',label='etot')
-    plt.plot(t,epot,marker='.',label='epot')
+    #plt.plot(t,epot,marker='.',label='epot')
     #plt.plot(t,ekin,marker='.',label='ekin')
-    plt.plot(t,evir,marker='.',label='evir')
+    #plt.plot(t,evir,marker='.',label='evir')
     #plt.plot(t,etotc,marker='.',label='etotc')
     #plt.plot(t,esprc,marker='.')
     #plt.xlim([0,10])
     #plt.plot(t,ekin)
     #plt.plot(t,evir)
+
+def plot_autocorr(f,fig_nr,n=100000):
+    data = np.genfromtxt(f+'Total_energy.dat',max_rows=n)
+    t = data[:,0]  -data[0,0] 
+    obs = data[:,1]
+    corr_f = autocorr(obs)
+    plt.figure(fig_nr)
+    plt.clf()
+    tmax = n*0.005
+    plt.plot(t,corr_f,label=r'$t_\mathrm{max}=$'+str(tmax)+r'$~\mathrm{ps}$')
+    plt.xlim([0,10])
+    plt.xlabel(r'$t~(\mathrm{ps})$')
+    plt.ylabel(r'$c(t)$')
+    plt.legend(loc='upper right',fontsize=24)
+    plt.title(r'$\mathrm{Autocorrelation~function}$')
 
 def get_axis_limits(ax, scale=0.85):
     return ax.get_xlim()[1]*scale, ax.get_ylim()[1]*scale
@@ -629,6 +649,9 @@ if __name__=="__main__":
     f7 = '../run7/'
     f8 = '../run8/'
     f9 = '../run9/'
+    f11= '../run11/'
+    f12= '../run12/'
+    f15= '../run15/'
     fs=[f1,f2,f3,f4,f5]
     interac = ['noInt/','LJ/','coulomb/RW1-34/']
     beta=['beta2/']
@@ -642,7 +665,7 @@ if __name__=="__main__":
     fa2 = f0+interac[2]+beta[0]+sym[1]+md[0]
     fa3 = f0+interac[2]+beta[0]+sym[0]+md[1]
     fa4 = f0+interac[2]+beta[0]+sym[1]+md[1]
-    ff = f0+interac[2]+'tau0-067/varybeta/dis/'
+    ff = f0+interac[2]+'tau0-04/bos/'
     flab = '../workstation_lab/varybeta/'
     flabb= '../workstation_lab/metaD_test4_20ns/'
     flab1= flab+'run1/'
@@ -655,14 +678,14 @@ if __name__=="__main__":
     flab8= flab+'run8/'
     flab9= flab+'run9/'
     flab10=flab+'run10/'
+
     
     fi = flab+'run1/'
     #cv_t = np.genfromtxt(f5+'cv.dat',500*500)
-    x = 0.748726#0.773775
+    """x = 0.7472#0.773775
     b = 1.0
-    dx = 0.021334#0.03219
-    print(str(-1.0/b*np.log((1-x)/(1+x)))+' +/- '+str(2.0/b *dx/(1.0-x**2)))
-    #c_t_comparison(f5)
+    dx = 0.01267#0.03219
+    print('DeltaF = '+str(-1.0/b*np.log((1-x)/(1+x)))+' +/- '+str(2.0/b *dx/(1.0-x**2)))"""
     #plt.figure(1)
     #plt.legend(loc='lower right',fontsize=20)
     #plot_gauss_data(f1,7,'Wt',name='fer')
@@ -671,7 +694,9 @@ if __name__=="__main__":
     #plot_energies_vs_t(f8,1,n=50000)
     #plt.legend(loc='upper right',fontsize=18)
     #plot_rAB(f,2,1,'b','^',name='Dist')
-    [r,p1]=plot_rAB(f9,2,1,'r','o',name='Singlet')
+    
+    #[r,p1]=plot_rAB(f9,2,1,'r','o',name='Singlet')
+    
     #[r,p2]=plot_rAB(f8,2,0,'g','v',name='Triplet')
     #plt.plot(r,(p1-p2),color='k',marker='.',label='S$-$T')
     #plt.ylim([-1,4.5])
@@ -680,19 +705,20 @@ if __name__=="__main__":
     #plt.grid(True)
     #r=plot_rAB(f4,2,0,'c','v',name='dt=0.1fs')
     #plot_rAB_th(1,r,'fer')
-    plt.legend(loc='upper right',fontsize=18)
-    plt.title(r'$\mathrm{Without~MetaD},\quad \beta=1\,\mathrm{meV}^{-1}$')
+    #plt.legend(loc='upper right',fontsize=18)
+    #plt.title(r'$\mathrm{Without~MetaD},\quad \beta=1\,\mathrm{meV}^{-1}$')
     #plt.title(r'$\mathrm{No~interaction}$')
+    
     #plot_energies(f1,3,1,'b')
     #plot_energies(f2,3,1,'g')
     #plot_energies(f3,3,1,'r')
     #r,ef = plot_energies(flab1,3,1,'beta','-',True)
     #plt.legend(loc='upper left',fontsize=16)
-    r,eb = plot_energies(ff,3,1,'beta','--',True)
+    #r,eb = plot_energies(ff,3,1,'beta','--',True)
     #plot_energies(f0,3,0,'beta',':',True)
     #plt.ylim([0,35])
     #plt.xlim([0,50])
-    plt.title(r'$\tau=0.067\,\mathrm{meV}^{-1},~dt=1\,\mathrm{fs}$')
+    #plt.title(r'$\tau=0.067\,\mathrm{meV}^{-1},~dt=1\,\mathrm{fs}$')
     #plt.title(r'$\beta=2\,\mathrm{meV}^{-1}$')
     #plt.plot(r,ef-eb,'y')
     """plot_energies(f4,3,0,'r',P=20)
@@ -705,63 +731,85 @@ if __name__=="__main__":
     """plt.title(r'$\mathrm{GaAs,}\quad R_W=1.34$')
     plt.xlim([0,40])
     plt.ylim([0,32])"""
+    plot_autocorr(f2,2)
     
-    e_b = np.array([15.46, 15.92, 16.05758, 16.090943,16.3056])
-    e_b_err = np.array([0.054, 0.059, 0.0508, 0.06223,0.07795])
-    tau = np.array([0.15,0.1,0.067,0.05,0.04])
+    """
+    e_b = np.array([15.46, 15.92, 16.05758, 16.090943,16.3056,16.52])
+    e_b_err = np.array([0.054, 0.059, 0.0508, 0.06223,0.07795,0.33])
+    tau = np.array([0.15,0.1,0.067,0.05,0.04,0.02])
     plt.figure(6)
     plt.clf()
     plt.errorbar(1/tau,e_b,e_b_err)
+    plt.xlim([5,51])
     plt.xlabel('$P$')
     plt.ylabel('Singlet energy (meV)')
-    plt.title(r'With metad, $\beta=1$ meV$^{-1}$')
+    plt.title(r'With metad, $\beta=1$ meV$^{-1}$')"""
     
     #plot_cv(fa1,0,200000)        
     
     if 0:
-        cvs,Fs = plot_cont_sint(f4,4,200000,1.0,'FES')
+        cvs,Fs = plot_cont_sint(f11,4,200000,1.0,'FES')
         plt.title('fer')
+    if 0:
+        beta = 1.0
         n = int(len(cvs))
-        interval = range(90,140)
-        interval2 = range(160,240)
-        poly = np.polyfit(cvs[interval],Fs[interval],1)
-        poly2 = np.polyfit(cvs[interval2],Fs[interval2],1)
-        cvs_ext = np.linspace(-40,0,100)
-        cvs_ext2= np.linspace(0,100,100)
+        interval1 = range(100,145)
+        interval2 = range(160,250)
+        Fsmod = -Fs/beta-cvs
+        poly1,cov1 = np.polyfit(cvs[interval1],Fsmod[interval1],1,cov=True)
+        poly2,cov2 = np.polyfit(cvs[interval2],Fsmod[interval2],1,cov=True)
+        cvs_ext = np.linspace(-25,0,100)
+        cvs_ext2= np.linspace(0,40,100)
         plt.figure(5)
         plt.clf()
-        plt.plot(cvs,Fs,'b')
-        Fs_ext = np.polyval(poly,cvs_ext)
+        plt.plot(cvs,Fsmod,'b')
+        Fs_ext1 = np.polyval(poly1,cvs_ext)
         Fs_ext2=np.polyval(poly2,cvs_ext2)
-        plt.plot(cvs_ext,Fs_ext,'r')
+        plt.plot(cvs_ext,Fs_ext1,'r')
         plt.plot(cvs_ext2,Fs_ext2,'g')
-        plt.plot(cvs[interval],Fs[interval],'x')
-        plt.plot(cvs[interval2],Fs[interval2],'x')
-        print(poly)
-        print(poly2)
-        slope1 = np.array([-1.1468,-1.0935,-1.0606])
-        slope2 = np.array([0.477,0.3958,0.3068])
-    #plt.figure(6)
-    #plt.clf()
-    #plt.plot(tau,-1-slope1,'x')
-    #plt.plot(tau,-1-slope2,'o')
+        plt.plot(cvs[interval1],Fsmod[interval1],'xr')
+        plt.plot(cvs[interval2],Fsmod[interval2],'xg')
+        plt.xlabel('$s$')
+        plt.ylabel(r'$\log[p(s)e^{-s}]$')
+        plt.ylim([-6,-2])
+        plt.xlim([-30,10])
+        print('slope1: {} +/- {}'.format(poly1[0],np.sqrt(cov1[0][0])))
+        print('slope2: {} +/- {}'.format(poly2[0],np.sqrt(cov2[0][0])))
+    if 0:
+        slope1 = np.array([-1.4727,-1.2749, -1.1468,-1.0935,-1.0606,-1])
+        s1err = np.array([0.0024,0.0017,0.0014,0.0015,0.0013,0.015])        
+        slope2 = np.array([0.9540, 0.6830, 0.4774,0.3662,0.3007,0.1768])
+        plt.figure(6)
+        plt.clf()
+        plt.errorbar(tau,-1-slope1,s1err,marker='.',linestyle='None',label='Slopes')
+        poly3,cov3 = np.polyfit(tau,-1-slope1,2,cov=True)
+        x = np.linspace(0,0.16)
+        plt.plot(x,np.polyval(poly3,x),label='Quadratic fit')
+        print('slope3: {} +/- {}'.format(poly3[0],np.sqrt(cov3[0][0])))
+        plt.xlabel(r'$\tau~\mathrm{(meV)}^{-1}$')
+        plt.ylabel(r'$\mathrm{-1-Slope1}$')
+        plt.legend(loc='lower right', fontsize=20)
+        polyexp,covexp = np.polyfit(tau,np.log(-1-slope1+1),1,cov=True)
+        #plt.plot(x,np.exp(np.polyval(polyexp,x))/np.exp(polyexp[1])-1)
+        #plt.plot(tau,-1-slope2,'o')
         #plot_cont_sint(f4,4,200000,'FES')
         #plt.title('bos')
     if 0:
-        plot_cont(f3,5,-1,200000,'bdE','etot')
+        plot_cont(f4,5,1,200000,'bdE','etot')
         plt.figure(5)
         plt.xlabel('$s$')
         plt.ylabel(r'$E\,\Gamma(s) p(s)$')
-        plt.title(r'Fermion, $\beta=1\,\mathrm{meV}^{-1}$')
-        plt.xlim([-40,20])
-        plot_cont(f4,6,1,200000,'bdE','etot')
+        plt.title(r'Low tau, $\beta=1\,\mathrm{meV}^{-1}$')
+        plt.xlim([-40,40])
+        #plot_cont(f12,6,1,200000,'bdE','etot')
         plt.figure(6)  
         plt.xlabel('$s$')
         plt.ylabel(r'$E\,\Gamma(s) p(s)$')
-        plt.title(r'Boson, $\beta=1\,\mathrm{meV}^{-1}$')
+        plt.title(r'ashoori, $\beta=1\,\mathrm{meV}^{-1}$')
         plt.xlim([-40,20])
+        plot_cont(f2,7,1,200000,'bdE','etot')
     if 0:
-        plot_cont(f2,6,1,200000,'bdE','etot')
+        plot_cont(f11,6,1,200000,'bdE','etot')
     #plot_cont(f6,7,-1,200000,'bdE')
     #plt.title('New cv')
     #plot_rAB(f0+interac[1]+sym[2]+P[3]+s[0]+'woMetaD/',2,0,'k')

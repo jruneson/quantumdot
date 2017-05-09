@@ -11,6 +11,8 @@
 
 using namespace std;
 
+GLE::GLE() {}
+
 GLE::GLE(std::vector<Polymer>& pols, const double& timestep, const double& temperature,
 		const double& part_mass, const int& num_beads, const int& num_parts, const int& dims,
 		const bool thermostat_on)

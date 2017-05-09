@@ -10,6 +10,7 @@ class GLE
 {
 	public:
 		//send in full dt, it will divide by 2 inside
+		GLE();
 		GLE(int np, double** pvec, double _dt, double _T, double _mass, int _dim);
 		GLE(int np,int nn, double*** pvec, double _dt, double _T, double _mass, int _dim);
 		GLE(double* pvec, double _dt, double _T, double _mass, int _dim=1);
