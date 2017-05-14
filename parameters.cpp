@@ -11,6 +11,7 @@ void Parameters::read_file(std::string filename)
 	std::string line;
 	int to_bool; int tmp;
 	double tmp2;
+	dt_md_slow = 0;
 	while(std::getline(file, line))
 	{
 		std::istringstream iss(line);
@@ -26,6 +27,11 @@ void Parameters::read_file(std::string filename)
 				iss >> beta;
 			else if(name=="num_blocks")
 				iss >> num_blocks;
+			else if(name=="connected")
+			{
+				iss >> to_bool;
+				connected = (to_bool != 0);
+			}
 			else if(name=="sampling_time")
 				iss >> sampling_time;
 			else if(name=="dt_md")
@@ -38,8 +44,7 @@ void Parameters::read_file(std::string filename)
 				iss >> non_sampling_time; 
 			else if(name=="thermalization_time")
 			{
-				iss >> tmp2;
-				thermalization_steps = tmp2/dt_md;
+				iss >> thermalization_time;
 			}
 			else if(name=="num_bins")
 				iss >> num_bins;
@@ -111,9 +116,7 @@ void Parameters::read_file(std::string filename)
 		}
 	}
 	if(dt_md_slow==0)
-		dt_md_slow = dt_md;
-					
-				
+		dt_md_slow = dt_md;			
 }
 
 void Parameters::calculate_dependencies()
@@ -121,15 +124,6 @@ void Parameters::calculate_dependencies()
 	num_beads = round(beta/tau);
 	if(num_beads<1)
 		num_beads=1;
-	if(connected)
-	{
-		num_parts = 1;
-		num_beads *= 2;
-	}
-	else
-	{
-		num_parts = 2;
-	}
 	electrost_factor = screening_factor*charge*charge/diel_const;
 	//hw = electrost_factor*electrost_factor*m_hbar2/(wigner_parameter*wigner_parameter);
 	hw = std::sqrt((hwx*hwx+hwy*hwy)/2);
@@ -151,13 +145,16 @@ void Parameters::calculate_dependencies()
 	//num_samples = (int) num_steps / steps_per_sample; //per block
 	spring_const = num_beads*m_hbar2/(beta*beta);
 	exc_const = num_beads*m_hbar2/beta;
-	exc_der_const = -sign * m_hbar2/(beta*beta);
+	exc_der_const = sign * num_beads*m_hbar2/(beta*beta);
 	kin_offset = num_parts*num_beads*dim/(2.0*beta);
-	virial_offset = num_parts*dim/(2.0*beta); //not sure about the dim factor
+	if(connected)
+		virial_offset = dim/(2.0*beta);
+	else
+		virial_offset = num_parts*dim/(2.0*beta);
 	length_scale = std::sqrt(1.0/(m_hbar2*hw));
 	hist_size = length_scale * 4;	
 	
-	std::cout << hwx << "\t" << hwy << "\t" << wigner_parameter << std::endl;
+	std::cout << hwx << "\t" << hwy << "\t" << wigner_parameter << "\t" << virial_offset << std::endl;
 }
 
 

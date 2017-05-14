@@ -17,6 +17,7 @@ public:
 	
 	void move();
 	void update_vels();
+	Point mean() const; //centroid position
 	
 	int num_beads;
 	std::vector<Point> coords;

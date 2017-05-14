@@ -11,7 +11,6 @@
 
 using namespace std;
 
-GLE::GLE() {}
 
 GLE::GLE(std::vector<Polymer>& pols, const double& timestep, const double& temperature,
 		const double& part_mass, const int& num_beads, const int& num_parts, const int& dims,
@@ -52,6 +51,15 @@ GLE::GLE(std::vector<Polymer>& pols, const double& timestep, const double& tempe
 		}
 	}
 	gen = new RNumgen();
+}
+
+GLE::~GLE()
+{
+	delete gen;
+	for(int i=0; i<ssize;i+=(snum+1))
+		for(int j=0; j<snum; ++j)
+			delete psvec[i+j+1];
+	delete[] psvec;
 }
 
 /*

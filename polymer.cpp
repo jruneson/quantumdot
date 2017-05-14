@@ -38,3 +38,12 @@ void Polymer::update_vels()
 	for(int bead=0; bead<num_beads; ++bead)
 		vels[bead] += (forces[bead]+fast_forces[bead]) * dt_2m;
 }
+
+Point Polymer::mean() const
+{
+	Point mean_point(coords[0].size());
+	for(int bead=0; bead<num_beads; ++bead)
+		mean_point += coords[bead];
+	mean_point *= 1.0/num_beads;
+	return mean_point;
+}

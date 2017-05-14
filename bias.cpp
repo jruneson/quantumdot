@@ -25,21 +25,26 @@ Bias::Bias(const Parameters& params, bool cont_sim) : id(params.cv_id), sign(par
 	vder_spline = Spline(spline_step);
 	rew_factor = 1;
 	rew_factor_avg = 1;
+	rew_factor_block = 0;
 	count = 0;
 }
 
 double Bias::energy_diff(const std::vector<Polymer>& pols) const
 {
-	if(pols[0].connected)
+	/*if(pols[0].connected)
 	{
 		int num_beads_1p = pols[0].num_beads/2;
 		return -std::log(sum_exp(pols,num_beads_1p)/num_beads_1p);
 	}
 	else
-	{
-		int num_beads = pols[0].num_beads;
-		return -std::log(sum_exp(pols,num_beads)/num_beads);
-	}
+	{*/
+		//int num_beads = pols[0].num_beads;
+		//return -std::log(sum_exp(pols,num_beads)/num_beads);
+	//}
+	/*if(pols[0].connected)
+		return exc_const*scalar_product(pols,pols[0].num_beads);
+	else*/
+		return exc_const*scalar_product(pols,pols[0].num_beads-1);
 }
 	
 double Bias::coll_var(const std::vector<Polymer>& pols) const
@@ -81,16 +86,16 @@ double Bias::coll_var(const std::vector<Polymer>& pols) const
 double Bias::sum_exp(const std::vector<Polymer>& pols, int num_beads) const
 {
 	double tmp = 0;
-	if(pols[0].connected)
+	/*if(pols[0].connected)
 	{
 		for(int bead=0; bead<num_beads; ++bead)
 			tmp += std::exp(-exc_const * scalar_product_conn(pols,bead,num_beads));
 	}
 	else
-	{
+	{*/
 		for(int bead=0; bead<num_beads; ++bead)
 			tmp += std::exp(-exc_const * scalar_product(pols,bead));
-	}
+	//}
 	return tmp;
 }
 
@@ -138,13 +143,13 @@ Force Bias::cv_grad(const std::vector<Polymer>& pols, int bead, int part) const
 		case 6:
 		case 7:
 			num_beads = pols[0].num_beads;
-			if(pols[0].connected)
+			/*if(pols[0].connected)
 			{
 				num_beads /= 2;
 				tmp += two_terms_conn(pols, bead, part,num_beads);
 			}
-			else 
-				tmp += two_terms(pols,bead,part);
+			else */
+			tmp += two_terms(pols,bead,part);
 			tmp /= sum_exp(pols,num_beads);
 			if(id==5)
 			{
@@ -185,11 +190,11 @@ Force Bias::two_terms(const std::vector<Polymer>& pols, int bead, int part) cons
 		   (pols[0][bead-1]-pols[1][bead-1])*std::exp(-exc_const*scalar_product(pols,bead-1));			
 }
 
-Force Bias::two_terms_conn(const std::vector<Polymer>& pols, int bead, int part, int num_beads) const
+/*Force Bias::two_terms_conn(const std::vector<Polymer>& pols, int bead, int part, int num_beads) const
 {
 	return (pols[0][bead+1]-pols[0][bead+1+num_beads])*std::exp(-exc_const*scalar_product_conn(pols,bead,num_beads)) +
 		   (pols[0][bead-1]-pols[0][bead-1+num_beads])*std::exp(-exc_const*scalar_product_conn(pols,bead-1,num_beads));
-}
+}*/
 
 Force Bias::calc_force(const std::vector<Polymer>& pols, int bead, int part) const
 {	
@@ -206,10 +211,10 @@ double Bias::scalar_product(const std::vector<Polymer>& pols, int bead) const
 	return (pols[0][bead]-pols[1][bead])*(pols[0][bead+1]-pols[1][bead+1]);
 }
 
-double Bias::scalar_product_conn(const std::vector<Polymer>& pols, int bead, int num_beads) const
+/*double Bias::scalar_product_conn(const std::vector<Polymer>& pols, int bead, int num_beads) const
 {
 	return (pols[0][bead]-pols[0][bead+num_beads])*(pols[0][bead+1]-pols[0][bead+num_beads+1]);
-}
+}*/
 
 double Bias::calc_bias(double cv) const
 {
@@ -285,7 +290,9 @@ void Bias::update_transient(double beta)
 	int num_samples = round((smax-smin)/step);
 	const double num_const = beta*bias_factor/(bias_factor-1.0);
 	const double den_const = beta/(bias_factor-1.0);
-	double tmp_avg, tmp_int_num, tmp_int_den = 0;
+	double tmp_avg=0;
+	double tmp_int_num=0;
+	double tmp_int_den = 0;
 	for(double s = smin; s<smax; s+=step)
 		tmp_avg += v_spline.eval_spline(s);
 	tmp_avg *= step/(smax-smin);
@@ -315,6 +322,7 @@ void Bias::update_cv_rew(const std::vector<Polymer>& pols, const double beta)
 	else
 		rew_factor = 1;
 	rew_factor_avg = (rew_factor_avg*count + rew_factor)/(count+1.0);
+	rew_factor_block += rew_factor;
 	++count;
 }
 
@@ -364,6 +372,16 @@ double Bias::get_rew_factor() const
 double Bias::get_rew_factor_avg() const
 {
 	return rew_factor_avg;
+}
+
+void Bias::set_new_block()
+{
+	rew_factor_block = 0;
+}
+
+double Bias::get_rew_factor_block() const
+{
+	return rew_factor_block;
 }
 
 const double Bias::get_gauss_width() const

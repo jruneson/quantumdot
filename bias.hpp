@@ -25,6 +25,8 @@ public:
 	Force calc_force(const std::vector<Polymer>&, int, int) const;
 	double get_rew_factor() const;
 	double get_rew_factor_avg() const;
+	void set_new_block();
+	double get_rew_factor_block() const;
 	void set_rew_factor_avg(double,double);
 	const double get_gauss_width() const;
 	double get_count() const;
@@ -37,7 +39,8 @@ private:
 	double cv;
 	double transient; //c(t)
 	double rew_factor; // exp(beta(V(s)-c(t)))
-	double rew_factor_avg;
+	double rew_factor_avg; //total instantaneous average of all previous values
+	double rew_factor_block; //sum in current block
 	double count; //counts #measurements of rew_factor
 	const int id;
 	const double bias_factor;

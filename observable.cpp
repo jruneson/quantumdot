@@ -204,10 +204,20 @@ double Observable::potential_energy(const std::vector<Polymer>& pols, const Inte
 double Observable::kinetic_energy(const std::vector<Polymer>& pols, const Interaction& interac) const
 {
 	double tmp = 0;
-	for(const auto& pol : pols)
+	for(int n=0; n<pols.size(); ++n)
+	//for(const auto& pol : pols)
 	{
-		for(int bead=0; bead<pol.num_beads; ++bead)
-			tmp += pol[bead].sqdist(pol[bead+1]);
+		const auto& pol = pols[n];
+		if(pol.connected)
+		{
+			for(int bead=0; bead<pol.num_beads-1; ++bead)
+				tmp += pol[bead].sqdist(pol[bead+1]);
+			const auto& other_pol = pols[pols.size()-1-n];
+			tmp += pol[pol.num_beads-1].sqdist(other_pol[0]);
+		}
+		else
+			for(int bead=0; bead<pol.num_beads; ++bead)
+				tmp += pol[bead].sqdist(pol[bead+1]);
 	}
 	return kin_offset - 0.5 * interac.get_spring_const() * tmp;
 }
@@ -220,21 +230,39 @@ double Observable::total_energy(const std::vector<Polymer>& pols, const Interact
 double Observable::kinetic_energy_virial(const std::vector<Polymer>& pols, const Interaction& interac) const
 {
 	double tmp = 0;
-	for(int n=0; n<pols.size(); ++n)
+	//if(pols[0].connected)
+	//{
+		Point mean_point(pols[0][0]);
+		for(int n=0; n<pols.size(); ++n)
+			mean_point += pols[n].mean();
+		mean_point *= 0.5;
+		for(int n=0; n<pols.size(); ++n)
+			for(int bead=0; bead<pols[0].num_beads; bead++)
+			{
+				const Point& p = pols[n][bead];
+				tmp += (p-mean_point)*interac.ext_force(p);
+				for(int m=0; m<pols.size(); ++m)
+					if(m!=n)
+						tmp += (p-mean_point)*interac.two_particle_force(p,pols[m][bead]);
+			}
+	//}
+	/*else
 	{
-		Point mean_point(pols[n][0].size());
-		for(int bead=0; bead<pols[n].num_beads; ++bead)
-			mean_point += pols[n][bead];
-		mean_point *= 1.0/pols[n].num_beads;
-		for(int bead=0; bead<pols[n].num_beads; ++bead)
+		for(int n=0; n<pols.size(); ++n)
 		{
-			const Point& p = pols[n][bead];
-			tmp += (p-mean_point)*interac.ext_force(p);
-			for(int m=0; m<pols.size(); ++m)
-				if(m!=n)
-					tmp += (p-mean_point)*interac.two_particle_force(p,pols[m][bead]); //double-counting?
+			const Point& mean_point = pols[n].mean();
+			for(int bead=0; bead<pols[n].num_beads; ++bead)
+			{
+				const Point& p = pols[n][bead];
+				tmp += (p-mean_point)*interac.ext_force(p);
+				for(int m=0; m<pols.size(); ++m)
+					if(m!=n)
+						tmp += (p-mean_point)*interac.two_particle_force(p,pols[m][bead]); //double-counting?
+			}
 		}
-	}
+	}*/
+	//if(pols[0].connected)
+	//	return virial_offset + (-1)*tmp/(2*pols[0].num_beads) + exc_der_const*scalar_product(pols,pols[0].num_beads-1);
 	return virial_offset + (-1)*tmp/(2*pols[0].num_beads); //minus sign since force functions above calculate minus grad V
 }
 
@@ -290,38 +318,76 @@ double Observable::total_energy_cl(const std::vector<Polymer>& pols, const Inter
 
 double Observable::exc_der(const std::vector<Polymer>& pols) const
 {
-	if((pols.size()==1)||(exc_der_const==0))
+	if(exc_der_const==0)
 		return 0;
 	double tmp=0;
-	for(int bead=0; bead<pols[0].num_beads; ++bead)
+	double sc_prod = scalar_product(pols,pols[0].num_beads-1);
+	if(pols[0].connected)
 	{
-		double sc_prod = scalar_product(pols,bead);
-		tmp += sc_prod * std::exp(-exc_const*sc_prod);
+		/*for(int bead=0; bead<pols[0].num_beads; ++bead)
+		{
+			double sc_prod = scalar_product(pols,bead);
+			tmp += (-1)*sc_prod*std::exp(exc_const*sc_prod);
+		}*/
+
+		tmp = sc_prod*std::exp(exc_const*sc_prod);
+	}
+	else
+	{
+		/*for(int bead=0; bead<pols[0].num_beads; ++bead)
+		{
+			double sc_prod = scalar_product(pols,bead);
+			tmp += sc_prod * std::exp(-exc_const*sc_prod);
+		}*/
+		tmp = (-1)*sc_prod*std::exp(-exc_const*sc_prod);
 	}
 	return exc_der_const * tmp;
 }
 
 double Observable::exc_der_virial(const std::vector<Polymer>& pols) const
 {
-	if((pols.size()==1)||(exc_der_const==0))
+	if((exc_der_const==0)||(pols[0].connected))
 		return 0;
-	Point tmp(pols[0][0].size());
-	Point mean0(pols[0][0].size());
-	Point mean1(pols[1][0].size());
-	for(int bead=0; bead<pols[0].num_beads; ++bead)
+	//Point tmp(pols[0][0].size());
+	const Point& mean0 = pols[0].mean();
+	const Point& mean1 = pols[1].mean();
+	int num_beads = pols[0].num_beads;
+	/*for(int bead=0; bead<pols[0].num_beads; ++bead)
 	{
 		mean0 += pols[0][bead];
 		mean1 += pols[1][bead];
-		double sc_prod = scalar_product(pols,bead);
-		tmp += (pols[0][bead]-pols[1][bead])*std::exp(-exc_const*sc_prod);
+		//double sc_prod = scalar_product(pols,bead);
+		//tmp += (-1)*(pols[0][bead]-pols[1][bead])*std::exp(exc_const*sc_prod);
 	}
 	mean0 /= pols[0].num_beads;
-	mean1 /= pols[1].num_beads;
-	return  exc_der_const*(mean0-mean1)*tmp;
+	mean1 /= pols[1].num_beads;*/
+	double sc_prod = scalar_product(pols,num_beads-1);
+	const Point& tmp = (pols[0][num_beads-1]-pols[1][num_beads-1]+pols[0][0]-pols[1][0]);
+	//if(pols[0].connected)
+	//	return 0.5*std::abs(exc_der_const)*(mean0-mean1)*tmp;
+	//else
+	//	tmp *= std::exp(-exc_const*sc_prod);
+	/*{
+		for(int bead=0; bead<pols[0].num_beads; ++bead)
+		{
+			mean0 += pols[0][bead];
+			mean1 += pols[1][bead];
+			double sc_prod = scalar_product(pols,bead);
+			tmp += (pols[0][bead]-pols[1][bead])*std::exp(-exc_const*sc_prod);
+		}
+		mean0 /= pols[0].num_beads;
+		mean1 /= pols[1].num_beads;
+	}*/
+	return (-1)*0.5*exc_der_const*std::exp(-exc_const*sc_prod)*(mean0-mean1)*tmp;
 }
 
 double Observable::scalar_product(const std::vector<Polymer>& pols, int bead) const
 {
 	return (pols[0][bead]-pols[1][bead])*(pols[0][bead+1]-pols[1][bead+1]);
 }
+
+/*double Observable::scalar_product_conn(const std::vector<Polymer>& pols, int bead, int num_beads) const
+{
+	return (pols[0][bead]-pols[0][bead+num_beads])*(pols[0][bead+1]-pols[0][bead+num_beads+1]);
+}*/
 

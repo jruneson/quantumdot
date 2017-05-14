@@ -65,6 +65,7 @@ private:
 	double exc_der(const std::vector<Polymer>&) const;
 	double exc_der_virial(const std::vector<Polymer>&) const;
 	double scalar_product(const std::vector<Polymer>&, int) const;
+	double scalar_product_conn(const std::vector<Polymer>&, int, int) const;
 	
 	bool print;
 		

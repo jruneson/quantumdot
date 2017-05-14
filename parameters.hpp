@@ -25,7 +25,7 @@ public:
 	double dt_md_slow;
 	double dt_sample;
 	double non_sampling_time; //is set to zero in simulation.cpp if simulation is continuing a previous one
-	int thermalization_steps;
+	int thermalization_time;
 	int num_bins;
 	int sign;
 	//double tolerance;

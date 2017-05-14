@@ -76,7 +76,7 @@ def plot_cont_sint(f,fig_nr,block_size,beta,opt='Gamma'):
     cv_f = open(f+'cv.dat')
     rw_f = open(f+'rew_factor.dat')
     plt.figure(fig_nr)
-    plt.clf()
+    #plt.clf()
     plt.xlabel(r'$s$')
     if(opt=='Gamma'):
         plt.ylabel(r'$\Gamma(s)~p(s)$')
@@ -106,7 +106,7 @@ def plot_cont_sint(f,fig_nr,block_size,beta,opt='Gamma'):
         count += 1
         if(count==block_size):
             his_rew_norm = his_rew / (sum(his_rew)*ds)
-            plt.clf()
+            """plt.clf()
             plt.xlabel(r'$s$')
             #plt.plot(cv,his_rew_norm)
             t = cv_line.split()[0]
@@ -117,11 +117,12 @@ def plot_cont_sint(f,fig_nr,block_size,beta,opt='Gamma'):
                 plt.plot(cvs,-np.log(his_rew_norm)/beta,label=str(t)+' ps')                
                 plt.ylabel(r'$F(s)=-\frac{1}{\beta}\log\,p(s)$')
             plt.legend(loc='upper right')
-            plt.pause(0.01)            
+            plt.pause(0.01)"""            
             count = 0
-    plt.clf()
+    #plt.clf()
     plt.xlabel(r'$s$')    
     #plt.plot(cvs,his_rew_norm)
+    print(count)
     if(opt=='Gamma'):
         plt.plot(cvs,his_rew_norm*(1-np.exp(-cvs)))
         plt.ylabel(r'$\Gamma(s)~p(s)$')
@@ -249,7 +250,7 @@ def plot_cv_hist(fig_nr,cv,rf,exc):
     plt.ylabel('$\Gamma(s) p(s)$')
     plt.legend(loc='upper right',fontsize=18)
     
-def plot_energies(f,fig_nr,clear=1,var='beta',linestyle='-',plot_all=False):
+def plot_energies(f,fig_nr,clear=1,var='beta',linestyle='-',label='Total energy',plot_all=False):
     data = np.loadtxt(f+'results.dat',comments='%')
     if(data.ndim==1):
         data = [data,float('NaN')*np.ones(len(data))]
@@ -259,7 +260,7 @@ def plot_energies(f,fig_nr,clear=1,var='beta',linestyle='-',plot_all=False):
         epot_e = data[:,2]/en_scale
         ekin = data[:,3]/en_scale
         ekin_e = data[:,4]/en_scale
-        etot = data[:,5]/en_scale-offset
+        etot = data[:,5]/en_scale
         etot_e = data[:,6]/en_scale
         evir = data[:,7]/en_scale
         evir_e = data[:,8]/en_scale    
@@ -275,11 +276,11 @@ def plot_energies(f,fig_nr,clear=1,var='beta',linestyle='-',plot_all=False):
             x = 1.0/x
             plt.grid(True)
             plt.xlabel(r'$1/\tau~(\mathrm{meV})$')
-        plt.errorbar(x,etot,etot_e,marker='^',color='k',label='Total energy',linestyle=linestyle)
+        plt.errorbar(x,etot,etot_e,marker='^',label=label,linestyle=linestyle)
         if(plot_all==True):   
-            plt.errorbar(x,epot,epot_e,marker='x',color='b',label='Potential energy',linestyle=linestyle)
-            plt.errorbar(x,ekin,ekin_e,marker='o',color='r',label='Kinetic energy',linestyle=linestyle)
-            plt.errorbar(x,evir,evir_e,marker='v',color='g',label='Virial kinetic',linestyle=linestyle)   
+            plt.errorbar(x,epot,epot_e,marker='x',color='b',linestyle=linestyle)
+            plt.errorbar(x,ekin,ekin_e,marker='o',color='r',linestyle=linestyle)
+            plt.errorbar(x,evir,evir_e,marker='v',color='g',linestyle=linestyle)   
 
         #plt.ylabel(r'$\mathrm{Energy}~(\hbar\omega_0/2)$')
         plt.ylabel(r'$\mathrm{Energy}~(\mathrm{meV})$')
@@ -538,84 +539,7 @@ def plot_rAB_th(fig_nr,r,sym):
     plt.figure(fig_nr)
     plt.plot(r,p2part*scale,color=color,marker='.',label='Theory Fermion')
     
-def c_t_comparison(f):
-    beta = 2.0
-    gamma = 6.0
-    exp1 = beta*gamma/(gamma-1)
-    exp2 = exp1/gamma
-    cv_f = open(f+'cv.dat')
-    #rw_f = open(f+'rew_factor.dat')
-    hs = open(f+'heights.dat')
-    cvcs = open(f+'cv_centers.dat')
-    dt_bias_update = 10.0
-    dt = 0.005
-    NG = round(dt_bias_update/dt)
-    t = 0.0
-    maxtime = 1000.0
-    count = 0
-    h_arr = np.array([])
-    cvc_arr = np.array([])
-    ts = np.array([])
-    i1_t=np.array([])
-    i2_t=np.array([])
-    i3_t=np.array([])
-    n = 100
-    smin = -30
-    smax = 20
-    s_int = np.linspace(smin,smax,n)
-    s_hist = np.zeros(n)
-    ds = (smax-smin)/n
-    bias_started=False
-    plot_count = 0
-    while (t<maxtime):
-        cv_l = cv_f.readline()
-        t = float(cv_l.split()[0])
-        cv = float(cv_l.split()[1])
-        b = (cv-smin)/(smax-smin)*(n-1)
-        if(b>=0 and b<n):
-            s_hist[b]+=1
-        s_hist_normed = s_hist/sum(s_hist)
-        count += 1
-        if(count==NG):
-            count = 0
-            h_l = hs.readline()
-            h_arr = np.append(h_arr, float(h_l.split()[1]))
-            cvc_l = cvcs.readline()
-            cvc_arr = np.append(cvc_arr, float(cvc_l.split()[1]))
-            last_h = h_arr[-1]
-            last_cvc = cvc_arr[-1]
-            print(str(cv)+" "+str(cvc_arr[-1]))
-            bias_started = True
-        if(bias_started):
-            plot_count += 1
-        if(bias_started and plot_count==20):
-            plot_count = 0
-            integral1 = 0
-            integral2 = 0
-            integral3_a=0
-            integral3_b=0
-            for s in s_int:
-                V = bias(s,h_arr,cvc_arr)
-                integral1 += np.exp(beta*V)*gaussian(s,last_h,last_cvc)
-                b = (s-smin)/(smax-smin)*(n-1)
-                integral2 += np.exp(beta*V)*s_hist_normed[b]
-                integral3_a += np.exp(exp1*V)
-                integral3_b += np.exp(exp2*V)
-            integral1 *= ds
-            integral2 *= ds
-            integral3 = (integral3_a/integral3_b)
-            i1_t = np.append(i1_t,integral1)
-            i2_t = np.append(i2_t,integral2)
-            i3_t = np.append(i3_t,integral3)
-            ts = np.append(ts,t)
-            
-    plt.figure(0)
-    plt.clf()
-    plt.plot(ts,np.log(i1_t),label='eqn 13 TP with g(s-s(t))')
-    plt.plot(ts,np.log(i2_t),label='eqn 13 TP with p(s)')
-    plt.plot(ts,np.log(i3_t),label='eqn 22 OV')
-    plt.ylabel('$c(t)$')
-    plt.xlabel('$t$ (ps)')
+
     
 def bias(s,h_arr,cvc_arr):
     value = 0
@@ -629,12 +553,69 @@ def gaussian(s,h,cvc):
     #print(np.exp(-(s-cvc)**2/(2*sigma**2)))
     return h*np.exp(-(s-cvc)**2/(2*sigma**2))
             
-def free_energy_diff(f,n=10000):
-    exc = np.genfromtxt(f+'exc_factor.dat',n) #is not reweighted
-    rew = np.genfromtxt(f+'rew_factor.dat',n)
-    es = sum(exc-1)
-    #en = np.genfromtxt(f+'Total_energy.dat',n) #is reweighted
+def f_FD(x):
+    return 1.0/(1+np.exp(x))            
+            
+            
+            
+def free_energy_diff(f1,f2,fig_nr):
+    dE_unconn = np.loadtxt(f1+'DeltaE_hist_N2.dat')
+    dE_conn = np.loadtxt(f2+'DeltaE_hist_N1.dat')
+    c_hist_unconn = np.loadtxt(f1+'fsum_N2.dat')[:,1:]
+    c_hist_conn = np.loadtxt(f2+'fsum_N1.dat')[:,1:]
+    #print(c_hist_conn)
+    plt.figure(fig_nr)
+    plt.clf()
+    s = dE_unconn[:,0]
+    ds = s[1]-s[0]
+    hist_oo = dE_unconn[:,1]
+    hist_oo /= sum(hist_oo)*ds
+    hist_O = dE_conn[:,1]
+    hist_O /= sum(hist_O)*ds
+    plt.plot(s, -np.log(hist_oo),label='From oo')
+    plt.plot(s, -np.log(hist_O),label='From O' )
+    C = -0.35
+    plt.plot(s, hist_oo*f_FD(s+C)*200)
+    plt.plot(s, hist_O*f_FD(-s-C)*200)
+    plt.xlabel(r'$s=\beta(E_O-E_{oo})$')
+    plt.ylabel(r'$- \log p(s)$')
+    plt.legend(loc='lower right',fontsize=20)
+    num=0
+    den=0
+    sq_oo=0
+    sq_O=0
+    for i,S in enumerate(s):
+        num += f_FD(S+C)*hist_oo[i]
+        den += f_FD(-S-C)*hist_O[i]
+        sq_oo += f_FD(S+C)**2*hist_oo[i]
+        sq_O += f_FD(-S-C)**2*hist_O[i]
+    #print(num/den)
+    dF = - np.log(num/den) - C
+    ds = s[1]-s[0]
+    avg_oo = num*ds
+    avg_O = den*ds
+    #print(avg_oo/avg_O)
+    sq_oo *= ds
+    sq_O *= ds
+    n=200000
+    err = ((sq_O - avg_O**2)/avg_O**2 + (sq_oo-avg_oo**2)/avg_O**2)/n
+    print("F_O-F_oo with f_FD:\t"+str(dF))
+
+    dF_p = -np.log(ds*sum(hist_oo*np.exp(-s)))
+    print("F_O-F_oo, only oo:\t"+str(dF_p))
+    dF_FB = -np.log((1-np.exp(-dF))/(1+np.exp(-dF)))
+    print("F_F-F_B with f_FD:\t"+str(dF_FB))
+    dF_FBp = -np.log((1-np.exp(-dF_p))/(1+np.exp(-dF)))
+    print("F_F-F_B, only oo:\t"+str(dF_FBp))
+    print("Error in DeltaF:\t"+str(np.sqrt(err)))
     
+    cs = c_hist_unconn[0,:]
+    b1u = c_hist_unconn[1,:]
+    b1c = c_hist_conn[1,:]
+    plt.figure(5)
+    plt.clf()
+    plt.plot(cs,b1u)
+    plt.plot(cs,b1c)
     
     
 
@@ -652,6 +633,13 @@ if __name__=="__main__":
     f11= '../run11/'
     f12= '../run12/'
     f15= '../run15/'
+    f16= '../run16/'
+    f17= '../run17/'
+    f18= '../run18/'
+    f19= '../run19/'
+    f20= '../run20/'
+    f21= '../run21/'
+    f22= '../run22/'
     fs=[f1,f2,f3,f4,f5]
     interac = ['noInt/','LJ/','coulomb/RW1-34/']
     beta=['beta2/']
@@ -731,8 +719,7 @@ if __name__=="__main__":
     """plt.title(r'$\mathrm{GaAs,}\quad R_W=1.34$')
     plt.xlim([0,40])
     plt.ylim([0,32])"""
-    plot_autocorr(f2,2)
-    
+    #plot_autocorr(f2,2)
     """
     e_b = np.array([15.46, 15.92, 16.05758, 16.090943,16.3056,16.52])
     e_b_err = np.array([0.054, 0.059, 0.0508, 0.06223,0.07795,0.33])
@@ -744,12 +731,36 @@ if __name__=="__main__":
     plt.xlabel('$P$')
     plt.ylabel('Singlet energy (meV)')
     plt.title(r'With metad, $\beta=1$ meV$^{-1}$')"""
+    #plot_energies_vs_t(f20,0)
+    #plt.ylim([0,100])
     
-    #plot_cv(fa1,0,200000)        
+    """x,euconn = plot_energies(f18,1,1,'P',label='Unconnected, dt=5fs',plot_all=True)
+    _,econn = plot_energies(f19,1,0,'P',label='Connected, dt=5fs',plot_all=True)
+    #plot_energies(f22,1,0,'P',label='Unconnected, dt=1fs')
+    #plt.plot([0,25],[16.4,16.4],'k--',label='Target value')
+    plt.plot([0,20],[6.0,6.0],'k--',label='Target value')
+    plt.ylim([0,7.0])
+    plt.legend(loc='lower right',fontsize=20)
+    #plt.title(r'Elliptic QD, $\gamma=1$')
+    plt.title(r'No Coulomb, $\hbar\omega=3\,\mathrm{meV}$')
+    plt.figure(2)
+    plt.clf()
+    plt.plot(x,euconn-econn,'o-')
+    plt.plot(x,6-euconn,'o-')"""
+        
+    free_energy_diff(f17,f16,3)
+    #plt.title(r'Elliptic QD, $\gamma_\mathrm{screen}=1, P=15$')
+    plt.title(r'No Coulomb, $\hbar\omega=3\,\mathrm{meV}$')
     
     if 0:
-        cvs,Fs = plot_cont_sint(f11,4,200000,1.0,'FES')
-        plt.title('fer')
+        plt.figure(4)
+        plt.clf()
+        plot_cont_sint(f17,4,50000,1.0,'FES')
+        cvs,Fs = plot_cont_sint(f16,4,50000,1.0,'FES')
+        plt.title('Blue = oo, Green = O')
+        cvs = cvs[130:200]
+        #plt.plot(cvs,cvs)
+
     if 0:
         beta = 1.0
         n = int(len(cvs))

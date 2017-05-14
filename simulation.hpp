@@ -44,11 +44,11 @@ private:
 	double sampling_time_per_block;
 	double non_sampling_time; //only used if not cont_sim
 	int num_blocks;
-	const int thermalization_steps;
+	const int thermalization_time;
 	//const int steps_per_sample;	
 	const int num_bins;
 	const double hist_size;
-	GLE gle;
+	GLE* gle;
 	//const bool using_input_file;
 	const bool thermostat_on;
 	Bias bias;
@@ -81,11 +81,16 @@ private:
 	std::vector<std::vector<double>> histogram_1p_avg;
 	std::vector<std::vector<double>> histogram_1p_sq_avg;
 	std::vector<double> histogram_delta_e;
+	std::vector<double> hist_c;
 	double hist_de_resolution=0.5;
-	double hist_de_max=50;
-	double hist_de_min=-50;
+	double hist_de_max=100;
+	double hist_de_min=-100;
 	double hist_de_width;
 	double hist_de_num_bins;
+	double hist_c_min=0;
+	double hist_c_max=1;
+	double hist_c_resolution=0.05;
+	double hist_c_num_bins;
 	
 	
 	int bar_width;
@@ -101,6 +106,7 @@ private:
 	std::ofstream rew_factor_file;
 	std::ofstream vmd_file;
 	std::ofstream vmd_file2;
+	std::ofstream file_fsum;
 
 	void setup();
 	void read_input_coords();
@@ -118,10 +124,12 @@ private:
 	//int calc_bin_1p(double);
 	void update_screen();
 	void print_to_logfile();
+	double fermi_dirac(double);
 	void print_vmd();
 	void stop();
 	void print_config();
 	void update_exc();
+	double exc_exponent(int) const;
 	double simple_uncertainty(double,double) const;
 	double weighted_uncertainty(double,double) const;
 		

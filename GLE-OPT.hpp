@@ -10,12 +10,12 @@ class GLE
 {
 	public:
 		//send in full dt, it will divide by 2 inside
-		GLE();
 		GLE(int np, double** pvec, double _dt, double _T, double _mass, int _dim);
 		GLE(int np,int nn, double*** pvec, double _dt, double _T, double _mass, int _dim);
 		GLE(double* pvec, double _dt, double _T, double _mass, int _dim=1);
 		GLE(std::vector<Polymer>&, const double&, const double&, const double&, 
 			const int&, const int&, const int&, const bool);
+		~GLE();
 		
 		void run();
 		
