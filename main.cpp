@@ -18,12 +18,14 @@ int main(int argc, char* argv[])
 			continue_sim = true;
 		}
 	}
-	//std::vector<double> betas = {0.067,0.134,0.2,0.335,0.67,1.005,1.34,1.675,2.01,2.68,3.35,4.02,5.36,6.7};
+	//std::vector<double> betas = {0.067,0.134,0.2,0.335,0.67,1.005,1.34,1.675,2.01};
 	//std::vector<double> betas = {2.0};
-	//std::vector<double> taus = {0.1};
-	//std::vector<double> betas = {1.0};
-	//std::vector<double> taus = {1.0,0.5,0.3,0.2,0.15,0.1,0.05};//,0.067,0.05,0.04};
-	std::vector<double> taus = {0.067};
+	//std::vector<double> taus = {0.067};
+	std::vector<double> betas = {1.0};
+	//std::vector<double> gammas = {0.862, 0.9, 0.95, 1.0};
+	//std::vector<double> taus = {2.0,1.0,0.5,0.3,0.2,0.15,0.1};
+	//std::vector<double> taus = {1.0,0.5,0.3,0.2,0.1,0.067,0.05};//,0.067,0.05,0.04};
+	//std::vector<double> taus = {0.067};
 	Parameters params;
 	params.read_file("configuration.cfg");
 	params.calculate_dependencies();
@@ -31,7 +33,7 @@ int main(int argc, char* argv[])
 	if(!continue_sim)
 	{
 		results_file.open("results.dat");
-		results_file << "%P";
+		results_file << "%beta";
 		for(int id : params.to_measure)
 			results_file << "\tObsId " << id << "\t\tError\t";
 		results_file << std::endl;
@@ -40,9 +42,9 @@ int main(int argc, char* argv[])
 		results_file.open("results.dat", std::ios_base::app);
 	results_file.precision(10);
 
-	for(auto tau : taus)
+	for(auto beta : betas)
 	{
-		params.tau = tau;
+		params.beta = beta;
 		params.calculate_dependencies();
 		Simulation sim(params, results_file, continue_sim);
 		sim.run();

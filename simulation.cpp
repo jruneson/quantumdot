@@ -80,7 +80,11 @@ void Simulation::setup()
 		rew_factor_file.open("rew_factor.dat", std::ios_base::app);
 		vmd_file.open("vmd.xyz", std::ios_base::app);
 		vmd_file2.open("vmd2.xyz", std::ios_base::app);
-		file_fsum.open("fsum_N"+std::to_string(2-(int) polymers[0].connected)+".dat", std::ios_base::app);
+		file_fsum.open("fsum_N"+std::to_string(2-(int) polymers[0].connected)+"_P"+std::to_string(polymers[0].num_beads)+".dat", std::ios_base::app);
+		file_fsum << "0\t";
+		for(int bin=0; bin<hist_c_num_bins; ++bin)
+			file_fsum << hist_c_min + bin*hist_c_resolution << "\t\t";
+		file_fsum << std::endl;
 	}
 	else
 	{
@@ -91,7 +95,7 @@ void Simulation::setup()
 		rew_factor_file.open("rew_factor.dat");
 		vmd_file.open("vmd.xyz");
 		vmd_file2.open("vmd2.xyz");
-		file_fsum.open("fsum_N"+std::to_string(2-(int) polymers[0].connected)+".dat");
+		file_fsum.open("fsum_N"+std::to_string(2-(int) polymers[0].connected)+"_P"+std::to_string(polymers[0].num_beads)+".dat");
 	}
 	exc_file.precision(8);
 	cv_file.precision(8);
@@ -113,14 +117,8 @@ void Simulation::setup()
 	logfile << std::endl;
 	logfile.precision(8);
 	file_fsum.precision(8);
-	file_fsum << "0\t";
-	for(int bin=0; bin<hist_c_num_bins; ++bin)
-		file_fsum << hist_c_min + bin*hist_c_resolution << "\t\t";
-	//for(double c=hist_c_min; c<=hist_c_max; c+=hist_c_resolution)
-	//	file_fsum << c << "\t\t";
-	file_fsum << std::endl;
 	if(!cont_sim)
-	{
+	{	
 		thermalize();
 		run_wo_sampling();
 	}
@@ -326,11 +324,6 @@ void Simulation::verlet_step()
 	gle->run();
 }
 
-/*void Simulation::reset_obs()
-{
-	for(auto& ob : obs)
-		ob.second.set_zero();
-}*/
 
 void Simulation::measure()
 {
@@ -483,7 +476,7 @@ void Simulation::stop()
 			<< "\t" << std::sqrt(exc_sq_avg-exc_avg*exc_avg)/rew_norm << std::endl; // sqrt(n/(n-1)) unnecessary for large n
 	logfile << "Exp_en_diff\t" << e_s_avg/rew_norm << "\t" << simple_uncertainty(e_s_avg,e_s_avg_sq)/rew_norm
 			<< std::endl;
-	res_file << polymers[0].num_beads;
+	res_file << beta;//polymers[0].num_beads;
 	//res_file << 2-int(polymers[0].connected);//polymers[0].num_beads;//sampling_time;
 	for(const auto& pair : obs)
 	{
@@ -649,12 +642,15 @@ void Simulation::update_exc()
 		for(int bead=0; bead<polymers[0].num_beads; ++bead)
 			tmp += std::exp( -exc_exponent(bead) ); //negative sign*/
 	if(polymers[0].connected)
-		tmp += std::exp(exc_exponent(polymers[0].num_beads-1));
+	{
+		e_s = std::exp(exc_exponent(polymers[0].num_beads-1));
+		exchange_factor = e_s + sign;
+	}
 	else
-		tmp += std::exp(-exc_exponent(polymers[0].num_beads-1));
-	e_s = tmp;
-	//e_s = tmp/polymers[0].num_beads;
-	exchange_factor = 1.0 + sign*e_s;
+	{
+		e_s = std::exp(-exc_exponent(polymers[0].num_beads-1));
+		exchange_factor = 1.0 + sign*e_s;
+	}
 	exc_file << overall_time << "\t" << exchange_factor << std::endl;
 	double exc_weighted = exchange_factor * bias.get_rew_factor();
 	double e_s_weighted = e_s * bias.get_rew_factor();

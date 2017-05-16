@@ -22,6 +22,7 @@ public:
 	double dist0() const;
 	double sqdist0() const; //squared distance to origin
 	int size() const;
+	void set_zero();
 
 	double& operator[](int);
 	const double& operator[](int) const;

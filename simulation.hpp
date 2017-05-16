@@ -87,9 +87,9 @@ private:
 	double hist_de_min=-100;
 	double hist_de_width;
 	double hist_de_num_bins;
-	double hist_c_min=0;
+	double hist_c_min=-1;
 	double hist_c_max=1;
-	double hist_c_resolution=0.05;
+	double hist_c_resolution=0.1;
 	double hist_c_num_bins;
 	
 	

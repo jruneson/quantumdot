@@ -147,10 +147,10 @@ void Parameters::calculate_dependencies()
 	exc_const = num_beads*m_hbar2/beta;
 	exc_der_const = sign * num_beads*m_hbar2/(beta*beta);
 	kin_offset = num_parts*num_beads*dim/(2.0*beta);
-	if(connected)
+	//if(connected)
 		virial_offset = dim/(2.0*beta);
-	else
-		virial_offset = num_parts*dim/(2.0*beta);
+	//else
+	//	virial_offset = num_parts*dim/(2.0*beta);
 	length_scale = std::sqrt(1.0/(m_hbar2*hw));
 	hist_size = length_scale * 4;	
 	

@@ -133,12 +133,20 @@ Force Bias::cv_grad(const std::vector<Polymer>& pols, int bead, int part) const
 	Force tmp(pols[0][0].size());
 	Force tmp2(pols[0][0].size());
 	int num_beads;
+	int tmp_bead;
 	switch(id)
 	{
 		case 1:
 			tmp += two_terms(pols, bead, part);
 			return tmp * exc_const/pols[part].num_beads * std::pow(-1,part);
 		case 2:
+			if(bead==0)
+				tmp_bead = pols[part].num_beads-1;
+			else if(bead==pols[part].num_beads-1)
+				tmp_bead = 0;
+			else
+				return tmp; 
+			return exc_const*(pols[part][tmp_bead]-pols[1-part][tmp_bead]);
 		case 5:
 		case 6:
 		case 7:
