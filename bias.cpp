@@ -55,8 +55,12 @@ double Bias::coll_var(const std::vector<Polymer>& pols) const
 	switch(id)
 	{
 		case 1:
-			tmp = sum_exp(pols,pols[0].num_beads);
-			return 1.0+sign*tmp/pols[0].num_beads;
+			tmp = std::exp(-exc_const*scalar_product(pols,pols[0].num_beads-1));
+			if(pols[0].connected)
+				return 1.0/tmp + sign;
+			return 1.0+sign*tmp;
+			//tmp = sum_exp(pols,pols[0].num_beads);
+			//return 1.0+sign*tmp/pols[0].num_beads;
 		case 2: //energy-difference cv
 			return energy_diff(pols);
 		case 3: //distance-corrected cv
@@ -137,8 +141,19 @@ Force Bias::cv_grad(const std::vector<Polymer>& pols, int bead, int part) const
 	switch(id)
 	{
 		case 1:
-			tmp += two_terms(pols, bead, part);
-			return tmp * exc_const/pols[part].num_beads * std::pow(-1,part);
+			if(bead==0)
+				tmp_bead = pols[part].num_beads-1;
+			else if(bead==pols[part].num_beads-1)
+				tmp_bead = 0;
+			else
+				return tmp;
+			tmp = exc_const*(pols[part][tmp_bead]-pols[1-part][tmp_bead]);
+			if(pols[part].connected)
+				return (-1)*sign*std::exp(-exc_const*scalar_product(pols,pols[part].num_beads-1))*tmp;
+			else
+				return sign*std::exp(exc_const*scalar_product(pols,pols[part].num_beads-1))*tmp;
+			//tmp += two_terms(pols, bead, part);
+			//return tmp * exc_const/pols[part].num_beads * std::pow(-1,part);
 		case 2:
 			if(bead==0)
 				tmp_bead = pols[part].num_beads-1;

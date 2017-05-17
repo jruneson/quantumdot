@@ -1,7 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.ticker as tic
-from matplotlib import rcParams, interactive
+from matplotlib import rcParams, interactive, cm
+from mpl_toolkits.mplot3d import Axes3D
 from scipy.special import jv
 from scipy.fftpack import fft
 import copy
@@ -263,14 +264,14 @@ def plot_energies(f,fig_nr,clear=1,var='beta',linestyle='-',marker='v',label='To
         data = [data,float('NaN')*np.ones(len(data))]
     if(data.ndim>1):
         x = data[:,0]
-        epot = data[:,1]/en_scale
-        epot_e = data[:,2]/en_scale
-        ekin = data[:,3]/en_scale
-        ekin_e = data[:,4]/en_scale
-        etot = data[:,5]/en_scale
-        etot_e = data[:,6]/en_scale
-        evir = data[:,7]/en_scale
-        evir_e = data[:,8]/en_scale    
+        num_obs = round((np.size(data,1)-1)/2)
+        if(num_obs==1):
+            etot = data[:,1]/en_scale
+            etot_e = data[:,2]/en_scale
+        if(num_obs>=3):
+            etot = data[:,5]/en_scale
+            etot_e = data[:,6]/en_scale
+   
         plt.figure(fig_nr)
         if(clear):
             plt.clf()
@@ -288,6 +289,12 @@ def plot_energies(f,fig_nr,clear=1,var='beta',linestyle='-',marker='v',label='To
             plt.xlabel(r'$1/\tau^2~(\mathrm{meV}^2)$')
         plt.errorbar(x,etot,etot_e,marker=marker,label=label,linestyle=linestyle)
         if(plot_all==True):   
+            epot = data[:,1]/en_scale
+            epot_e = data[:,2]/en_scale
+            ekin = data[:,3]/en_scale
+            ekin_e = data[:,4]/en_scale
+            evir = data[:,7]/en_scale
+            evir_e = data[:,8]/en_scale 
             plt.errorbar(x,epot,epot_e,marker='x',color='b',linestyle=linestyle)
             plt.errorbar(x,ekin,ekin_e,marker='o',color='r',linestyle=linestyle)
             plt.errorbar(x,evir,evir_e,marker='v',color='g',linestyle=linestyle)   
@@ -588,7 +595,26 @@ def gaussian(s,h,cvc):
 def f_FD(x):
     return 1.0/(1+np.exp(x))            
             
-            
+def plot_1d_dist(f,fig_nr):
+    data = np.loadtxt(f+'Prob_dist1d.dat')
+    r = data[:,0]
+    dim = round((np.size(data,1)-1)/2)
+    plt.figure(fig_nr)
+    plt.clf()
+    for d in range(dim):
+        plt.errorbar(r,data[:,2*d+1],data[:,2*d+2])
+        
+def plot_2d_dist(f,fig_nr):
+    data = np.loadtxt(f+'Prob_dist2d.dat')
+    r1 = data[1:,0]
+    r2 = data[0,1:]
+    hist = data[1:,1:]
+    fig = plt.figure(fig_nr)
+    ax = fig.add_subplot(111,projection='3d')
+    X,Y = np.meshgrid(r1,r2)
+    Z = hist.reshape(X.shape)
+    surf = ax.plot_surface(X,Y,Z, rstride=1, cstride=1, cmap=cm.coolwarm)
+    
             
 def free_energy_diff(f1,f2,fig_nr):
     dE_unconn = np.loadtxt(f1+'DeltaE_hist_N2.dat')
@@ -631,19 +657,21 @@ def free_energy_diff(f1,f2,fig_nr):
     sq_O *= ds
     #n=200000
     #err = ((sq_O - avg_O**2)/avg_O**2 + (sq_oo-avg_oo**2)/avg_O**2)/n
-    print("F_O-F_oo with f_FD:\t"+str(dF))
+    #print("F_O-F_oo with f_FD:\t"+str(dF))
 
     dF_p = -np.log(ds*sum(hist_oo*np.exp(-s)))
-    print("F_O-F_oo, only oo:\t"+str(dF_p))
+    #print("F_O-F_oo, only oo:\t"+str(dF_p))
     dF_FB = -np.log((1-np.exp(dF))/(1+np.exp(dF)))
-    print("F_F-F_B with f_FD:\t"+str(dF_FB))
+    #print("F_F-F_B with f_FD:\t"+str(dF_FB))
     dF_FBp = -np.log((1-np.exp(-dF_p))/(1+np.exp(-dF)))
     print("F_F-F_B, only oo:\t"+str(dF_FBp))
     #print("Error in DeltaF:\t"+str(np.sqrt(err)))
     
     cs = c_hist_unconn[0,:]
-    plt.figure(5)        
+    """plt.figure(5)        
     plt.clf()
+    Cs = np.linspace(-2,1)
+    plt.plot(Cs,-np.log((1-np.exp(Cs))/(1+np.exp(Cs))))"""
     numblocks = len(c_hist_unconn[1:,0])
     Czeros = np.zeros(numblocks)        
     for i in range(1,numblocks+1):
@@ -657,13 +685,14 @@ def free_energy_diff(f1,f2,fig_nr):
         poly = np.polyfit(cs,diff,1)
         #plt.plot(cs,np.polyval(poly,cs),'x')
         C = -poly[1]/poly[0]
-        plt.plot([C],[0],'b.')
+        #plt.plot([C],[0],'b.')
         Czeros[i-1]=C
     #print(Czeros)
     #print(np.mean(Czeros))
+    avg_sign = (1-np.exp(Czeros))/(1+np.exp(Czeros))
     dF = -np.log((1-np.exp(Czeros))/(1+np.exp(Czeros)))
     print("dF="+str(np.mean(dF))+"+/-"+str(np.std(dF)/np.sqrt(numblocks)))
-    
+    print("<sign>="+str(np.mean(avg_sign))+"+/-"+str(np.std(avg_sign)/np.sqrt(numblocks)))
     
 
 if __name__=="__main__":
@@ -704,7 +733,7 @@ if __name__=="__main__":
     fa3 = f0+interac[2]+beta[0]+sym[0]+md[1]
     fa4 = f0+interac[2]+beta[0]+sym[1]+md[1]
     ff = f0+interac[2]+'tau0-04/bos/'
-    flab = '../workstation_lab/varybeta/'
+    flab = '../workstation_lab/metaD_test7/'
     flabb= '../workstation_lab/metaD_test4_20ns/'
     flab1= flab+'run1/'
     flab2= flab+'run2/'
@@ -718,82 +747,22 @@ if __name__=="__main__":
     flab10=flab+'run10/'
 
     
-    fi = flab+'run1/'
-    #cv_t = np.genfromtxt(f5+'cv.dat',500*500)
-    """x = 0.7472#0.773775
-    b = 1.0
-    dx = 0.01267#0.03219
-    print('DeltaF = '+str(-1.0/b*np.log((1-x)/(1+x)))+' +/- '+str(2.0/b *dx/(1.0-x**2)))"""
-    #plt.figure(1)
-    #plt.legend(loc='lower right',fontsize=20)
-    plot_gauss_data(f21,8,'Wt',name='fer')
+    fi = '../presentation/ideal/boson/1D/beta2/woMetaD/disconnected/'
+    fi2 ='../presentation/ideal/boson/1D/beta2/MetaD/disconnected/'
+
+    #plot_gauss_data(fi,8,'Wt',name='')
     #plot_gauss_data(f4,8,'Wt',name='bos')
-    #plot_rABs(fs)
-    #plot_energies_vs_t(f8,1,n=50000)
-    #plt.legend(loc='upper right',fontsize=18)
-    #plot_rAB(f,2,1,'b','^',name='Dist')
-    
-    #[r,p1]=plot_rAB(f9,2,1,'r','o',name='Singlet')
-    
-    #[r,p2]=plot_rAB(f8,2,0,'g','v',name='Triplet')
-    #plt.plot(r,(p1-p2),color='k',marker='.',label='S$-$T')
-    #plt.ylim([-1,4.5])
-    #plot_rAB(f8,4,1,'r','o',name='dt = 5 fs')
-    #plot_rAB(fa2,4,0,'g','v',name='dt = 2.5 fs')
-    #plt.grid(True)
-    #r=plot_rAB(f4,2,0,'c','v',name='dt=0.1fs')
-    #plot_rAB_th(1,r,'fer')
-    #plt.legend(loc='upper right',fontsize=18)
-    #plt.title(r'$\mathrm{Without~MetaD},\quad \beta=1\,\mathrm{meV}^{-1}$')
-    #plt.title(r'$\mathrm{No~interaction}$')
-    
-    #plot_energies(f1,3,1,'b')
-    #plot_energies(f2,3,1,'g')
-    #plot_energies(f3,3,1,'r')
-    #r,ef = plot_energies(flab1,3,1,'beta','-',True)
-    #plt.legend(loc='upper left',fontsize=16)
-    #r,eb = plot_energies(ff,3,1,'beta','--',True)
-    #plot_energies(f0,3,0,'beta',':',True)
-    #plt.ylim([0,35])
-    #plt.xlim([0,50])
-    #plt.title(r'$\tau=0.067\,\mathrm{meV}^{-1},~dt=1\,\mathrm{fs}$')
-    #plt.title(r'$\beta=2\,\mathrm{meV}^{-1}$')
-    #plt.plot(r,ef-eb,'y')
-    """plot_energies(f4,3,0,'r',P=20)
-    plot_energies(f5,3,0,'k',P=20)
-    plot_energies(f6,3,0,'r',P=50)
-    plot_energies(f7,3,0,'g',P=50)
-    plot_energies(f8,3,0,'b',P=5)
-    plot_energies(f9,3,0,'g',P=30)"""
-    #plt.title(r'$\mathrm{Boson}$')
-    """plt.title(r'$\mathrm{GaAs,}\quad R_W=1.34$')
-    plt.xlim([0,40])
-    plt.ylim([0,32])"""
-    #plot_autocorr(f2,2)
-    """
-    e_b = np.array([15.46, 15.92, 16.05758, 16.090943,16.3056,16.52])
-    e_b_err = np.array([0.054, 0.059, 0.0508, 0.06223,0.07795,0.33])
-    tau = np.array([0.15,0.1,0.067,0.05,0.04,0.02])
-    plt.figure(6)
-    plt.clf()
-    plt.errorbar(1/tau,e_b,e_b_err)
-    plt.xlim([5,51])
-    plt.xlabel('$P$')
-    plt.ylabel('Singlet energy (meV)')
-    plt.title(r'With metad, $\beta=1$ meV$^{-1}$')"""
-    #plot_energies_vs_t(f20,0)
-    #plt.ylim([0,100])
-    
-    if 1:
+
+    if 0:
         x,euconn = plot_energies(f12,1,1,'beta',label='Disconnected',linestyle='-',marker='o',plot_all=0)
         _,econn = plot_energies(f13,1,0,'beta',label='Connected',linestyle='-',marker='x',plot_all=0)
         #plot_energies(f15,1,0,'P',label='Distinguishable',linestyle='-',marker='v',plot_all=0)
         #plot_energies(f22,1,0,'P',label='Unconnected, dt=1fs')
         #plt.plot([0,25],[16.4,16.4],'k--',label='Target value')
         plt.plot([0,22],[16.4,16.4],'k--',label='Target value')
-        #plt.xlim([0,22])    
-        #plt.ylim([10,18])
-        plt.legend(loc='lower right',fontsize=20)
+        plt.xlim([0,22])    
+        plt.ylim([16,18])
+        plt.legend(loc='upper left',fontsize=20)
         plt.title(r'$\mathrm{Elliptic~QD,~}\tau=0.067~\mathrm{meV}^{-1}$')
         #plt.title(r'No Coulomb, $\hbar\omega_0=3\,\mathrm{meV}$')
         if 0:        
@@ -822,11 +791,12 @@ if __name__=="__main__":
     plt.ylim([0,60])
     plt.title('Elliptic dot, Connected')"""
         
-    free_energy_diff(f20,f21,3)
-    free_energy_diff(f22,f23,4)
+    free_energy_diff(flab5,flab6,3)
+    free_energy_diff(flab7,flab8,4)
     #plt.title(r'Elliptic QD, $\gamma_\mathrm{screen}=1, P=15$')
     #plt.title(r'No Coulomb, $\hbar\omega=3\,\mathrm{meV}$')
-    #plot_cv(f21,7,10000)
+    #plot_cv(fi,7,20000)
+    #plot_2d_dist(f1,9)
     
     if 0:
         plt.figure(6)
@@ -895,20 +865,20 @@ if __name__=="__main__":
         plt.title(r'ashoori, $\beta=1\,\mathrm{meV}^{-1}$')
         plt.xlim([-40,20])
         plot_cont(f2,7,1,200000,'bdE','etot')
-    if 1:
-        plot_cont(f21,6,1,200000,'bdE','etot',conn=1)
-        plot_cont(f23,7,1,200000,'bdE','etot',conn=1)
+    if 0:
+        #plot_cont(fi,6,1,200000,'bdE','etot',conn=0)
+        #plot_cont(fi2,7,1,200000,'bdE','etot',conn=0)
     
         plt.figure(6)
-        plt.xlim([-50,50])
-        plt.ylim([-0.01,0.14])
-        plt.ylabel(r'$E(s)(1+\mathrm{e}^{s})p(s)$') 
-        plt.title(r'$\mathrm{With~Metadynamics}$')
-        plt.figure(7)
-        plt.xlim([-50,50])
-        plt.ylabel(r'$E(s)(1+\mathrm{e}^{s})p(s)$') 
+        plt.xlim([-20,20])
+        plt.ylim([0,0.9])
+        plt.ylabel(r'$E(s)(1+\mathrm{e}^{-s})p(s)$') 
         plt.title(r'$\mathrm{Without~Metadynamics}$')
-        plt.ylim([-0.01,0.14])
+        plt.figure(7)
+        plt.xlim([-20,20])
+        plt.ylabel(r'$E(s)(1+\mathrm{e}^{-s})p(s)$') 
+        plt.title(r'$\mathrm{With~Metadynamics}$')
+        plt.ylim([0,0.9])
     #plot_cont(f6,7,-1,200000,'bdE')
     #plt.title('New cv')
    #plot_rAB(f0+interac[1]+sym[2]+P[3]+s[0]+'woMetaD/',2,0,'k')

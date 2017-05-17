@@ -27,6 +27,7 @@ public:
 	double non_sampling_time; //is set to zero in simulation.cpp if simulation is continuing a previous one
 	int thermalization_time;
 	int num_bins;
+	int num_bins_2d;
 	int sign;
 	//double tolerance;
 	//int steps_in_highest_mode;

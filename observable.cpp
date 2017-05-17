@@ -350,7 +350,8 @@ double Observable::exc_der(const std::vector<Polymer>& pols) const
 double Observable::exc_der_virial(const std::vector<Polymer>& pols, const Interaction& interac) const
 {
 	if(exc_der_const==0)
-		return virial_offset;
+		if(!pols[0].connected)
+			return virial_offset;
 	double tmp=0;
 	Point total_mean(pols[0][0].size());
 	for(int n=0; n<pols.size(); ++n)

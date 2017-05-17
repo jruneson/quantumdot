@@ -48,6 +48,8 @@ void Parameters::read_file(std::string filename)
 			}
 			else if(name=="num_bins")
 				iss >> num_bins;
+			else if(name=="num_bins_2d")
+				iss >> num_bins_2d;
 			else if(name=="sign")
 				iss >> sign;
 			else if(name=="with_thermostat")

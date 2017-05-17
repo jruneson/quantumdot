@@ -10,7 +10,8 @@ Simulation::Simulation(const Parameters& params, std::ofstream& _res_file, bool 
 	: dt_md(params.dt_md), dt_sample(params.dt_sample), num_parts(params.num_parts), interac(Interaction(params)),
 	  length_scale(params.length_scale), num_blocks(params.num_blocks),
 	  //steps_per_sample(params.steps_per_sample),
-	  num_bins(params.num_bins), hist_size(params.hist_size),
+	  num_bins(params.num_bins), num_bins_2d(params.num_bins_2d), hist_size(params.hist_size),
+	  hist_size_1d(params.hist_size*2), hist_1d_min(-params.hist_size),
 	  temperature(params.temperature), thermalization_time(params.thermalization_time),
 	  thermostat_on(params.with_thermostat), res_file(_res_file),
 	  non_sampling_time(params.non_sampling_time),
@@ -40,9 +41,17 @@ Simulation::Simulation(const Parameters& params, std::ofstream& _res_file, bool 
 	histogram.assign(params.num_bins,0);
 	histogram_avg.assign(params.num_bins,0);
 	histogram_sq_avg.assign(params.num_bins,0);
-	histogram_1p.assign(num_parts,histogram);
-	histogram_1p_avg.assign(num_parts,histogram);
-	histogram_1p_sq_avg.assign(num_parts,histogram);
+	int d = polymers[0][0].size();
+	histogram_1d.assign(d,histogram);
+	histogram_1d_avg.assign(d,histogram);
+	histogram_1d_sq_avg.assign(d,histogram);
+	
+	std::vector<double> tmp_2d;
+	tmp_2d.assign(num_bins_2d,0);
+	histogram_2d.assign(num_bins_2d, tmp_2d);
+	histogram_2d_avg.assign(num_bins_2d, tmp_2d);
+	histogram_2d_sq_avg.assign(num_bins_2d, tmp_2d);	
+	
 	hist_de_num_bins = round((hist_de_max-hist_de_min)/hist_de_resolution);
 	histogram_delta_e.assign(hist_de_num_bins,0);
 	hist_de_width=hist_de_max-hist_de_min;
@@ -81,10 +90,6 @@ void Simulation::setup()
 		vmd_file.open("vmd.xyz", std::ios_base::app);
 		vmd_file2.open("vmd2.xyz", std::ios_base::app);
 		file_fsum.open("fsum_N"+std::to_string(2-(int) polymers[0].connected)+"_P"+std::to_string(polymers[0].num_beads)+".dat", std::ios_base::app);
-		file_fsum << "0\t";
-		for(int bin=0; bin<hist_c_num_bins; ++bin)
-			file_fsum << hist_c_min + bin*hist_c_resolution << "\t\t";
-		file_fsum << std::endl;
 	}
 	else
 	{
@@ -96,6 +101,10 @@ void Simulation::setup()
 		vmd_file.open("vmd.xyz");
 		vmd_file2.open("vmd2.xyz");
 		file_fsum.open("fsum_N"+std::to_string(2-(int) polymers[0].connected)+"_P"+std::to_string(polymers[0].num_beads)+".dat");
+		file_fsum << "0\t";
+		for(int bin=0; bin<hist_c_num_bins; ++bin)
+			file_fsum << hist_c_min + bin*hist_c_resolution << "\t\t";
+		file_fsum << std::endl;
 	}
 	exc_file.precision(8);
 	cv_file.precision(8);
@@ -348,9 +357,6 @@ void Simulation::update_avgs()
 	e_s_avg = (e_s_avg*block + tmp2)/(block+1.0);
 	e_s_avg_sq = (e_s_avg_sq*block + tmp2*tmp2)/(block+1.0);
 	e_s_sum = 0;
-	//deltaF = calc_deltaF();
-	//deltaF_avg = (deltaF_avg*block + deltaF)/(block+1.0);
-	//deltaF_sq_avg = (deltaF_sq_avg*block + deltaF*deltaF)/(block+1.0);
 	for(auto& ob : obs)
 	{
 		ob.second.update_avg(samples,tmp);
@@ -365,30 +371,30 @@ void Simulation::update_avgs()
 		histogram_avg[bin] = (histogram_avg[bin]*block + histogram[bin]/tmp)/(block+1.0);
 		histogram_sq_avg[bin] = (histogram_sq_avg[bin]*block + std::pow(histogram[bin]/tmp,2))/(block+1.0);
 		histogram[bin]=0;
-		/*for(int part=0; part<num_parts; ++part)
+		for(int d=0; d<polymers[0][0].size(); ++d)
 		{
-			histogram_1p_avg[part][bin] = (histogram_1p_avg[part][bin]*block+histogram_1p[part][bin])/(block+1.0);
-			histogram_1p_sq_avg[part][bin] = (histogram_1p_sq_avg[part][bin]*block
-									+std::pow(histogram_1p[part][bin],2))/(block+1.0);
-			histogram_1p[part][bin]=0;
-		}*/
+			histogram_1d_avg[d][bin] = (histogram_1d_avg[d][bin]*block + histogram_1d[d][bin]/tmp)/(block+1.0);
+			histogram_1d_sq_avg[d][bin] = (histogram_1d_sq_avg[d][bin]*block + std::pow(histogram_1d[d][bin]/tmp,2))/(block+1.0);
+			histogram_1d[d][bin]=0;
+		}
+	}
+	for(int bin1=0; bin1<num_bins_2d; ++bin1)
+	{
+		for(int bin2=0; bin2<num_bins_2d; ++bin2)
+		{
+			histogram_2d_avg[bin1][bin2] = (histogram_2d_avg[bin1][bin2] + histogram_2d[bin1][bin2]/tmp)/(block+1.0);
+			histogram_2d_sq_avg[bin1][bin2] = (histogram_2d_sq_avg[bin1][bin2] + std::pow(histogram_2d[bin1][bin2]/tmp,2))/(block+1.0);
+			histogram_2d[bin1][bin2] = 0;
+		}
 	}
 }
-/*
-void Simulation::update_histogram()
-{
-	for(int bead=0; bead<polymers[0].num_beads; ++bead)
-	{
-		int bin = calc_bin(polymers[0][bead].dist(polymers[1][bead]));
-		if(bin>=0 && bin<num_bins)
-			histogram[bin] += exchange_factor*bias.get_rew_factor();
-	}
-}*/
 
 void Simulation::update_histogram()
 {
 	double tmp=0;
 	int bin;
+	int bin1;
+	int bin2;
 	double rew_factor = bias.get_rew_factor();
 	double cv = bias.get_cv();
 	double weight = exchange_factor*rew_factor;
@@ -401,6 +407,22 @@ void Simulation::update_histogram()
 		bin = calc_bin(tmp,num_bins,hist_size);
 		if(bin>=0 && bin<num_bins)
 			histogram[bin] += weight;
+		for(int n=0; n<polymers.size(); ++n)
+		{
+			for(int d=0; d<polymers[n][bead].size(); ++d)
+			{
+				tmp = polymers[n][bead][d];
+				bin = calc_bin(tmp - hist_1d_min,num_bins,hist_size_1d);
+				if(d==0)
+					bin1 = calc_bin(tmp - hist_1d_min,num_bins_2d,hist_size_1d);
+				if(d==1)
+					bin2 = calc_bin(tmp - hist_1d_min,num_bins_2d,hist_size_1d);
+				if(bin>=0 && bin<num_bins)
+					histogram_1d[d][bin] += weight;
+			}
+			if(bin1>=0 && bin2>= 0 && bin1<num_bins_2d && bin2<num_bins_2d)
+				histogram_2d[bin1][bin2] += weight;
+		}
 		/*bin = calc_bin(polymers[0][bead].dist0());
 		if(bin>=0 && bin<num_bins)
 			histogram_1p[0][bin] += 1;
@@ -476,7 +498,7 @@ void Simulation::stop()
 			<< "\t" << std::sqrt(exc_sq_avg-exc_avg*exc_avg)/rew_norm << std::endl; // sqrt(n/(n-1)) unnecessary for large n
 	logfile << "Exp_en_diff\t" << e_s_avg/rew_norm << "\t" << simple_uncertainty(e_s_avg,e_s_avg_sq)/rew_norm
 			<< std::endl;
-	res_file << beta;//polymers[0].num_beads;
+	res_file << polymers[0].num_beads;
 	//res_file << 2-int(polymers[0].connected);//polymers[0].num_beads;//sampling_time;
 	for(const auto& pair : obs)
 	{
@@ -492,24 +514,46 @@ void Simulation::stop()
 	}
 	res_file << std::endl;
 	
-	std::ofstream hist_file("Prob_distribution.dat");
+	std::ofstream hist_file("Pair_correlation.dat");
+	std::ofstream hist_file_1d("Prob_dist1d.dat");
+	std::ofstream hist_file_2d("Prob_dist2d.dat");
+	std::ofstream hist_file_2derr("Prob_dist2d_err.dat");
 	for(int bin = 0; bin<num_bins; ++bin)
 	{
-		//histogram_avg[bin] /= exc_avg;
-		//histogram_sq_avg[bin] /= exc_avg*exc_avg;
 		hist_file << hist_size*((double) bin/num_bins) << "\t" << histogram_avg[bin]
 					<< "\t" << simple_uncertainty(histogram_avg[bin],histogram_sq_avg[bin]) << std::endl;
-		/*for(int part=0; part<num_parts; ++part)
-		{
-			hist_file << "\t" << histogram_1p_avg[part][bin] << "\t"
-					  << simple_uncertainty(histogram_1p_avg[part][bin],histogram_1p_sq_avg[part][bin]);
-		}
-		hist_file << std::endl;*/
-		/*hist_file << hist_size*((double) bin /num_bins - 0.5) << "\t" << histogram_avg[bin]
-					<< "\t" << weighted_uncertainty(histogram_avg[bin],histogram_sq_avg[bin])
-					//<< "\t" << std::sqrt((histogram_sq_avg[bin]-std::pow(histogram_avg[bin],2))/(block-1)) 
-					<< std::endl;*/
+		hist_file_1d << hist_size_1d*((double) bin/num_bins) + hist_1d_min;
+		for(int d=0; d<polymers[0][0].size(); ++d)
+			hist_file_1d << "\t" << histogram_1d_avg[d][bin] << "\t"
+						 << simple_uncertainty(histogram_1d_avg[d][bin],histogram_1d_sq_avg[d][bin]);
+		hist_file_1d << std::endl;
 	}
+	hist_file.close();
+	hist_file_1d.close();
+	hist_file_2d << "-1";
+	hist_file_2derr << "-1";
+	for(int bin1=0; bin1<num_bins_2d; ++bin1)
+	{
+		hist_file_2d << "\t" << hist_size_1d*((double) bin1/num_bins_2d) + hist_1d_min;
+		hist_file_2derr << "\t" << hist_size_1d*((double) bin1/num_bins_2d) + hist_1d_min;		
+	}
+	hist_file_2d << std::endl;
+	hist_file_2derr << std::endl;
+	for(int bin2=0; bin2<num_bins_2d; ++bin2)
+	{
+		hist_file_2d << hist_size_1d*((double) bin2/num_bins_2d) + hist_1d_min;
+		hist_file_2derr << hist_size_1d*((double) bin2/num_bins_2d) + hist_1d_min;
+		for(int bin1=0; bin1<num_bins_2d; ++bin1)
+		{
+			hist_file_2d << "\t" << histogram_2d_avg[bin2][bin1];
+			hist_file_2derr << "\t" << simple_uncertainty(histogram_2d_avg[bin2][bin1],histogram_2d_sq_avg[bin2][bin1]);
+		}
+		hist_file_2d << std::endl;
+		hist_file_2derr << std::endl;
+	} 
+	hist_file_2d.close();
+	hist_file_2derr.close();
+	
 	std::string particles;
 	if(polymers[0].connected)
 		particles = "1";
@@ -524,11 +568,7 @@ void Simulation::stop()
 	for(int bin = 0; bin<hist_de_num_bins; ++bin)
 		de_file << hist_de_width*((double) bin/hist_de_num_bins) + hist_de_min 
 				<< "\t" << histogram_delta_e[bin]/normalization << std::endl;
-				
-	//for(int bin = 0; bin<hist_c_num_bins; ++bin)
-	//	fd_sum_file << hist_c_width*((double) bin/hist_c_num_bins) + hist_c_min
-	//			<< "\t" << hist_c_avg[bin] << "\t" << simple_uncertainty(hist_c_avg[bin],hist_c_sq_avg[bin]) << std::endl;
-	
+					
 	delete gle;
 	
 	timer.stop();
@@ -623,24 +663,7 @@ void Simulation::update_exc()
 	{
 		exchange_factor = 1.0;
 	}
-	/*else if(polymers[0].connected)
-	{
-		double tmp = 0;
-		int num_beads_1p = polymers[0].num_beads/2;
-		for(int bead=0; bead<num_beads_1p; ++bead)
-			tmp += std::exp(-exc_const*(polymers[0][bead]-polymers[0][bead+num_beads_1p])*(polymers[0][bead+1]-polymers[0][bead+num_beads_1p+1]));
-		e_s = tmp/polymers[0].num_beads;
-		exchange_factor = sign + 1.0/e_s; //1 over but negative sign two lines above
-	}
-	else
-	{*/
 	double tmp = 0;
-	/*if(polymers[0].connected)
-		for(int bead=0; bead<polymers[0].num_beads; ++bead)
-			tmp += std::exp(exc_exponent(bead)); //positive sign
-	else
-		for(int bead=0; bead<polymers[0].num_beads; ++bead)
-			tmp += std::exp( -exc_exponent(bead) ); //negative sign*/
 	if(polymers[0].connected)
 	{
 		e_s = std::exp(exc_exponent(polymers[0].num_beads-1));
@@ -662,7 +685,7 @@ void Simulation::update_exc()
 double Simulation::simple_uncertainty(double avg, double avg_sq) const
 {
 	if(block>=2)
-		return std::sqrt((avg_sq - avg*avg)/(block-1.0));
+		return std::sqrt((avg_sq - avg*avg)/(block));
 	return 0;
 }
 

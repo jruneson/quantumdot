@@ -74,21 +74,27 @@ private:
 	double e_s_avg_sq;
 	
 	std::map<int,Observable> obs;	
-	std::vector<double> histogram; //1D probability density. If dim>1, only the first coordinate is considered.
+	std::vector<double> histogram; //pair correlation function. 
 	std::vector<double> histogram_avg;
 	std::vector<double> histogram_sq_avg;
-	std::vector<std::vector<double>> histogram_1p;
-	std::vector<std::vector<double>> histogram_1p_avg;
-	std::vector<std::vector<double>> histogram_1p_sq_avg;
+	std::vector<std::vector<double>> histogram_1d; //1d probability density. One vector per dimenstion.
+	std::vector<std::vector<double>> histogram_1d_avg;
+	std::vector<std::vector<double>> histogram_1d_sq_avg;
+	std::vector<std::vector<double>> histogram_2d;
+	std::vector<std::vector<double>> histogram_2d_avg;
+	std::vector<std::vector<double>> histogram_2d_sq_avg;
+	const int num_bins_2d;
 	std::vector<double> histogram_delta_e;
 	std::vector<double> hist_c;
+	const double hist_1d_min;
+	const double hist_size_1d;
 	double hist_de_resolution=0.5;
 	double hist_de_max=100;
 	double hist_de_min=-100;
 	double hist_de_width;
 	double hist_de_num_bins;
 	double hist_c_min=-1;
-	double hist_c_max=1;
+	double hist_c_max=0;
 	double hist_c_resolution=0.1;
 	double hist_c_num_bins;
 	
