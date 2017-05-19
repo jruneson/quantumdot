@@ -45,18 +45,16 @@ private:
 	double non_sampling_time; //only used if not cont_sim
 	int num_blocks;
 	const int thermalization_time;
-	//const int steps_per_sample;	
 	const int num_bins;
 	const double hist_size;
 	GLE* gle;
-	//const bool using_input_file;
 	const bool thermostat_on;
 	Bias bias;
 	const double bias_update_time;
 	double bias_update_counter;
 	int iteration_nbr;
 	const bool cont_sim; //continue a previous simulation
-	//const double tolerance;
+	const bool more_output;
 	
 	const double beta;
 	const double tau;
@@ -84,6 +82,15 @@ private:
 	std::vector<std::vector<double>> histogram_2d_avg;
 	std::vector<std::vector<double>> histogram_2d_sq_avg;
 	const int num_bins_2d;
+	std::vector<double> bde_hist;
+	std::vector<double> exc_fac_hist;
+	std::vector<double> weight_en_hist;
+	//std::vector<double> cv_hist;
+	double bde_hist_min = -100;
+	double bde_hist_max = 100;
+	double bde_hist_width;
+	double bde_hist_res = 0.1; //resolution, i.e. bin size
+	int bde_hist_num_bins;
 	std::vector<double> histogram_delta_e;
 	std::vector<double> hist_c;
 	const double hist_1d_min;

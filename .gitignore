@@ -15,3 +15,5 @@ workstation_lab/
 backup/
 coulomb/
 presentation/
+.csync*
+.owncloud*

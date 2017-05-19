@@ -33,7 +33,7 @@ int main(int argc, char* argv[])
 	if(!continue_sim)
 	{
 		results_file.open("results.dat");
-		results_file << "%P";
+		results_file << "%beta";
 		for(int id : params.to_measure)
 			results_file << "\tObsId " << id << "\t\tError\t";
 		results_file << std::endl;
@@ -44,7 +44,7 @@ int main(int argc, char* argv[])
 
 	if(0)
 	{
-		std::vector<double> betas = {0.2,0.335,0.67,1.00,1.34,1.675,2.0,2.68};
+		std::vector<double> betas = {0.15,0.3,0.5,1.0,2.0,3.0,4.0};
 		for(auto beta : betas)
 		{
 			params.beta = beta;

@@ -101,6 +101,11 @@ void Parameters::read_file(std::string filename)
 			else if(name=="to_print_every_sample")
 				while(iss >> tmp)
 					to_print_every_sample.push_back(tmp);
+			else if(name=="more_output")
+			{	
+				iss >> to_bool;
+				more_output = (to_bool != 0);
+			}
 			else if(name=="lj_length")
 				iss >> lj_length;
 			else if(name=="lj_energy")

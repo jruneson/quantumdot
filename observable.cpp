@@ -7,6 +7,7 @@ Observable::Observable(int _id, const Parameters& params) : id(_id),
 				exc_const(params.exc_const), exc_der_const(params.exc_der_const),
 				sign(params.sign)
 { 
+	last_value = 0;
 	value = 0;
 	avg = 0;
 	avg_sq = 0;
@@ -65,6 +66,11 @@ void Observable::set_avgs(double avg_, double avg_sq_, double w_avg_, double w_a
 	weighted_avg = w_avg_;
 	weighted_avg_sq = w_avg_sq_;
 	blocks = blocks_;
+}
+
+double Observable::get_last_value() const
+{
+	return last_value;
 }
 
 double Observable::get_value() const
@@ -171,6 +177,7 @@ void Observable::measure(const std::vector<Polymer>& polymers, const Interaction
 			break;
 	}
 	tmp *= rew_factor;
+	last_value = tmp;
 	value += tmp;
 	if(print)
 		print_measure(time,tmp,bare_value);

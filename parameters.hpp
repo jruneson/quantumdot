@@ -29,11 +29,9 @@ public:
 	int num_bins;
 	int num_bins_2d;
 	int sign;
-	//double tolerance;
-	//int steps_in_highest_mode;
 	bool with_thermostat;
-	//bool using_input_file;
 	bool metad_on;
+	bool more_output;
 	
 	int cv_id;
 	double gauss_width;

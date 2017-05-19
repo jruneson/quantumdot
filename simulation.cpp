@@ -18,7 +18,8 @@ Simulation::Simulation(const Parameters& params, std::ofstream& _res_file, bool 
 	  sampling_time(params.sampling_time), sampling_time_per_block(params.sampling_time/params.num_blocks),
 	  beta(params.beta), sign(params.sign), exc_const(params.exc_const),
 	  tau(params.tau), bias(Bias(params,continue_sim)),
-	  bias_update_time(params.bias_update_time), cont_sim(continue_sim)
+	  bias_update_time(params.bias_update_time), cont_sim(continue_sim),
+	  more_output(params.more_output)
 {
 	for(int n=0; n<num_parts; ++n)
 		polymers.push_back(Polymer(params));
@@ -51,6 +52,12 @@ Simulation::Simulation(const Parameters& params, std::ofstream& _res_file, bool 
 	histogram_2d.assign(num_bins_2d, tmp_2d);
 	histogram_2d_avg.assign(num_bins_2d, tmp_2d);
 	histogram_2d_sq_avg.assign(num_bins_2d, tmp_2d);	
+	
+	bde_hist_num_bins = (int) std::round((bde_hist_max-bde_hist_min)/bde_hist_res)+1;
+	bde_hist.assign(bde_hist_num_bins,0);
+	weight_en_hist.assign(bde_hist_num_bins,0);
+	exc_fac_hist.assign(bde_hist_num_bins,0);
+	bde_hist_width = bde_hist_max-bde_hist_min;
 	
 	hist_de_num_bins = round((hist_de_max-hist_de_min)/hist_de_resolution);
 	histogram_delta_e.assign(hist_de_num_bins,0);
@@ -339,8 +346,12 @@ void Simulation::measure()
 	for(auto& pair : obs)
 		pair.second.measure(polymers,interac,overall_time,exchange_factor,bias.get_rew_factor());	
 	update_histogram();
-	cv_file << overall_time << "\t" << bias.get_cv() << "\t" << bias.energy_diff(polymers) << std::endl;
-	rew_factor_file << overall_time << "\t" << bias.get_rew_factor() << std::endl;
+	if(more_output)
+	{
+		exc_file << overall_time << "\t" << exchange_factor << std::endl;
+		cv_file << overall_time << "\t" << bias.get_cv() << "\t" << bias.energy_diff(polymers) << std::endl;
+		rew_factor_file << overall_time << "\t" << bias.get_rew_factor() << std::endl;
+	}
 	if(overall_time>movie_start_time && overall_time<movie_end_time)
 		print_vmd();
 }
@@ -430,10 +441,20 @@ void Simulation::update_histogram()
 		if(bin>=0 && bin<num_bins)
 			histogram_1p[1][bin] += 1;*/
 	}
-	double cv_rel = cv-hist_de_min;
+	
+	double cv_rel = cv-bde_hist_min;
+	bin = calc_bin(cv_rel,bde_hist_num_bins,bde_hist_width);
+	if((bin<bde_hist_num_bins)&&(bin>=0))
+	{
+		bde_hist[bin] += rew_factor;
+		exc_fac_hist[bin] += weight;
+		weight_en_hist[bin] += obs.at(2).get_last_value();
+	}
+	
+	cv_rel = cv-hist_de_min;
 	bin = calc_bin(cv_rel,hist_de_num_bins,hist_de_width);
-	if((bin<hist_de_num_bins)&(bin>=0))
-		histogram_delta_e[bin] += bias.get_rew_factor();
+	if((bin<hist_de_num_bins)&&(bin>=0))
+		histogram_delta_e[bin] += rew_factor;
 		
 	double fd_argument;
 	for(bin=0; bin<hist_c_num_bins; ++bin)
@@ -498,7 +519,7 @@ void Simulation::stop()
 			<< "\t" << std::sqrt(exc_sq_avg-exc_avg*exc_avg)/rew_norm << std::endl; // sqrt(n/(n-1)) unnecessary for large n
 	logfile << "Exp_en_diff\t" << e_s_avg/rew_norm << "\t" << simple_uncertainty(e_s_avg,e_s_avg_sq)/rew_norm
 			<< std::endl;
-	res_file << polymers[0].num_beads;
+	res_file << beta;//polymers[0].num_beads;
 	//res_file << 2-int(polymers[0].connected);//polymers[0].num_beads;//sampling_time;
 	for(const auto& pair : obs)
 	{
@@ -516,8 +537,7 @@ void Simulation::stop()
 	
 	std::ofstream hist_file("Pair_correlation.dat");
 	std::ofstream hist_file_1d("Prob_dist1d.dat");
-	std::ofstream hist_file_2d("Prob_dist2d.dat");
-	std::ofstream hist_file_2derr("Prob_dist2d_err.dat");
+
 	for(int bin = 0; bin<num_bins; ++bin)
 	{
 		hist_file << hist_size*((double) bin/num_bins) << "\t" << histogram_avg[bin]
@@ -530,31 +550,59 @@ void Simulation::stop()
 	}
 	hist_file.close();
 	hist_file_1d.close();
-	hist_file_2d << "-1";
-	hist_file_2derr << "-1";
-	for(int bin1=0; bin1<num_bins_2d; ++bin1)
+	
+	if(polymers[0][0].size()==2)
 	{
-		hist_file_2d << "\t" << hist_size_1d*((double) bin1/num_bins_2d) + hist_1d_min;
-		hist_file_2derr << "\t" << hist_size_1d*((double) bin1/num_bins_2d) + hist_1d_min;		
-	}
-	hist_file_2d << std::endl;
-	hist_file_2derr << std::endl;
-	for(int bin2=0; bin2<num_bins_2d; ++bin2)
-	{
-		hist_file_2d << hist_size_1d*((double) bin2/num_bins_2d) + hist_1d_min;
-		hist_file_2derr << hist_size_1d*((double) bin2/num_bins_2d) + hist_1d_min;
+		std::ofstream hist_file_2d("Prob_dist2d.dat");
+		//std::ofstream hist_file_2derr("Prob_dist2d_err.dat");
+		hist_file_2d << "-1";
+		//hist_file_2derr << "-1";
 		for(int bin1=0; bin1<num_bins_2d; ++bin1)
 		{
-			hist_file_2d << "\t" << histogram_2d_avg[bin2][bin1];
-			hist_file_2derr << "\t" << simple_uncertainty(histogram_2d_avg[bin2][bin1],histogram_2d_sq_avg[bin2][bin1]);
+			hist_file_2d << "\t" << hist_size_1d*((double) bin1/num_bins_2d) + hist_1d_min;
+			//hist_file_2derr << "\t" << hist_size_1d*((double) bin1/num_bins_2d) + hist_1d_min;		
 		}
 		hist_file_2d << std::endl;
-		hist_file_2derr << std::endl;
-	} 
-	hist_file_2d.close();
-	hist_file_2derr.close();
+		//hist_file_2derr << std::endl;
+		for(int bin2=0; bin2<num_bins_2d; ++bin2)
+		{
+			hist_file_2d << hist_size_1d*((double) bin2/num_bins_2d) + hist_1d_min;
+			//hist_file_2derr << hist_size_1d*((double) bin2/num_bins_2d) + hist_1d_min;
+			for(int bin1=0; bin1<num_bins_2d; ++bin1)
+			{
+				hist_file_2d << "\t" << histogram_2d_avg[bin2][bin1];
+				//hist_file_2derr << "\t" << simple_uncertainty(histogram_2d_avg[bin2][bin1],histogram_2d_sq_avg[bin2][bin1]);
+			}
+			hist_file_2d << std::endl;
+			//hist_file_2derr << std::endl;
+		} 
+		hist_file_2d.close();
+		//hist_file_2derr.close();
+	}
 	
-	std::string particles;
+	std::ofstream bde_hist_file("CV_distributions.dat");
+	//std::ofstream weighted_en_file("Energy_distr.dat");
+	//double rew_factor_avg = bias.get_rew_factor_avg();
+	double norm=0;
+	for(int bin=0; bin<bde_hist_num_bins; ++bin)
+		norm += bde_hist[bin];
+	norm *= bde_hist_res;
+	for(int bin=0; bin<bde_hist_num_bins; ++bin)
+	{
+		double s = bde_hist_width*((double) bin/bde_hist_num_bins) + bde_hist_min;
+		//double bde_entry = bde_hist[bin]/norm;
+		//double exc_fac_entry = exc_fac_hist[bin]/norm;
+		bde_hist_file << s << "\t" << bde_hist[bin]/norm << "\t" << exc_fac_hist[bin]/norm 
+					  << "\t" << weight_en_hist[bin]/norm << std::endl;
+		/*	bde_hist_file << std::exp(s) + sign << std::endl;
+		else
+			bde_hist_file << (1 + sign*std::exp(-s))*hist_entry << std::endl;*/
+		//weighted_en_file << s << "\t" << weight_en_hist[bin]/(rew_factor_avg*bde_hist_res) << std::endl;
+	}
+	bde_hist_file.close();
+	//weighted_en_file.close();
+	
+	/*std::string particles;
 	if(polymers[0].connected)
 		particles = "1";
 	else
@@ -567,7 +615,7 @@ void Simulation::stop()
 	normalization *= hist_de_resolution;
 	for(int bin = 0; bin<hist_de_num_bins; ++bin)
 		de_file << hist_de_width*((double) bin/hist_de_num_bins) + hist_de_min 
-				<< "\t" << histogram_delta_e[bin]/normalization << std::endl;
+				<< "\t" << histogram_delta_e[bin]/normalization << std::endl;*/
 					
 	delete gle;
 	
@@ -674,7 +722,6 @@ void Simulation::update_exc()
 		e_s = std::exp(-exc_exponent(polymers[0].num_beads-1));
 		exchange_factor = 1.0 + sign*e_s;
 	}
-	exc_file << overall_time << "\t" << exchange_factor << std::endl;
 	double exc_weighted = exchange_factor * bias.get_rew_factor();
 	double e_s_weighted = e_s * bias.get_rew_factor();
 	exc_sum += exc_weighted;
