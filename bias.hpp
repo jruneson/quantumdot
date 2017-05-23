@@ -14,15 +14,15 @@ class Bias{
 public:
 	Bias(const Parameters&, bool);
 		
-	void update_cv(const std::vector<Polymer>&);
-	void update_cv_rew(const std::vector<Polymer>&, const double);
+	void update_cv(const std::vector<Polymer>&, double);
+	void update_cv_rew(const std::vector<Polymer>&, double, double);
 	double get_cv() const;
 
-	void update_bias(const std::vector<Polymer>&,double,double);
+	void update_bias(const std::vector<Polymer>&,double,double,double);
 	void restore_splines_transient(double);
 	
 	double energy_diff(const std::vector<Polymer>& pols) const;
-	Force calc_force(const std::vector<Polymer>&, int, int) const;
+	Force calc_force(const std::vector<Polymer>&, int, int,double) const;
 	double get_rew_factor() const;
 	double get_rew_factor_avg() const;
 	void set_new_block();
@@ -51,6 +51,7 @@ private:
 	const double exponent_factor;
 	std::vector<double> heights;
 	std::vector<double> cv_centers;
+	double regularization;
 	
 	Spline v_spline;
 	Spline vder_spline;
@@ -58,16 +59,16 @@ private:
 	
 	double calc_bias(double) const; //calculate bias explicitly (only used when creating spline)
 	double calc_bias_der(double) const;
-	double coll_var(const std::vector<Polymer>&) const;
+	double coll_var(const std::vector<Polymer>&,double) const;
 	double coll_var_der(const std::vector<Polymer>&) const;
 	double scalar_product(const std::vector<Polymer>&, int) const;
 	double scalar_product_conn(const std::vector<Polymer>&, int, int) const;
 	double gaussian(double, double, double) const;
-	Force cv_grad(const std::vector<Polymer>&, int, int) const;
+	Force cv_grad(const std::vector<Polymer>&, int, int,double) const;
 	double sum_exp(const std::vector<Polymer>&, int) const;
 	double sum_exp_distcorr(const std::vector<Polymer>&) const;
 	Force two_terms(const std::vector<Polymer>&, int, int) const;
-	Force two_terms_conn(const std::vector<Polymer>&, int, int, int) const;
+	//Force two_terms_conn(const std::vector<Polymer>&, int, int, int) const;
 	double sq_distAB(const std::vector<Polymer>&) const;
 	void create_splines();
 	void update_transient(double);

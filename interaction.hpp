@@ -24,7 +24,7 @@ public:
 //	Force bias_force(const Point&);
 	Force two_particle_force(const Point&, const Point&) const;
 	
-	void update_forces(std::vector<Polymer>&, const Bias&);
+	void update_forces(std::vector<Polymer>&, const Bias&, double);
 	void update_fast_forces(std::vector<Polymer>&);
 //	void update_one_pol_forces(Polymer&);
 	

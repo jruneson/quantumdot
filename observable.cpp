@@ -126,7 +126,7 @@ void Observable::set_print_on()
 }
 
 void Observable::measure(const std::vector<Polymer>& polymers, const Interaction& interac, 
-						double time, double exc_factor, double rew_factor)
+						double time, double exc_factor, double e_s, double rew_factor)
 {
 	double tmp = 0;
 	switch(id)
@@ -171,7 +171,7 @@ void Observable::measure(const std::vector<Polymer>& polymers, const Interaction
 			break;
 		case 2:
 		case 3:
-			tmp += exc_der_virial(polymers,interac);
+			tmp += exc_der_virial(polymers,interac,e_s);
 			break;
 		default:
 			break;
@@ -354,7 +354,7 @@ double Observable::exc_der(const std::vector<Polymer>& pols) const
 	return exc_der_const * tmp;
 }
 
-double Observable::exc_der_virial(const std::vector<Polymer>& pols, const Interaction& interac) const
+double Observable::exc_der_virial(const std::vector<Polymer>& pols, const Interaction& interac, double e_s) const
 {
 	if(exc_der_const==0)
 		if(!pols[0].connected)
@@ -384,9 +384,9 @@ double Observable::exc_der_virial(const std::vector<Polymer>& pols, const Intera
 	}
 	tmp /= (2*num_beads);
 	if(pols[0].connected)
-		return virial_offset*std::exp(exc_const*scalar_product(pols,num_beads-1))+sign*tmp;
+		return virial_offset*e_s+sign*tmp;
 	else
-		return virial_offset + sign*tmp*std::exp(-exc_const*scalar_product(pols,num_beads-1));
+		return virial_offset + sign*tmp*e_s;
 	//if(pols[0].connected)
 	//	return 0.5*std::abs(exc_der_const)*(mean0-mean1)*tmp;
 	//else

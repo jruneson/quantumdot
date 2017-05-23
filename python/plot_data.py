@@ -41,7 +41,7 @@ def plot_cv(f,fig_nr,n=0,opt=None):
         plt.legend(loc='upper right',fontsize=20)
     if(opt=='bdE'):
         bdE = data[:,2]
-        plt.plot(t,bdE,label=r'$\beta\Delta E$')
+        plt.plot(t,0.1*bdE,label=r'$\beta\Delta E$')
         plt.legend(loc='upper right',fontsize=20)
         
         
@@ -151,10 +151,13 @@ def plot_s_int(f, fig_nr, clear=1, opt=''):
         plt.clf()
     #for i in range(2):
     #    s,hist=bin_hist(s,shist)
-    plt.plot(s,shist)
-    plt.plot(s,Whist)
-    plt.plot(s,Ehist)
-    plt.xlim([-30,30])
+    if(opt=='log'):
+        plt.plot(s,-np.log(shist))
+    else:
+        plt.plot(s,shist)
+        plt.plot(s,Whist)
+        plt.plot(s,Ehist)
+    plt.xlim([-40,40])
     ds = s[1]-s[0]
     print(sum(Whist)*ds)
     
@@ -359,8 +362,9 @@ def plot_fes(f,fig_nr):
     centers = np.loadtxt(f+'cv_centers.dat')[:,1]
     heights = np.loadtxt(f+'heights.dat')[:,1]
     plt.figure(fig_nr)
-    sigma = 4.0
-    gamma = 5.0
+    plt.clf()
+    sigma = 2.0
+    gamma = 4.0
     cv = np.linspace(centers.min()-sigma,centers.max()+sigma,200)
     V = np.zeros(len(cv))
     for i,s in enumerate(cv):
@@ -556,14 +560,14 @@ def normalize(p,perr,r,d=2,norm_shell=False):
         perr /= norm_shell
     
     
-def plot_rAB(f,fig_nr,clear=True,color='blue',marker='x',name=None,linestyle='-',show_errors=1):
+def plot_rAB(f,fig_nr,clear=True,d=2,color='blue',marker='x',name=None,linestyle='-',show_errors=1):
     if name is None:
         name=f[-25:]
     data = np.loadtxt(f+'Pair_correlation.dat')
     r = data[:,0]
     p = data[:,1]
     p_err = data[:,2]
-    normalize(p,p_err,r,2,1)
+    normalize(p,p_err,r,d,1)
     #p *= 1e8
     #p_err *= 1e8
     plt.figure(fig_nr)
@@ -580,38 +584,47 @@ def plot_rAB(f,fig_nr,clear=True,color='blue',marker='x',name=None,linestyle='-'
     plt.ylabel(r'$p(r)$')
     return r,p
     
-def plot_rAB_th(fig_nr,r,sym):
+def plot_rAB_th(fig_nr,r,d,sym):
     P = 10
     hwb=3.0
     hwt = hwb/P
     f = 1+0.5*hwt**2+0.5*hwt*np.sqrt(hwt**2+4)
     c = 1/((f+1)/np.sqrt(f) * (f**P-1)/(f**P+1))
     print(c)
-    a = np.sqrt(1.0/(3.675e-5*3.0))
+    a = np.sqrt(1.0/(0.01323*3.0))
     x = np.linspace(0,10*a,1000)
     dx = x[1]-x[0]
     p2part = copy.deepcopy(r)
-    for i,R in enumerate(r):
-        xi = -2j*x*R/a**2
-        exponential = np.exp(-(2*x**2+R**2)/a**2)
-        if(sym=='dis'):
-        #p2part = np.exp(-0.5*(r/a)**2)
-            bessels = jv(0,xi)+0.5*((2*x**2+R**2)*jv(0,xi)+1j*2*x*R*jv(1,xi))/a**2 * np.exp(-hwb)
-            p2part[i]=np.absolute(sum(x*R*exponential*bessels)*dx)
-            #p2part[i]=R**2*np.exp(-0.5*R**2/a**2)
-            color = 'r'
+    if(d==1):
         if(sym=='bos'):
-            p2part[i]=np.absolute(sum(x*R*exponential*jv(0,xi))*dx)
-            #p2part[i]=np.absolute(sum(x*R*exponential*(2*np.pi*jv(0,2*xi)+jv(0,xi)**2))*dx)
-            color = 'b'
+            p2part=np.exp(-r**2/(2*a**2))
+            label=''
         if(sym=='fer'):
-            p2part[i]=np.absolute(sum(x*R**3*exponential*jv(0,xi))*dx)
-            color = 'g'
-        #p2part = r**2*np.exp(-(r/a)**2)
-    normalize(p2part,0,r,2,1)
-    scale=1e6
+            p2part=r**2*np.exp(-r**2/(2*a**2))
+            label='Theory'
+        color='k'
+    else:
+        for i,R in enumerate(r):
+            xi = -2j*x*R/a**2
+            exponential = np.exp(-(2*x**2+R**2)/a**2)
+            if(sym=='dis'):
+            #p2part = np.exp(-0.5*(r/a)**2)
+                bessels = jv(0,xi)+0.5*((2*x**2+R**2)*jv(0,xi)+1j*2*x*R*jv(1,xi))/a**2 * np.exp(-hwb)
+                p2part[i]=np.absolute(sum(x*R*exponential*bessels)*dx)
+                #p2part[i]=R**2*np.exp(-0.5*R**2/a**2)
+                color = 'r'
+            if(sym=='bos'):
+                p2part[i]=np.absolute(sum(x*R*exponential*jv(0,xi))*dx)
+                #p2part[i]=np.absolute(sum(x*R*exponential*(2*np.pi*jv(0,2*xi)+jv(0,xi)**2))*dx)
+                color = 'b'
+            if(sym=='fer'):
+                p2part[i]=np.absolute(sum(x*R**3*exponential*jv(0,xi))*dx)
+                color = 'g'
+            #p2part = r**2*np.exp(-(r/a)**2)
+    normalize(p2part,0,r,d,1)
+    #scale=1e6
     plt.figure(fig_nr)
-    plt.plot(r,p2part*scale,color=color,marker='.',label='Theory Fermion')
+    plt.plot(r,p2part,color=color,label=label)
     
 
     
@@ -735,6 +748,8 @@ def free_energy_diff(f1,f2,fig_nr):
     print("F_O-F_oo="+str(np.mean(Czeros))+"+/-"+str(np.std(Czeros)/np.sqrt(numblocks)))
     dF = -np.log((1-np.exp(Czeros))/(1+np.exp(Czeros)))
     print("dF="+str(np.mean(dF))+"+/-"+str(np.std(dF)/np.sqrt(numblocks)))
+    dF = -np.log((1-np.exp(np.mean(Czeros)))/(1+np.exp(np.mean(Czeros))))
+    print("dF_alternative_mean="+str(dF))    
     print("<sign>="+str(np.mean(avg_sign))+"+/-"+str(np.std(avg_sign)/np.sqrt(numblocks)))
     
 
@@ -749,6 +764,7 @@ if __name__=="__main__":
     f7 = '../run7/'
     f8 = '../run8/'
     f9 = '../run9/'
+    f10= '../run10/'
     f11= '../run11/'
     f12= '../run12/'
     f13= '../run13/'
@@ -790,11 +806,29 @@ if __name__=="__main__":
     flab10=flab+'run10/'
 
     
-    fi = '../presentation/ideal/boson/1D/beta1/woMetaD/disconnected/'
-    fi2 ='../presentation/ideal/boson/1D/beta1/woMetaD/connected/'
+    fi = '../ideal/fermion/1D/beta1/MetaD/'
+    fi2 ='../ideal/boson/1D/beta1/MetaD/connected/'
 
-    #plot_gauss_data(fi2,3,'Wt',name='')
+    #plot_gauss_data(f15,3,'Wt',name='')
     #plot_gauss_data(f4,8,'Wt',name='bos')
+    
+    N=100 #np.array([5,10,50,100,500,1000,5000,10000])
+    #y=0.01
+    #x = np.log(y)
+    #limit = np.zeros(len(N))
+    x = np.linspace(-0.1,0.1,100000)
+    y = N*(abs(x)**(1.0/N)-1)
+    plt.figure(0)
+    plt.clf()
+    plt.plot(x,y)
+    plt.plot(x,np.log(abs(x)))
+    plt.ylim([-20,0])
+    #for i,n in enumerate(N):
+        #print(str(n*(abs(y)**(1.0/n)-1))+'\t'+str(np.log(y)))
+        #limit[i] = n*(1-y)**(1.0/n)
+        #print(str((1+x/n)**n)+'\t'+str(np.exp(x)))
+    #print(limit)
+    #print(-np.log(y))
 
     if 0:
         plot_energies(fi,1,1,'beta',label='1D',linestyle='-',marker='o',plot_all=0)
@@ -834,15 +868,23 @@ if __name__=="__main__":
     plt.ylim([0,60])
     plt.title('Elliptic dot, Connected')"""
         
-    free_energy_diff(fi,fi2,3)
+    #free_energy_diff(f10,f11,3)
     #free_energy_diff(flab7,flab8,4)
     #plt.title(r'Elliptic QD, $\gamma_\mathrm{screen}=1, P=15$')
     #plt.title(r'No Coulomb, $\hbar\omega=3\,\mathrm{meV}$')
-    #plot_cv(fi,7,20000)
+    plot_cv(f15,7,200000,opt='bdE')
+    #plot_fes(f14,4)
+    #data = np.loadtxt(f11+'Total_energy.dat')
+    #plt.plot(data[:,0],data[:,2])
     #plot_2d_dist(fi2,3)
     #plot_1d_dist(fi,1,1)
-    #plot_rAB(fi2,2,2,'b','.',name=None,linestyle='-',show_errors=5)
-
+    r,_=plot_rAB(f14,2,1,1,'b','.',name='Boson',linestyle='-',show_errors=5)
+    #r,_=plot_rAB(fi2,2,0,1,'g','.',name='Fermion',linestyle='-',show_errors=5)
+    plot_rAB_th(2,r,1,'bos')
+    #plot_rAB_th(2,r,1,'fer')
+    plt.legend(loc='upper right',fontsize=22)
+    plt.title(r'$\mathrm{1D,~without~Metadynamics}$')
+    plt.ylim([-0.1,0.6])
     
     if 0:
         plt.figure(6)
@@ -912,8 +954,13 @@ if __name__=="__main__":
         plt.xlim([-40,20])
         plot_cont(f2,7,1,200000,'bdE','etot')
         
-    plot_s_int(fi,8)
-    plot_s_int(fi2,9)
+    plot_s_int(f11,4)
+    plot_s_int(fi,5)
+    #plot_s_int(f14,8,opt='log')
+    #plot_s_int(f15,9,opt='log')
+    """plot_s_int(f15,9)
+    plt.ylim([0,10])
+    plt.xlim([-5,5])"""
     if 0:
         plot_cont(fi,6,1,200000,'bdE','etot',conn=0)
         plot_cont(fi,7,1,200000,'bdE',conn=0)

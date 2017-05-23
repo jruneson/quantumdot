@@ -10,6 +10,7 @@ Simulation::Simulation(const Parameters& params, std::ofstream& _res_file, bool 
 	: dt_md(params.dt_md), dt_sample(params.dt_sample), num_parts(params.num_parts), interac(Interaction(params)),
 	  length_scale(params.length_scale), num_blocks(params.num_blocks),
 	  //steps_per_sample(params.steps_per_sample),
+	  num_beads(params.num_beads),
 	  num_bins(params.num_bins), num_bins_2d(params.num_bins_2d), hist_size(params.hist_size),
 	  hist_size_1d(params.hist_size*2), hist_1d_min(-params.hist_size),
 	  temperature(params.temperature), thermalization_time(params.thermalization_time),
@@ -66,8 +67,8 @@ Simulation::Simulation(const Parameters& params, std::ofstream& _res_file, bool 
 	hist_c.assign(hist_c_num_bins,0);
 	
 	bias_update_counter = 0;
-	movie_start_time = non_sampling_time + sampling_time/2.0;
-	movie_end_time = movie_start_time + dt_sample*10000;
+	movie_start_time = 585;//non_sampling_time + sampling_time/2.0;
+	movie_end_time = 595;// movie_start_time + dt_sample*10000;
 	try 
 	{
 		gle = new GLE(polymers, dt_md, temperature, polymers[0].mass, polymers[0].num_beads, 
@@ -177,7 +178,8 @@ void Simulation::initialize_coords_simple()
 		{
 			for(int d=0; d<pol[0].size(); ++d)
 			{
-				pol[bead][d] = length_scale * ((double) bead/pol.num_beads + 1.5) * std::pow(-1,n);
+				pol[bead][d] = length_scale * (1.5 + bead*0.01) *std::pow(-1,n);
+				//pol[bead][d] = length_scale * ((double) bead/pol.num_beads + 1.5) * std::pow(-1,n);
 				pol.vels[bead][d] = 0.0;
 				pol.forces[bead][d] = 0.0;
 			}
@@ -245,7 +247,8 @@ void Simulation::read_old_measurements()
 		}
 	}
 	bias.restore_splines_transient(beta);
-	bias.update_cv(polymers);
+	update_exc(false);
+	bias.update_cv(polymers,e_s);
 	infile.close();
 }
 
@@ -266,13 +269,14 @@ void Simulation::run_wo_sampling()
 	double time_before_sampl=0;
 	while(time_before_sampl<non_sampling_time)
 	{
+		update_exc(false);
 		verlet_step();
 		time_before_sampl += dt_md;
 		bias_update_counter += dt_md;
 		overall_time += dt_md;
 		if(bias_update_counter >= bias_update_time)
 		{
-			bias.update_bias(polymers,beta,overall_time);
+			bias.update_bias(polymers,beta,overall_time,e_s);
 			//bias.update_cv(polymers,beta);
 			bias_update_counter = 0;
 		}
@@ -292,6 +296,7 @@ void Simulation::run()
 
 void Simulation::run_block()
 {
+	update_exc(false);
 	double time_since_last_sample=0;
 	while(time_sampled<sampling_time_per_block*(block+1))
 	{
@@ -304,14 +309,14 @@ void Simulation::run_block()
 		++samples;
 		time_sampled += dt_sample;
 		overall_time += dt_sample;
-		bias.update_cv_rew(polymers,beta);
-		update_exc();
+		update_exc(true);
+		bias.update_cv_rew(polymers,beta,e_s);
 		measure();
 		bias_update_counter += dt_sample;
 		if(bias_update_counter >= bias_update_time) //check if remainder is 0
 		{
-			bias.update_bias(polymers,beta,overall_time);
-			bias.update_cv(polymers);
+			bias.update_bias(polymers,beta,overall_time,e_s);
+			//bias.update_cv(polymers,exchange_factor);
 			bias_update_counter = 0;
 		}
 	}
@@ -333,8 +338,9 @@ void Simulation::verlet_step()
 		pol.update_vels();
 		pol.move();
 	}
-	bias.update_cv(polymers);
-	interac.update_forces(polymers,bias);
+	update_exc(false);
+	bias.update_cv(polymers,e_s);
+	interac.update_forces(polymers,bias,e_s);
 	for(Polymer& pol: polymers)
 		pol.update_vels();
 	gle->run();
@@ -344,7 +350,7 @@ void Simulation::verlet_step()
 void Simulation::measure()
 {
 	for(auto& pair : obs)
-		pair.second.measure(polymers,interac,overall_time,exchange_factor,bias.get_rew_factor());	
+		pair.second.measure(polymers,interac,overall_time,exchange_factor,e_s,bias.get_rew_factor());	
 	update_histogram();
 	if(more_output)
 	{
@@ -431,8 +437,9 @@ void Simulation::update_histogram()
 				if(bin>=0 && bin<num_bins)
 					histogram_1d[d][bin] += weight;
 			}
-			if(bin1>=0 && bin2>= 0 && bin1<num_bins_2d && bin2<num_bins_2d)
-				histogram_2d[bin1][bin2] += weight;
+			if(polymers[n][bead].size()==2)
+				if(bin1>=0 && bin2>= 0 && bin1<num_bins_2d && bin2<num_bins_2d)
+					histogram_2d[bin1][bin2] += weight;
 		}
 		/*bin = calc_bin(polymers[0][bead].dist0());
 		if(bin>=0 && bin<num_bins)
@@ -600,9 +607,9 @@ void Simulation::stop()
 		//weighted_en_file << s << "\t" << weight_en_hist[bin]/(rew_factor_avg*bde_hist_res) << std::endl;
 	}
 	bde_hist_file.close();
-	//weighted_en_file.close();
+	weighted_en_file.close();
 	
-	/*std::string particles;
+	std::string particles;
 	if(polymers[0].connected)
 		particles = "1";
 	else
@@ -615,7 +622,7 @@ void Simulation::stop()
 	normalization *= hist_de_resolution;
 	for(int bin = 0; bin<hist_de_num_bins; ++bin)
 		de_file << hist_de_width*((double) bin/hist_de_num_bins) + hist_de_min 
-				<< "\t" << histogram_delta_e[bin]/normalization << std::endl;*/
+				<< "\t" << histogram_delta_e[bin]/normalization << std::endl;
 					
 	delete gle;
 	
@@ -704,9 +711,8 @@ double Simulation::exc_exponent(int bead) const
 	return exc_const * (polymers[0][bead]-polymers[1][bead])*(polymers[0][bead+1]-polymers[1][bead+1]);
 }
 
-void Simulation::update_exc()
+void Simulation::update_exc(bool count_to_average)
 {
-	double e_s = 0;
 	if(sign==0)
 	{
 		exchange_factor = 1.0;
@@ -714,19 +720,27 @@ void Simulation::update_exc()
 	double tmp = 0;
 	if(polymers[0].connected)
 	{
-		e_s = std::exp(exc_exponent(polymers[0].num_beads-1));
+		for(int bead=0; bead<num_beads; ++bead)
+			tmp += std::exp(exc_exponent(bead));
+		e_s = tmp/num_beads;
 		exchange_factor = e_s + sign;
 	}
 	else
 	{
-		e_s = std::exp(-exc_exponent(polymers[0].num_beads-1));
+		for(int bead=0; bead<num_beads; ++bead)
+			tmp += std::exp(-exc_exponent(bead));
+		//e_s = std::exp(-exc_exponent(polymers[0].num_beads-1));
+		e_s = tmp/num_beads;
 		exchange_factor = 1.0 + sign*e_s;
 	}
-	double exc_weighted = exchange_factor * bias.get_rew_factor();
-	double e_s_weighted = e_s * bias.get_rew_factor();
-	exc_sum += exc_weighted;
-	exc_sq = (exc_sq*samples + exc_weighted*exc_weighted)/(samples+1.0);
-	e_s_sum += e_s_weighted;
+	if(count_to_average)
+	{
+		double exc_weighted = exchange_factor * bias.get_rew_factor();
+		double e_s_weighted = e_s * bias.get_rew_factor();
+		exc_sum += exc_weighted;
+		exc_sq = (exc_sq*samples + exc_weighted*exc_weighted)/(samples+1.0);
+		e_s_sum += e_s_weighted;
+	}
 }
 
 double Simulation::simple_uncertainty(double avg, double avg_sq) const

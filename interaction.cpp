@@ -91,7 +91,7 @@ Force Interaction::two_particle_force(const Point& p1, const Point& p2) const
 
 //Force int_force(Point p);
 
-void Interaction::update_forces(std::vector<Polymer>& polymers, const Bias& bias)
+void Interaction::update_forces(std::vector<Polymer>& polymers, const Bias& bias, double e_s)
 {
 	update_fast_forces(polymers);
 	time_since_slow_update += dt_fast;
@@ -103,7 +103,7 @@ void Interaction::update_forces(std::vector<Polymer>& polymers, const Bias& bias
 			for(int bead=0; bead<pol.num_beads; ++bead)
 			{
 				pol.forces[bead] = ext_force(pol[bead])/pol.num_beads
-					+ bias.calc_force(polymers,bead,n);
+					+ bias.calc_force(polymers,bead,n,e_s);
 			}
 			if(pol.connected)
 			{

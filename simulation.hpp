@@ -29,6 +29,7 @@ public:
 	
 private:
 	const int num_parts;
+	const int num_beads;
 	std::vector<Polymer> polymers;
 	const double dt_md;
 	const double dt_sample;
@@ -67,6 +68,7 @@ private:
 	double exc_avg_sq;
 	double exc_sq; // <Gamma^2> within a block
 	double exc_sq_avg; // <Gamma^2> over all blocks, for standard deviation calculation
+	double e_s;
 	double e_s_sum;
 	double e_s_avg; //<exp(-s)>
 	double e_s_avg_sq;
@@ -95,7 +97,7 @@ private:
 	std::vector<double> hist_c;
 	const double hist_1d_min;
 	const double hist_size_1d;
-	double hist_de_resolution=0.5;
+	double hist_de_resolution=0.1;
 	double hist_de_max=100;
 	double hist_de_min=-100;
 	double hist_de_width;
@@ -141,7 +143,7 @@ private:
 	void print_vmd();
 	void stop();
 	void print_config();
-	void update_exc();
+	void update_exc(bool);
 	double exc_exponent(int) const;
 	double simple_uncertainty(double,double) const;
 	double weighted_uncertainty(double,double) const;
