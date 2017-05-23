@@ -4,7 +4,7 @@
 #include "polymer.hpp"
 #include "parameters.hpp"
 #include "spline.hpp"
-
+#include "graph.hpp"
 
 #ifndef BIAS_HPP
 #define BIAS_HPP
@@ -75,7 +75,7 @@ private:
 	double wall_force_magn(double) const;
 	double wall_potential(double) const;
 	
-	std::ofstream heights_file;
+	//std::ofstream heights_file;
 	std::ofstream cv_centers_file;
 	
 	const double wall_id;

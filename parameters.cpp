@@ -31,6 +31,8 @@ void Parameters::read_file(std::string filename)
 			{
 				iss >> to_bool;
 				connected = (to_bool != 0);
+				if(connected)
+					throw std::runtime_error("It's not safe to set connected=1 at the moment");
 			}
 			else if(name=="sampling_time")
 				iss >> sampling_time;
@@ -52,6 +54,15 @@ void Parameters::read_file(std::string filename)
 				iss >> num_bins_2d;
 			else if(name=="sign")
 				iss >> sign;
+			else if(name=="total_spin_times_two")
+			{
+				iss >> total_spin;
+				if( (num_parts % 2) != (total_spin % 2)) //If num_parts and spin are not both even or both odd
+				//if(((num_parts % 2) && (!(total_spin % 2))) || ((!(num_parts % 2)) && (total_spin%2))) //If number of particles is odd and spin is even
+					throw std::runtime_error("Invalid total spin!");
+				if(total_spin > num_parts)
+					throw std::runtime_error("Total spin is too high!");
+			}
 			else if(name=="with_thermostat")
 			{
 				iss >> to_bool;
@@ -126,6 +137,7 @@ void Parameters::read_file(std::string filename)
 		dt_md_slow = dt_md;			
 }
 
+
 void Parameters::calculate_dependencies()
 {
 	num_beads = round(beta/tau);
@@ -151,7 +163,7 @@ void Parameters::calculate_dependencies()
 	//num_steps = (int) sampl_time / (dt_md * num_blocks); //per block
 	//num_samples = (int) num_steps / steps_per_sample; //per block
 	spring_const = num_beads*m_hbar2/(beta*beta);
-	exc_const = num_beads*m_hbar2/beta;
+	exc_const = num_beads*m_hbar2/(beta);
 	exc_der_const = sign * num_beads*m_hbar2/(beta*beta);
 	kin_offset = num_parts*num_beads*dim/(2.0*beta);
 	//if(connected)

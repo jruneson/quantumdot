@@ -10,7 +10,7 @@ Simulation::Simulation(const Parameters& params, std::ofstream& _res_file, bool 
 	: dt_md(params.dt_md), dt_sample(params.dt_sample), num_parts(params.num_parts), interac(Interaction(params)),
 	  length_scale(params.length_scale), num_blocks(params.num_blocks),
 	  //steps_per_sample(params.steps_per_sample),
-	  num_beads(params.num_beads),
+	  num_beads(params.num_beads), dim(params.dim),
 	  num_bins(params.num_bins), num_bins_2d(params.num_bins_2d), hist_size(params.hist_size),
 	  hist_size_1d(params.hist_size*2), hist_1d_min(-params.hist_size),
 	  temperature(params.temperature), thermalization_time(params.thermalization_time),
@@ -24,6 +24,13 @@ Simulation::Simulation(const Parameters& params, std::ofstream& _res_file, bool 
 {
 	for(int n=0; n<num_parts; ++n)
 		polymers.push_back(Polymer(params));
+	int num_graphs = num_parts; //Needs to be modified for N>3 
+	for(int id=1; id<=num_graphs; ++id)
+		graphs.push_back(Graph(params,id));
+	//
+	for(const Graph& graph: graphs)
+		std::cout << graph.get_id() << "\t" << graph.get_mult() << "\t" << graph.get_sign() << std::endl;
+	//
 	finished = false;
 	block = 0;
 	time_sampled = 0;
@@ -43,10 +50,10 @@ Simulation::Simulation(const Parameters& params, std::ofstream& _res_file, bool 
 	histogram.assign(params.num_bins,0);
 	histogram_avg.assign(params.num_bins,0);
 	histogram_sq_avg.assign(params.num_bins,0);
-	int d = polymers[0][0].size();
-	histogram_1d.assign(d,histogram);
-	histogram_1d_avg.assign(d,histogram);
-	histogram_1d_sq_avg.assign(d,histogram);
+	//int d = polymers[0][0].size();
+	histogram_1d.assign(dim,histogram);
+	histogram_1d_avg.assign(dim,histogram);
+	histogram_1d_sq_avg.assign(dim,histogram);
 	
 	std::vector<double> tmp_2d;
 	tmp_2d.assign(num_bins_2d,0);
@@ -97,7 +104,7 @@ void Simulation::setup()
 		rew_factor_file.open("rew_factor.dat", std::ios_base::app);
 		vmd_file.open("vmd.xyz", std::ios_base::app);
 		vmd_file2.open("vmd2.xyz", std::ios_base::app);
-		file_fsum.open("fsum_N"+std::to_string(2-(int) polymers[0].connected)+"_P"+std::to_string(polymers[0].num_beads)+".dat", std::ios_base::app);
+		file_fsum.open("fsum_N"+std::to_string(2-(int) polymers[0].connected)+"_P"+std::to_string(num_beads)+".dat", std::ios_base::app);
 	}
 	else
 	{
@@ -108,7 +115,7 @@ void Simulation::setup()
 		rew_factor_file.open("rew_factor.dat");
 		vmd_file.open("vmd.xyz");
 		vmd_file2.open("vmd2.xyz");
-		file_fsum.open("fsum_N"+std::to_string(2-(int) polymers[0].connected)+"_P"+std::to_string(polymers[0].num_beads)+".dat");
+		file_fsum.open("fsum_N"+std::to_string(2-(int) polymers[0].connected)+"_P"+std::to_string(num_beads)+".dat");
 		file_fsum << "0\t";
 		for(int bin=0; bin<hist_c_num_bins; ++bin)
 			file_fsum << hist_c_min + bin*hist_c_resolution << "\t\t";
@@ -120,12 +127,12 @@ void Simulation::setup()
 	vmd_file.precision(8);
 	vmd_file2.precision(8);
 	std::cout << iteration_nbr << std::endl;
-	std::cout << "cumulated time = " << non_sampling_time + sampling_time << ", P = " << polymers[0].num_beads 
+	std::cout << "cumulated time = " << non_sampling_time + sampling_time << ", P = " << num_beads 
 				<< ", sign = " << sign << ", dt = " << dt_md << ", conn = " << (int)polymers[0].connected << std::endl;
 	std::time_t t = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
-	logfile.open("logfile_P"+std::to_string(polymers[0].num_beads)+"_"+std::to_string(iteration_nbr));
+	logfile.open("logfile_P"+std::to_string(num_beads)+"_"+std::to_string(iteration_nbr));
 	logfile << std::ctime(&t);
-	logfile << "P=" << polymers[0].num_beads << " dim=" << polymers[0][0].size() << " dt=" << dt_md 
+	logfile << "P=" << num_beads << " dim=" << dim << " dt=" << dt_md 
 			<< " sampl_time=" << sampling_time
 			<< " samples=" << std::round(sampling_time/dt_sample) << " T=" << temperature << std::endl << std::endl;
 	logfile << "Block\tExc_const";
@@ -158,7 +165,7 @@ void Simulation::read_input_coords()
 			getline(vels_file,line2);
 			std::istringstream iss2(line2);
 			double number;
-			for(int d=0; d<pol[0].size(); ++d)
+			for(int d=0; d<dim; ++d)
 			{
 				iss >> number;
 				pol[bead][d] = number;
@@ -174,11 +181,11 @@ void Simulation::initialize_coords_simple()
 	for(int n=0; n<polymers.size(); ++n)
 	{
 		Polymer& pol = polymers[n];
-		for(int bead=0; bead<pol.num_beads; ++bead)
+		for(int bead=0; bead<num_beads; ++bead)
 		{
-			for(int d=0; d<pol[0].size(); ++d)
+			for(int d=0; d<dim; ++d)
 			{
-				pol[bead][d] = length_scale * (1.5 + bead*0.01) *std::pow(-1,n);
+				pol[bead][d] = length_scale * (1.5 + bead*0.01) * (1.0 + 0.5*n) * std::pow(-1,n);
 				//pol[bead][d] = length_scale * ((double) bead/pol.num_beads + 1.5) * std::pow(-1,n);
 				pol.vels[bead][d] = 0.0;
 				pol.forces[bead][d] = 0.0;
@@ -589,7 +596,7 @@ void Simulation::stop()
 	
 	std::ofstream bde_hist_file("CV_distributions.dat");
 	//std::ofstream weighted_en_file("Energy_distr.dat");
-	//double rew_factor_avg = bias.get_rew_factor_avg();
+	double rew_factor_avg = bias.get_rew_factor_avg();
 	double norm=0;
 	for(int bin=0; bin<bde_hist_num_bins; ++bin)
 		norm += bde_hist[bin];
@@ -607,7 +614,7 @@ void Simulation::stop()
 		//weighted_en_file << s << "\t" << weight_en_hist[bin]/(rew_factor_avg*bde_hist_res) << std::endl;
 	}
 	bde_hist_file.close();
-	weighted_en_file.close();
+	//weighted_en_file.close();
 	
 	std::string particles;
 	if(polymers[0].connected)
@@ -718,7 +725,7 @@ void Simulation::update_exc(bool count_to_average)
 		exchange_factor = 1.0;
 	}
 	double tmp = 0;
-	if(polymers[0].connected)
+	/*if(polymers[0].connected)
 	{
 		for(int bead=0; bead<num_beads; ++bead)
 			tmp += std::exp(exc_exponent(bead));
@@ -732,7 +739,17 @@ void Simulation::update_exc(bool count_to_average)
 		//e_s = std::exp(-exc_exponent(polymers[0].num_beads-1));
 		e_s = tmp/num_beads;
 		exchange_factor = 1.0 + sign*e_s;
+	}*/
+	pos_weight = 0;
+	neg_weight = 0;
+	for(const Graph& graph : graphs)
+	{
+		pos_weight += graph.get_weight(polymers,true);
+		neg_weight += graph.get_weight(polymers,false);
 	}
+	exchange_factor = pos_weight - neg_weight;
+	e_s = std::abs(exchange_factor-1);
+	//std::cout << pos_weight << "\t" << neg_weight << std::endl; // 
 	if(count_to_average)
 	{
 		double exc_weighted = exchange_factor * bias.get_rew_factor();

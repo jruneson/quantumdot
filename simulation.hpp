@@ -15,6 +15,7 @@
 #include "observable.hpp"
 #include "GLE-OPT.hpp"
 #include "timer.hpp"
+#include "graph.hpp"
 
 #ifndef SIM_HPP
 #define SIM_HPP
@@ -30,6 +31,7 @@ public:
 private:
 	const int num_parts;
 	const int num_beads;
+	const int dim;
 	std::vector<Polymer> polymers;
 	const double dt_md;
 	const double dt_sample;
@@ -63,6 +65,8 @@ private:
 	const double exc_const;
 	
 	double exchange_factor;
+	double pos_weight;
+	double neg_weight;
 	double exc_sum;
 	double exc_avg;
 	double exc_avg_sq;
@@ -73,6 +77,7 @@ private:
 	double e_s_avg; //<exp(-s)>
 	double e_s_avg_sq;
 	
+	std::vector<Graph> graphs;
 	std::map<int,Observable> obs;	
 	std::vector<double> histogram; //pair correlation function. 
 	std::vector<double> histogram_avg;

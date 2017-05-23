@@ -27,7 +27,15 @@ int main(int argc, char* argv[])
 	//std::vector<double> taus = {1.0,0.5,0.3,0.2,0.1,0.067,0.05};//,0.067,0.05,0.04};
 	//std::vector<double> taus = {0.067};
 	Parameters params;
-	params.read_file("configuration.cfg");
+	try
+	{
+		params.read_file("configuration.cfg");
+	}
+	catch(const std::exception& e)
+	{
+		std::cout << "exception: " << e.what() << std::endl;
+		return 0;
+	}
 	params.calculate_dependencies();
 	std::ofstream results_file;
 	if(!continue_sim)

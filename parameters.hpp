@@ -29,6 +29,7 @@ public:
 	int num_bins;
 	int num_bins_2d;
 	int sign;
+	int total_spin; //In halves 
 	bool with_thermostat;
 	bool metad_on;
 	bool more_output;

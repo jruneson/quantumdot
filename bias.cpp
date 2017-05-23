@@ -14,12 +14,12 @@ Bias::Bias(const Parameters& params, bool cont_sim) : id(params.cv_id), sign(par
 	if(cont_sim)
 	{
 		cv_centers_file.open("cv_centers.dat",std::ios_base::app);
-		heights_file.open("heights.dat",std::ios_base::app);		
+		//heights_file.open("heights.dat",std::ios_base::app);		
 	}
 	else
 	{
 		cv_centers_file.open("cv_centers.dat");
-		heights_file.open("heights.dat");
+		//heights_file.open("heights.dat");
 	}
 	v_spline = Spline(spline_step);
 	vder_spline = Spline(spline_step);
@@ -328,8 +328,8 @@ void Bias::update_bias(const std::vector<Polymer>& pols, double beta, double t, 
 		double h = first_height * std::exp(-beta/(bias_factor-1.0)*calc_bias(cv_now));
 		cv_centers.push_back(cv_now);
 		heights.push_back(h);
-		cv_centers_file << t << "\t" << cv << std::endl;
-		heights_file << t << "\t" << h << std::endl;
+		cv_centers_file << t << "\t" << cv << "\t" << h << std::endl;
+		//heights_file << t << "\t" << h << std::endl;
 		create_splines();
 		update_transient(beta);
 	}
