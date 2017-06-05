@@ -5,6 +5,7 @@
 
 #include "simulation.hpp"
 #include "parameters.hpp"
+#include "graph.hpp"
 
 
 
@@ -50,6 +51,16 @@ int main(int argc, char* argv[])
 		results_file.open("results.dat", std::ios_base::app);
 	results_file.precision(10);
 
+	std::vector<Graph> graphs;
+	if(params.sign==0)
+		graphs.push_back(Graph(params,1));
+	else
+	{
+		int num_graphs = params.num_parts; //Needs to be modified for N>3
+		for(int id=1; id<=num_graphs; ++id)
+			graphs.push_back(Graph(params,id));
+	}
+	
 	if(0)
 	{
 		std::vector<double> betas = {0.15,0.3,0.5,1.0,2.0,3.0,4.0};
@@ -57,24 +68,24 @@ int main(int argc, char* argv[])
 		{
 			params.beta = beta;
 			params.calculate_dependencies();
-			Simulation sim(params, results_file, continue_sim);
+			Simulation sim(params, results_file, continue_sim, graphs);
 			sim.run();
 		}
 	}
 	if(0)
 	{
-		std::vector<double> taus = {2.0,1.0,0.5,0.3,0.2,0.15,0.1};
+		std::vector<double> taus = {1.0,0.3,0.2,0.15,0.1,0.067,0.05};
 		for(auto tau : taus)
 		{
 			params.tau = tau;
 			params.calculate_dependencies();
-			Simulation sim(params, results_file, continue_sim);
+			Simulation sim(params, results_file, continue_sim, graphs);
 			sim.run();
 		}
 	}
 	if(1)
 	{
-		Simulation sim(params, results_file, continue_sim);
+		Simulation sim(params, results_file, continue_sim, graphs);
 		sim.run();
 	}
 	

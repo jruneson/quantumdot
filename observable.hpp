@@ -9,6 +9,7 @@
 #include "point.hpp"
 #include "parameters.hpp"
 #include "bias.hpp"
+#include "graph.hpp"
 
 #ifndef OBSERVABLE_HPP
 #define OBSERVABLE_HPP
@@ -18,7 +19,7 @@ public:
 	Observable(int,const Parameters&);
 	
 	void measure(const std::vector<Polymer>&, const Interaction&, double, 
-				double, double, double);
+				 double, double, const std::vector<Graph>&);
 	void print_measure(double, double, double);
 	
 	void set_zero();
@@ -52,13 +53,13 @@ private:
 	const double virial_offset;
 	const double exc_const;
 	const double exc_der_const;
-	const int sign;
+	//const int sign;
 
 	
 	double potential_energy(const std::vector<Polymer>&, const Interaction&) const;
 	double kinetic_energy(const std::vector<Polymer>&, const Interaction&) const;
 	double total_energy(const std::vector<Polymer>&, const Interaction&) const;
-	double kinetic_energy_virial(const std::vector<Polymer>&, const Interaction&) const;
+	double kinetic_energy_virial(const std::vector<Polymer>&) const;
 	double interparticle_energy(const std::vector<Polymer>&, const Interaction&) const;
 	double potential_energy_cl(const std::vector<Polymer>&, const Interaction&) const;
 	double kinetic_energy_cl(const std::vector<Polymer>&) const;
@@ -66,9 +67,12 @@ private:
 	double spring_energy_cl(const std::vector<Polymer>&, const Interaction&) const;
 	
 	double exc_der(const std::vector<Polymer>&) const;
-	double exc_der_virial(const std::vector<Polymer>&, const Interaction&, double) const;
+	double virial_terms(const std::vector<Polymer>&, const std::vector<Graph>&) const;
 	double scalar_product(const std::vector<Polymer>&, int) const;
-	double scalar_product_conn(const std::vector<Polymer>&, int, int) const;
+	//double scalar_product_conn(const std::vector<Polymer>&, int, int) const;
+	
+	Point calc_centroid(const std::vector<Polymer>&,const std::vector<int>&) const;
+	Force calc_total_force(const std::vector<Polymer>&,const std::vector<int>&) const;
 	
 	bool print;
 		

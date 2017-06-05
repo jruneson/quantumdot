@@ -24,7 +24,7 @@
 
 class Simulation{
 public:
-	Simulation(const Parameters&, std::ofstream&, bool);
+	Simulation(const Parameters&, std::ofstream&, bool, const std::vector<Graph>&);
 
 	void run();
 	
@@ -58,11 +58,13 @@ private:
 	int iteration_nbr;
 	const bool cont_sim; //continue a previous simulation
 	const bool more_output;
+	bool printed_warning;
 	
 	const double beta;
 	const double tau;
 	const int sign;
 	const double exc_const;
+	const int spin;
 	
 	double exchange_factor;
 	double pos_weight;
@@ -107,7 +109,7 @@ private:
 	double hist_de_min=-100;
 	double hist_de_width;
 	double hist_de_num_bins;
-	double hist_c_min=-1;
+	double hist_c_min=-2;
 	double hist_c_max=0;
 	double hist_c_resolution=0.1;
 	double hist_c_num_bins;

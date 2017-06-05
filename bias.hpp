@@ -12,20 +12,21 @@
 
 class Bias{
 public:
-	Bias(const Parameters&, bool);
+	Bias(const Parameters&, bool, const std::vector<Graph>&);
 		
-	void update_cv(const std::vector<Polymer>&, double);
-	void update_cv_rew(const std::vector<Polymer>&, double, double);
+	void update_cv(const std::vector<Polymer>&);
+	void update_cv_rew(const std::vector<Polymer>&, double);
 	double get_cv() const;
 
-	void update_bias(const std::vector<Polymer>&,double,double,double);
+	void update_bias(const std::vector<Polymer>&,double,double);
 	void restore_splines_transient(double);
 	
 	double energy_diff(const std::vector<Polymer>& pols) const;
-	Force calc_force(const std::vector<Polymer>&, int, int,double) const;
+	Force calc_force(const std::vector<Polymer>&, int, int) const;
 	double get_rew_factor() const;
 	double get_rew_factor_avg() const;
 	void set_new_block();
+	void update_rew_factor_avg(int);
 	double get_rew_factor_block() const;
 	void set_rew_factor_avg(double,double);
 	const double get_gauss_width() const;
@@ -46,6 +47,7 @@ private:
 	const double bias_factor;
 	const double gauss_width;
 	const double first_height;
+	const int biased_graph;
 	const int sign;
 	const double exc_const;
 	const double exponent_factor;
@@ -53,18 +55,20 @@ private:
 	std::vector<double> cv_centers;
 	double regularization;
 	
+	const std::vector<Graph>& graphs;
+	
 	Spline v_spline;
 	Spline vder_spline;
 	const double spline_step;
 	
 	double calc_bias(double) const; //calculate bias explicitly (only used when creating spline)
 	double calc_bias_der(double) const;
-	double coll_var(const std::vector<Polymer>&,double) const;
+	double coll_var(const std::vector<Polymer>&) const;
 	double coll_var_der(const std::vector<Polymer>&) const;
 	double scalar_product(const std::vector<Polymer>&, int) const;
 	double scalar_product_conn(const std::vector<Polymer>&, int, int) const;
 	double gaussian(double, double, double) const;
-	Force cv_grad(const std::vector<Polymer>&, int, int,double) const;
+	Force cv_grad(const std::vector<Polymer>&, int, int) const;
 	double sum_exp(const std::vector<Polymer>&, int) const;
 	double sum_exp_distcorr(const std::vector<Polymer>&) const;
 	Force two_terms(const std::vector<Polymer>&, int, int) const;

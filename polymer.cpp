@@ -9,8 +9,10 @@ Polymer::Polymer(const Parameters& params) : num_beads(params.num_beads),
 	{
 		coords.push_back(Point(params));
 		vels.push_back(Point(params));
-		forces.push_back(Force(params));
-		fast_forces.push_back(Force(params));
+		ext_forces.push_back(Force(params));
+		twopart_forces.push_back(Force(params));
+		bias_forces.push_back(Force(params));
+		spring_forces.push_back(Force(params));
 	}
 }
 
@@ -36,7 +38,7 @@ void Polymer::move()
 void Polymer::update_vels()
 {
 	for(int bead=0; bead<num_beads; ++bead)
-		vels[bead] += (forces[bead]+fast_forces[bead]) * dt_2m;
+		vels[bead] += (ext_forces[bead]+spring_forces[bead]+twopart_forces[bead]+bias_forces[bead]) * dt_2m;
 }
 
 Point Polymer::mean() const
@@ -46,4 +48,9 @@ Point Polymer::mean() const
 		mean_point += coords[bead];
 	mean_point *= 1.0/num_beads;
 	return mean_point;
+}
+
+Force Polymer::get_potential_force(int bead) const //forces without bias
+{
+	return ext_forces[bead]+twopart_forces[bead];
 }

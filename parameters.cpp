@@ -31,8 +31,8 @@ void Parameters::read_file(std::string filename)
 			{
 				iss >> to_bool;
 				connected = (to_bool != 0);
-				if(connected)
-					throw std::runtime_error("It's not safe to set connected=1 at the moment");
+				//if(connected)
+				//	throw std::runtime_error("It's not safe to set connected=1 at the moment");
 			}
 			else if(name=="sampling_time")
 				iss >> sampling_time;
@@ -54,15 +54,22 @@ void Parameters::read_file(std::string filename)
 				iss >> num_bins_2d;
 			else if(name=="sign")
 				iss >> sign;
-			else if(name=="total_spin_times_two")
+			else if(name=="spin_times_two")
 			{
-				iss >> total_spin;
-				if( (num_parts % 2) != (total_spin % 2)) //If num_parts and spin are not both even or both odd
+				iss >> spin;
+				if( (num_parts % 2) != (spin % 2)) //If num_parts and spin are not both even or both odd
 				//if(((num_parts % 2) && (!(total_spin % 2))) || ((!(num_parts % 2)) && (total_spin%2))) //If number of particles is odd and spin is even
 					throw std::runtime_error("Invalid total spin!");
-				if(total_spin > num_parts)
+				if(spin > num_parts)
 					throw std::runtime_error("Total spin is too high!");
 			}
+			else if(name=="use_projection")
+			{
+				iss >> to_bool;
+				spin_proj = (to_bool != 0);
+			}
+			else if(name=="biased_graph")
+				iss >> biased_graph;
 			else if(name=="with_thermostat")
 			{
 				iss >> to_bool;
@@ -167,7 +174,7 @@ void Parameters::calculate_dependencies()
 	exc_der_const = sign * num_beads*m_hbar2/(beta*beta);
 	kin_offset = num_parts*num_beads*dim/(2.0*beta);
 	//if(connected)
-		virial_offset = dim/(2.0*beta);
+	virial_offset = dim/(2.0*beta);
 	//else
 	//	virial_offset = num_parts*dim/(2.0*beta);
 	length_scale = std::sqrt(1.0/(m_hbar2*hw));

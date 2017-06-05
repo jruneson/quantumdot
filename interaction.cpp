@@ -84,48 +84,59 @@ Force Interaction::two_particle_force(const Point& p1, const Point& p2) const
 		{
 			return (p1-p2)*(electrost_factor/std::pow(p1.dist(p2),3));
 		}
+		default:
+			return Point(p1.size()); //No inter-particle interaction
 	}
-	return Point(p1.size()); //No inter-particle interaction
 }
 
 
 //Force int_force(Point p);
 
-void Interaction::update_forces(std::vector<Polymer>& polymers, const Bias& bias, double e_s)
+void Interaction::update_forces(std::vector<Polymer>& polymers, const Bias& bias)
 {
-	update_fast_forces(polymers);
+	/*update_fast_forces(polymers);
 	time_since_slow_update += dt_fast;
 	if(time_since_slow_update >= dt_slow)
+	{*/
+	for(int n=0; n<polymers.size(); ++n)
 	{
-		for(int n=0; n<polymers.size(); ++n)
+		Polymer& pol = polymers[n];
+		for(int bead=0; bead<pol.num_beads; ++bead)
 		{
-			Polymer& pol = polymers[n];
-			for(int bead=0; bead<pol.num_beads; ++bead)
+			for(int m=0; m<n; ++m)
 			{
-				pol.forces[bead] = ext_force(pol[bead])/pol.num_beads
-					+ bias.calc_force(polymers,bead,n,e_s);
+				Force f = two_particle_force(pol[bead],polymers[m][bead])/polymers[0].num_beads;
+				pol.twopart_forces[bead] = f;
+				polymers[m].twopart_forces[bead] = f*(-1);
 			}
-			if(pol.connected)
-			{
-				int num_beads = pol.num_beads;
-				for(int bead=1; bead<num_beads-1; ++bead)
-					pol.forces[bead] += spring_force(pol[bead-1],pol[bead],pol[bead+1]);
-				const Polymer& other_pol = polymers[polymers.size()-1-n];
-				pol.forces[0] += spring_force(other_pol[num_beads-1],pol[0],pol[1]);
-				pol.forces[num_beads-1] += spring_force(pol[num_beads-2],pol[num_beads-1],other_pol[0]);
-				//std::cout << spring_force(other_pol[num_beads-1],pol[0],pol[1]).dist0() << "\t"
-				//		  << spring_force(pol[num_beads-1],pol[0],pol[1]).dist0() << std::endl;
-			}
-			else
-			{
-				for(int bead=0; bead<pol.num_beads; ++bead)
-					pol.forces[bead] += spring_force(pol[bead-1],pol[bead],pol[bead+1]);
-			}
+			pol.ext_forces[bead] = ext_force(pol[bead])/pol.num_beads;
+			pol.spring_forces[bead] = spring_force(pol[bead-1],pol[bead],pol[bead+1]);
+			pol.bias_forces[bead] = bias.calc_force(polymers,bead,n);
 		}
-		time_since_slow_update = 0;
+
+			
+		if(polymers[0].connected && polymers.size()==2)
+		{
+			int num_beads = pol.num_beads;
+			const Polymer& other_pol = polymers[polymers.size()-1-n];
+			pol.spring_forces[0] = spring_force(other_pol[num_beads-1],pol[0],pol[1]);
+			pol.spring_forces[num_beads-1] = spring_force(pol[num_beads-2],pol[num_beads-1],other_pol[0]);
+			
+			//pol.forces[0] += spring_force(other_pol[num_beads-1],pol[0],pol[1]);
+			//pol.forces[num_beads-1] += spring_force(pol[num_beads-2],pol[num_beads-1],other_pol[0]);
+			//std::cout << spring_force(other_pol[num_beads-1],pol[0],pol[1]).dist0() << "\t"
+			//		  << spring_force(pol[num_beads-1],pol[0],pol[1]).dist0() << std::endl;
+		}
+		/*else
+		{
+			for(int bead=0; bead<pol.num_beads; ++bead)
+				pol.forces[bead] += spring_force(pol[bead-1],pol[bead],pol[bead+1]);
+		}*/
 	}
+	//}
 }
 
+/*
 void Interaction::update_fast_forces(std::vector<Polymer>& polymers)
 {
 	if(interaction_id!=0)
@@ -143,7 +154,8 @@ void Interaction::update_fast_forces(std::vector<Polymer>& polymers)
 			}
 		}
 	}
-}
+}*/
+
 
 double Interaction::get_spring_const() const
 {

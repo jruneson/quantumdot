@@ -6,7 +6,8 @@
 
 //Simulation::Simulation() : dt_(0.1), dt_2m_(0.05){}
 
-Simulation::Simulation(const Parameters& params, std::ofstream& _res_file, bool continue_sim)
+Simulation::Simulation(const Parameters& params, std::ofstream& _res_file, bool continue_sim,
+					   const std::vector<Graph>& graphs_in)
 	: dt_md(params.dt_md), dt_sample(params.dt_sample), num_parts(params.num_parts), interac(Interaction(params)),
 	  length_scale(params.length_scale), num_blocks(params.num_blocks),
 	  //steps_per_sample(params.steps_per_sample),
@@ -18,19 +19,19 @@ Simulation::Simulation(const Parameters& params, std::ofstream& _res_file, bool 
 	  non_sampling_time(params.non_sampling_time),
 	  sampling_time(params.sampling_time), sampling_time_per_block(params.sampling_time/params.num_blocks),
 	  beta(params.beta), sign(params.sign), exc_const(params.exc_const),
-	  tau(params.tau), bias(Bias(params,continue_sim)),
+	  tau(params.tau), bias(Bias(params,continue_sim,graphs_in)),
+	  graphs(graphs_in), spin(params.spin),
 	  bias_update_time(params.bias_update_time), cont_sim(continue_sim),
 	  more_output(params.more_output)
 {
 	for(int n=0; n<num_parts; ++n)
 		polymers.push_back(Polymer(params));
-	int num_graphs = num_parts; //Needs to be modified for N>3 
-	for(int id=1; id<=num_graphs; ++id)
-		graphs.push_back(Graph(params,id));
+
 	//
 	for(const Graph& graph: graphs)
 		std::cout << graph.get_id() << "\t" << graph.get_mult() << "\t" << graph.get_sign() << std::endl;
 	//
+	
 	finished = false;
 	block = 0;
 	time_sampled = 0;
@@ -86,6 +87,8 @@ Simulation::Simulation(const Parameters& params, std::ofstream& _res_file, bool 
 		std::cout << "exception: " << e.what() << std::endl;
 		return;
 	}
+	
+	printed_warning = false;
 }
 
 
@@ -128,7 +131,7 @@ void Simulation::setup()
 	vmd_file2.precision(8);
 	std::cout << iteration_nbr << std::endl;
 	std::cout << "cumulated time = " << non_sampling_time + sampling_time << ", P = " << num_beads 
-				<< ", sign = " << sign << ", dt = " << dt_md << ", conn = " << (int)polymers[0].connected << std::endl;
+				<< ", spin = " << spin << ", dt = " << dt_md << ", conn = " << (int)polymers[0].connected << std::endl;
 	std::time_t t = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
 	logfile.open("logfile_P"+std::to_string(num_beads)+"_"+std::to_string(iteration_nbr));
 	logfile << std::ctime(&t);
@@ -188,7 +191,7 @@ void Simulation::initialize_coords_simple()
 				pol[bead][d] = length_scale * (1.5 + bead*0.01) * (1.0 + 0.5*n) * std::pow(-1,n);
 				//pol[bead][d] = length_scale * ((double) bead/pol.num_beads + 1.5) * std::pow(-1,n);
 				pol.vels[bead][d] = 0.0;
-				pol.forces[bead][d] = 0.0;
+				//pol.forces[bead][d] = 0.0;
 			}
 		}
 	}
@@ -254,8 +257,8 @@ void Simulation::read_old_measurements()
 		}
 	}
 	bias.restore_splines_transient(beta);
-	update_exc(false);
-	bias.update_cv(polymers,e_s);
+	//update_exc(false);
+	bias.update_cv(polymers);
 	infile.close();
 }
 
@@ -276,14 +279,14 @@ void Simulation::run_wo_sampling()
 	double time_before_sampl=0;
 	while(time_before_sampl<non_sampling_time)
 	{
-		update_exc(false);
+		//update_exc(false);
 		verlet_step();
 		time_before_sampl += dt_md;
 		bias_update_counter += dt_md;
 		overall_time += dt_md;
 		if(bias_update_counter >= bias_update_time)
 		{
-			bias.update_bias(polymers,beta,overall_time,e_s);
+			bias.update_bias(polymers,beta,overall_time);
 			//bias.update_cv(polymers,beta);
 			bias_update_counter = 0;
 		}
@@ -303,7 +306,7 @@ void Simulation::run()
 
 void Simulation::run_block()
 {
-	update_exc(false);
+	//update_exc(false);
 	double time_since_last_sample=0;
 	while(time_sampled<sampling_time_per_block*(block+1))
 	{
@@ -316,13 +319,13 @@ void Simulation::run_block()
 		++samples;
 		time_sampled += dt_sample;
 		overall_time += dt_sample;
+		bias.update_cv_rew(polymers,beta);
 		update_exc(true);
-		bias.update_cv_rew(polymers,beta,e_s);
 		measure();
 		bias_update_counter += dt_sample;
 		if(bias_update_counter >= bias_update_time) //check if remainder is 0
 		{
-			bias.update_bias(polymers,beta,overall_time,e_s);
+			bias.update_bias(polymers,beta,overall_time);
 			//bias.update_cv(polymers,exchange_factor);
 			bias_update_counter = 0;
 		}
@@ -346,8 +349,8 @@ void Simulation::verlet_step()
 		pol.move();
 	}
 	update_exc(false);
-	bias.update_cv(polymers,e_s);
-	interac.update_forces(polymers,bias,e_s);
+	bias.update_cv(polymers);
+	interac.update_forces(polymers,bias);
 	for(Polymer& pol: polymers)
 		pol.update_vels();
 	gle->run();
@@ -357,8 +360,13 @@ void Simulation::verlet_step()
 void Simulation::measure()
 {
 	for(auto& pair : obs)
-		pair.second.measure(polymers,interac,overall_time,exchange_factor,e_s,bias.get_rew_factor());	
+		pair.second.measure(polymers,interac,overall_time,exchange_factor,bias.get_rew_factor(),graphs);	
 	update_histogram();
+	if((bias.get_cv()!=bias.get_cv())&&(!printed_warning))
+	{
+		std::cout << "time: " << overall_time << "\tWarning, CV is NaN!" << std::endl;
+		printed_warning = true;
+	}
 	if(more_output)
 	{
 		exc_file << overall_time << "\t" << exchange_factor << std::endl;
@@ -372,15 +380,15 @@ void Simulation::measure()
 void Simulation::update_avgs()
 {
 	double tmp = exc_sum/samples;
-	double tmp2 = e_s_sum/samples;
+	//double tmp2 = e_s_sum/samples;
 	exc_avg = (exc_avg*block + tmp) / (block+1.0);
 	exc_avg_sq = (exc_avg_sq*block + tmp*tmp)/(block+1.0);
 	exc_sq_avg = (exc_sq_avg*block + exc_sq)/(block+1.0);
 	exc_sq = 0;
 	exc_sum = 0;
-	e_s_avg = (e_s_avg*block + tmp2)/(block+1.0);
-	e_s_avg_sq = (e_s_avg_sq*block + tmp2*tmp2)/(block+1.0);
-	e_s_sum = 0;
+	//e_s_avg = (e_s_avg*block + tmp2)/(block+1.0);
+	//e_s_avg_sq = (e_s_avg_sq*block + tmp2*tmp2)/(block+1.0);
+	//e_s_sum = 0;
 	for(auto& ob : obs)
 	{
 		ob.second.update_avg(samples,tmp);
@@ -411,6 +419,7 @@ void Simulation::update_avgs()
 			histogram_2d[bin1][bin2] = 0;
 		}
 	}
+	bias.update_rew_factor_avg(block);
 }
 
 void Simulation::update_histogram()
@@ -531,8 +540,8 @@ void Simulation::stop()
 	double rew_norm = bias.get_rew_factor_avg();
 	logfile << "Exc_factor\t" << exc_avg/rew_norm << "\t" << simple_uncertainty(exc_avg,exc_avg_sq)/rew_norm 
 			<< "\t" << std::sqrt(exc_sq_avg-exc_avg*exc_avg)/rew_norm << std::endl; // sqrt(n/(n-1)) unnecessary for large n
-	logfile << "Exp_en_diff\t" << e_s_avg/rew_norm << "\t" << simple_uncertainty(e_s_avg,e_s_avg_sq)/rew_norm
-			<< std::endl;
+	//logfile << "Exp_en_diff\t" << e_s_avg/rew_norm << "\t" << simple_uncertainty(e_s_avg,e_s_avg_sq)/rew_norm
+	//		<< std::endl;
 	res_file << beta;//polymers[0].num_beads;
 	//res_file << 2-int(polymers[0].connected);//polymers[0].num_beads;//sampling_time;
 	for(const auto& pair : obs)
@@ -549,12 +558,12 @@ void Simulation::stop()
 	}
 	res_file << std::endl;
 	
-	std::ofstream hist_file("Pair_correlation.dat");
+	std::ofstream pair_file("Pair_correlation.dat");
 	std::ofstream hist_file_1d("Prob_dist1d.dat");
 
 	for(int bin = 0; bin<num_bins; ++bin)
 	{
-		hist_file << hist_size*((double) bin/num_bins) << "\t" << histogram_avg[bin]
+		pair_file << hist_size*((double) bin/num_bins) << "\t" << histogram_avg[bin]
 					<< "\t" << simple_uncertainty(histogram_avg[bin],histogram_sq_avg[bin]) << std::endl;
 		hist_file_1d << hist_size_1d*((double) bin/num_bins) + hist_1d_min;
 		for(int d=0; d<polymers[0][0].size(); ++d)
@@ -562,7 +571,7 @@ void Simulation::stop()
 						 << simple_uncertainty(histogram_1d_avg[d][bin],histogram_1d_sq_avg[d][bin]);
 		hist_file_1d << std::endl;
 	}
-	hist_file.close();
+	pair_file.close();
 	hist_file_1d.close();
 	
 	if(polymers[0][0].size()==2)
@@ -724,7 +733,7 @@ void Simulation::update_exc(bool count_to_average)
 	{
 		exchange_factor = 1.0;
 	}
-	double tmp = 0;
+	//double tmp = 0;
 	/*if(polymers[0].connected)
 	{
 		for(int bead=0; bead<num_beads; ++bead)
@@ -748,15 +757,15 @@ void Simulation::update_exc(bool count_to_average)
 		neg_weight += graph.get_weight(polymers,false);
 	}
 	exchange_factor = pos_weight - neg_weight;
-	e_s = std::abs(exchange_factor-1);
+	//e_s = std::abs(exchange_factor-1);
 	//std::cout << pos_weight << "\t" << neg_weight << std::endl; // 
 	if(count_to_average)
 	{
 		double exc_weighted = exchange_factor * bias.get_rew_factor();
-		double e_s_weighted = e_s * bias.get_rew_factor();
+		//double e_s_weighted = e_s * bias.get_rew_factor();
 		exc_sum += exc_weighted;
 		exc_sq = (exc_sq*samples + exc_weighted*exc_weighted)/(samples+1.0);
-		e_s_sum += e_s_weighted;
+		//e_s_sum += e_s_weighted;
 	}
 }
 

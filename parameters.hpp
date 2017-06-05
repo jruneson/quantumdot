@@ -29,7 +29,8 @@ public:
 	int num_bins;
 	int num_bins_2d;
 	int sign;
-	int total_spin; //In halves 
+	int spin; //In halves 
+	bool spin_proj; //Tells if "spin" means z projection or total spin
 	bool with_thermostat;
 	bool metad_on;
 	bool more_output;
@@ -40,6 +41,7 @@ public:
 	double first_height_in_kBT;
 	double first_height;
 	double bias_update_time;
+	int biased_graph;
 	
 	double wigner_parameter; //electrostatic energy scale / hw
 	double hw; //in meV
