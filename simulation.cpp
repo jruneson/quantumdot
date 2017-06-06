@@ -75,8 +75,8 @@ Simulation::Simulation(const Parameters& params, std::ofstream& _res_file, bool 
 	hist_c.assign(hist_c_num_bins,0);
 	
 	bias_update_counter = 0;
-	movie_start_time = 585;//non_sampling_time + sampling_time/2.0;
-	movie_end_time = 595;// movie_start_time + dt_sample*10000;
+	movie_start_time = 0;//non_sampling_time + sampling_time/2.0;
+	movie_end_time = 50;// movie_start_time + dt_sample*10000;
 	try 
 	{
 		gle = new GLE(polymers, dt_md, temperature, polymers[0].mass, polymers[0].num_beads, 
@@ -370,7 +370,8 @@ void Simulation::measure()
 	if(more_output)
 	{
 		exc_file << overall_time << "\t" << exchange_factor << std::endl;
-		cv_file << overall_time << "\t" << bias.get_cv() << "\t" << bias.energy_diff(polymers) << std::endl;
+		cv_file << overall_time << "\t" << bias.get_cv() << "\t" << bias.energy_diff(polymers) << //std::endl;
+					"\t" << polymers[0].bias_forces[0][0] << std::endl;
 		rew_factor_file << overall_time << "\t" << bias.get_rew_factor() << std::endl;
 	}
 	if(overall_time>movie_start_time && overall_time<movie_end_time)

@@ -39,6 +39,12 @@ void Polymer::update_vels()
 {
 	for(int bead=0; bead<num_beads; ++bead)
 		vels[bead] += (ext_forces[bead]+spring_forces[bead]+twopart_forces[bead]+bias_forces[bead]) * dt_2m;
+	/*{
+		vels[bead] += ext_forces[bead]*dt_2m;
+		vels[bead] += spring_forces[bead]*dt_2m;
+		vels[bead] += twopart_forces[bead]*dt_2m;
+		vels[bead] += bias_forces[bead]*dt_2m;
+	}*/
 }
 
 Point Polymer::mean() const

@@ -29,7 +29,7 @@ Bias::Bias(const Parameters& params, bool cont_sim, const std::vector<Graph>& gr
 	rew_factor_block = 0;
 	transient=0;
 	count = 0;
-	regularization = 1e-5;
+	regularization = 1e-4;
 }
 
 double Bias::energy_diff(const std::vector<Polymer>& pols) const
@@ -84,11 +84,19 @@ double Bias::coll_var(const std::vector<Polymer>& pols) const
 		case 3: //distance-corrected cv
 			tmp = sum_exp_distcorr(pols);
 			return -std::log(tmp/pols[0].num_beads);
-		/*case 4:
-			if(pols[0].connected)
-				return -std::log(std::abs(e_s+sign)+regularization);
+		case 4:
+			pos_weight = 0;
+			neg_weight = 0;
+			for(const Graph& graph : graphs)
+			{
+				pos_weight += graph.get_weight(pols,true);
+				neg_weight += graph.get_weight(pols,false);
+			}
+			return std::log(std::abs(pos_weight-neg_weight));
+			/*if(pols[0].connected)
+				return -std::log(std::abs(e_s+sign));
 			else
-				return -std::log(std::abs(1+sign*e_s)+regularization);*/
+				return -std::log(std::abs(1+sign*e_s)+regularization);
 			/*dist = sq_distAB(pols);
 			for(int bead=0; bead<pols[0].num_beads; ++bead)
 				tmp += std::exp(-exc_const*(scalar_product(pols,bead)-dist));
@@ -255,8 +263,16 @@ Force Bias::cv_grad(const std::vector<Polymer>& pols, int bead, int part) const
 			tmp2 = pols[0][bead]-pols[1][bead]-(pols[0][bead-1]-pols[1][bead-1]);
 			tmp += tmp2*std::exp(0.5*exc_const*tmp2.sqdist0());
 			return tmp*(-std::pow(-1,part)*exc_const/sum_exp_distcorr(pols));
-		/*case 4:
-			tmp = two_terms(pols,bead,part);
+		case 4:
+			for(const Graph& graph : graphs)
+			{
+				pos_weight += graph.get_weight(pols,true);
+				neg_weight += graph.get_weight(pols,false);
+				tmp += graph.get_grad_weight(pols,true,bead,part); //grad W+
+				tmp2 += graph.get_grad_weight(pols,false,bead,part); //grad W-
+			}
+			return (-1)*(tmp - tmp2)/(std::abs(pos_weight-neg_weight));
+		/*	tmp = two_terms(pols,bead,part);
 			tmp3 = std::pow(-1,part)*exc_const/num_beads;
 			if(pols[0].connected)
 			{

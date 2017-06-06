@@ -7,6 +7,8 @@ Interaction::Interaction(Parameters params)
 	  curvature_z(params.curvature_z),
 	  spring_const(params.spring_const),
 	  lj_energy24(24*params.lj_energy), 
+	  lj_energy48(48*params.lj_energy),
+	  lj_energy4(4*params.lj_energy),
 	  lj_length_sq(params.lj_length*params.lj_length),
 	  rcut2(2.5*2.5*params.lj_length*params.lj_length),
 	  interaction_id(params.interaction_id),
@@ -21,7 +23,7 @@ Interaction::Interaction(Parameters params)
 		curvature[2] = curvature_z;
 	
 	double tmp = std::pow(lj_length_sq/rcut2,3);
-	vcut = lj_energy24/6.0 * tmp*(tmp-1);
+	vcut = lj_energy4 * tmp*(tmp-1);
 }
 
 
@@ -43,8 +45,8 @@ double Interaction::two_particle_pot(const Point& p1, const Point& p2) const
 			double sqdist = p1.sqdist(p2);
 			if(sqdist>rcut2)
 				return 0;
-			double tmp = std::pow(lj_length_sq/sqdist,3);
-			return lj_energy24/6.0*tmp*(tmp-1.0)-vcut;
+			double tmp = std::pow(lj_length_sq/sqdist,6);
+			return lj_energy4*tmp-vcut; //lj_energy24/6.0*tmp*(tmp-1.0)-vcut;
 		}
 		case 2: //Electrostatic interaction
 		{
@@ -76,9 +78,10 @@ Force Interaction::two_particle_force(const Point& p1, const Point& p2) const
 		{
 			double sqdist = p1.sqdist(p2);
 			if(sqdist>rcut2)
-				break;
-			double tmp = std::pow(lj_length_sq/sqdist,3); // (sigma/r)^6
-			return (p1-p2)*(lj_energy24*(2*tmp*tmp-tmp)/sqdist);
+				return Point(p1.size());
+			double tmp = std::pow(lj_length_sq/sqdist,6); // (sigma/r)^12
+			//std::cout << ((p1-p2)*(lj_energy48*tmp/sqdist)).dist0() << std::endl;
+			return (p1-p2)*(lj_energy48*tmp/sqdist); //(p1-p2)*(lj_energy24*(2*tmp*tmp-tmp)/sqdist);
 		}
 		case 2: //Electrostatic interaction
 		{
@@ -107,7 +110,7 @@ void Interaction::update_forces(std::vector<Polymer>& polymers, const Bias& bias
 			{
 				Force f = two_particle_force(pol[bead],polymers[m][bead])/polymers[0].num_beads;
 				pol.twopart_forces[bead] = f;
-				polymers[m].twopart_forces[bead] = f*(-1);
+				polymers[m].twopart_forces[bead] = (-1) * f;
 			}
 			pol.ext_forces[bead] = ext_force(pol[bead])/pol.num_beads;
 			pol.spring_forces[bead] = spring_force(pol[bead-1],pol[bead],pol[bead+1]);

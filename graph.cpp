@@ -180,7 +180,7 @@ double Graph::get_energy_diff(const std::vector<Polymer>& pols) const
 	double tmp = 0;
 	for(const auto& list : exchange_pairs)
 		tmp += calc_exponent(pols,list);
-	return tmp*exponent_sign;
+	return -tmp*exponent_sign;
 }
 
 Force Graph::get_energy_diff_grad(const std::vector<Polymer>& pols, int bead, int part) const
@@ -195,7 +195,7 @@ Force Graph::get_energy_diff_grad(const std::vector<Polymer>& pols, int bead, in
 	
 	for(const auto& list : exchange_pairs)
 		tmp += grad_exponent(pols,list,bead,part);
-	return tmp*exc_const*exponent_sign;
+	return tmp*exc_const*exponent_sign*(-1);
 }
 
 int Graph::get_id() const

@@ -46,6 +46,10 @@ def plot_cv(f,fig_nr,n=0,opt=None):
         bdE = data[:,2]
         plt.plot(t,1*bdE,label=r'$\beta\Delta E$')
         plt.legend(loc='upper right',fontsize=20)
+    if(opt=='exp'):
+        plt.clf()
+        plt.plot(t,np.exp(cv))
+        plt.plot(t,data[:,3]*100)
         
         
     
@@ -675,11 +679,11 @@ def free_energy_diff(f1,f2,fig_nr,beta=1.0,P=10):
     print("<sign>="+str(np.mean(avg_sign))+"+/-"+str(np.std(avg_sign)/np.sqrt(numblocks)))
     
 def plot_theoretical_energies(fig_nr,d=1):
-    T = np.linspace(1.5,80,100)
+    T = np.linspace(1.5,25,100)
     kB = 1/11.6045
     beta = 1.0/(kB*T)
     tau = 0.1
-    hw = 3
+    hw = 3.0
     tmp = beta/tau
     #P = map(lambda i: int(i), tmp)
     P = tmp.astype(int)
@@ -718,6 +722,28 @@ def plot_theoretical_energies(fig_nr,d=1):
     plt.plot(T,Eb,'k--')
     plt.plot(T,Ef,'k--')
     
+def plot_bennett_vs_T(f,fig_nr):
+    bennett = np.loadtxt(f+'energies_bennett.dat',comments='%')
+    fermion = np.loadtxt(f+'energies_fermion.dat',comments='%')
+    beta = bennett[:,0]
+    Tb = 11.6045/beta
+    d = bennett[:,1]/en_scale
+    derr = bennett[:,2]/en_scale
+    DF = bennett[:,3]/en_scale
+    DFerr = bennett[:,4]/en_scale
+    sgn = bennett[:,5]
+    sgnerr = bennett[:,6]
+    beta2 = fermion[:,0]
+    Tf = 11.6045/beta2
+    f = fermion[:,1]/en_scale
+    ferr = fermion[:,2]/en_scale
+    plt.figure(fig_nr)
+    plt.clf()
+    plt.errorbar(Tb,d+DF,derr+DFerr,color='r',linestyle='',marker='v',label='Bennett method')
+    plt.errorbar(Tf,f,ferr,color='b',linestyle='',marker='.',label='Direct method')
+    plt.xlabel('$T~\mathrm{(K)}$')
+    plt.ylabel(r'$E~(\hbar\omega_0)$')
+    plt.legend(loc='lower right',fontsize=20)
 
 if __name__=="__main__":
     f0 = '../'
@@ -784,29 +810,37 @@ if __name__=="__main__":
     #fi4 ='../ideal/boson/2D/beta2/MetaD/disconnected/'
     fi5 ='../ideal/boson/1D/beta2/MetaD/disconnected/'
     fi6 ='../ideal/boson/1D/beta0-5/MetaD/connected/'
-    fi7 ='../ideal/boson/1D/beta0-5/woMetaD/'
+    fi7 ='../LJ/distinguish/s30/'
+    
+    fbennett = '../ideal/fermion/1D/Energy_vs_T/MetaD/'
 
-    #plot_cv(f1,0,100000,'rw')
-    #plot_cv(f2,1,100000,'rw')
-    #plot_energies_vs_t(f1,0,n=100000)
-    #plot_gauss_data(f1,3,'Wt',name='disc')
-    #plot_gauss_data(fi5,8,'Wt',name='conn')
-    #plot_s_int(f1,4,1,'log')
-    #plt.ylim([0,10])
-    #plt.xlim([-20,30])
-    #plot_s_int(f2,5,1,'log')
-    #plt.ylim([0,10])
-    #plt.xlim([-20,30])
-    #Ws,pW = plot_cont(fi2 ,4,-1,100000,cv='G')
-    #Ws2,pW2 = plot_cont(fi2m,5,-1,100000,cv='G')
-    """plt.figure(6)
-    plt.clf()
-    plt.plot(Ws,pW,'b',label='Without Metadynamics',linewidth=1.5)
-    plt.plot(Ws2,pW2,'r',label='With Metadynamics')
-    plt.legend(loc='upper left',fontsize=22)
-    plt.title('Fermion')
-    plt.xlabel('$W$')
-    plt.ylabel(r'$\log\,p(W)$')"""
+    plot_bennett_vs_T(fbennett,1)
+    plot_theoretical_energies(1,1)
+    
+    #plot_rAB(fi7,2,1)
+    
+    if 0:
+        plot_cv(f1,0,100000,'')
+        plot_cv(f2,1,100000,'')
+        #plot_energies_vs_t(f1,0,n=100000)
+        #plot_gauss_data(fi1,3,'Wt',name='disc')
+        #plot_gauss_data(f2,8,'Wt',name='conn')
+        plot_s_int(f1,4,1,'')
+        plt.ylim([0,2])
+        plt.xlim([-1,15])
+        plot_s_int(f2,5,1,'')
+        plt.ylim([0,2])
+        plt.xlim([-1,15])
+        #Ws,pW = plot_cont(fi2 ,4,-1,100000,cv='G')
+        #Ws2,pW2 = plot_cont(fi2m,5,-1,100000,cv='G')
+        """plt.figure(6)
+        plt.clf()
+        plt.plot(Ws,pW,'b',label='Without Metadynamics',linewidth=1.5)
+        plt.plot(Ws2,pW2,'r',label='With Metadynamics')
+        plt.legend(loc='upper left',fontsize=22)
+        plt.title('Fermion')
+        plt.xlabel('$W$')
+        plt.ylabel(r'$\log\,p(W)$')"""
 
     if 0:
         plot_energies(f3a,1,1,'tau',beta=1,label=r'$\beta=1~\mathrm{meV}^{-1}$')
@@ -838,7 +872,7 @@ if __name__=="__main__":
             plt.grid(True)
         
         
-    free_energy_diff(fi1,fi2,3,beta=2.0,P=20)
+    #free_energy_diff(fi1,fi2,3,beta=2,P=20)
     #plt.figure(3)
     #plt.title(r'$\mathrm{Without~Metadynamics}$')
     #free_energy_diff(fi3,fi4,4,beta=1,P=10)
