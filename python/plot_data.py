@@ -480,7 +480,7 @@ def plot_rAB(f,fig_nr,clear=True,d=2,color='blue',marker='x',name=None,linestyle
         plt.figure(fig_nr)
     if(clear):
         plt.clf()
-    #plt.plot(r,p2,color=color,linestyle=linestyle)
+    plt.plot(r,p2,color=color,linestyle=linestyle)
     if(show_errors):
         n = show_errors
         plt.errorbar(r[1::n],p2[1::n],perr2[1::n],linestyle='None',label=name,marker=marker,color=color)
@@ -606,7 +606,7 @@ def free_energy_diff(f1,f2,fig_nr,beta=1.0,P=10):
     hist_oo /= sum(hist_oo)*ds
     hist_O = dE_conn[:,1]
     hist_O /= sum(hist_O)*ds
-    plt.plot(s, -np.log(hist_oo), 'b', label='From oo')
+    plt.plot(-s, -np.log(hist_oo), 'b', label='From oo')
     plt.plot(s, -np.log(hist_O),'k--',label='From O' )
     C = 0#-0.08
     #plt.plot(s, hist_oo*f_FD(s+C)*50)
@@ -743,7 +743,8 @@ def plot_bennett_vs_T(f,fig_nr):
     plt.errorbar(Tf,f,ferr,color='b',linestyle='',marker='.',label='Direct method')
     plt.xlabel('$T~\mathrm{(K)}$')
     plt.ylabel(r'$E~(\hbar\omega_0)$')
-    plt.legend(loc='lower right',fontsize=20)
+    plt.legend(loc='lower right',fontsize=22)
+    plt.title('Fermions at low temperature')
 
 if __name__=="__main__":
     f0 = '../'
@@ -800,35 +801,38 @@ if __name__=="__main__":
     f3b = '../three/distinguish/beta2/Energy_vs_P/'
 
     
-    fi1 = '../ideal/boson/1D/beta2/MetaD/disconnected/'
-    fi2 ='../ideal/boson/1D/beta2/MetaD/connected/'
-    fi3 = '../ideal/boson/1D/beta1/MetaD_longer/disconnected/'
-    fi4 ='../ideal/boson/1D/beta1/MetaD_longer/connected/'
+    fi1 = '../ideal/boson/1D/beta1/MetaD_longer/disconnected/'
+    fi2 ='../ideal/boson/1D/beta1/MetaD_longer/connected/'
+    fi3 = '../coulomb/singlet/beta1/MetaD/disconnected/'
+    fi4 ='../coulomb/singlet/beta1/MetaD/connected/'
     fif = '../ideal/fermion/1D/beta1/MetaD_longer/'
     fid = '../ideal/distinguish/1D/beta1/'
     #fi3 ='../ideal/distinguish/1D/beta1/'
     #fi4 ='../ideal/boson/2D/beta2/MetaD/disconnected/'
     fi5 ='../ideal/boson/1D/beta2/MetaD/disconnected/'
-    fi6 ='../ideal/boson/1D/beta0-5/MetaD/connected/'
-    fi7 ='../LJ/distinguish/s30/'
+    fi6 ='../LJ/distinguish/s1/'
+    fi7 ='../LJ/boson/s1/'
+    fi8 ='../LJ/fermion/s1/'
     
     fbennett = '../ideal/fermion/1D/Energy_vs_T/MetaD/'
 
-    plot_bennett_vs_T(fbennett,1)
-    plot_theoretical_energies(1,1)
+    #plot_bennett_vs_T(fbennett,1)
+    #plot_theoretical_energies(1,1)
     
-    #plot_rAB(fi7,2,1)
+    plot_rAB(fi6,2,1,2,'r',marker='x',name=None,linestyle='-',show_errors=1)
+    plot_rAB(fi7,2,0,2,'b',marker='x',name=None,linestyle='-',show_errors=1)
+    plot_rAB(fi8,2,0,2,'g',marker='x',name=None,linestyle='-',show_errors=1)
     
     if 0:
-        plot_cv(f1,0,100000,'')
-        plot_cv(f2,1,100000,'')
+        #plot_cv(f1,0,100000,'')
+        #plot_cv(f2,1,100000,'')
         #plot_energies_vs_t(f1,0,n=100000)
-        #plot_gauss_data(fi1,3,'Wt',name='disc')
+        #plot_gauss_data(fi7,3,'Wt',name='disc')
         #plot_gauss_data(f2,8,'Wt',name='conn')
-        plot_s_int(f1,4,1,'')
+        plot_s_int(f1,3,1,'')
         plt.ylim([0,2])
         plt.xlim([-1,15])
-        plot_s_int(f2,5,1,'')
+        plot_s_int(f2,4,1,'')
         plt.ylim([0,2])
         plt.xlim([-1,15])
         #Ws,pW = plot_cont(fi2 ,4,-1,100000,cv='G')
@@ -872,7 +876,7 @@ if __name__=="__main__":
             plt.grid(True)
         
         
-    #free_energy_diff(fi1,fi2,3,beta=2,P=20)
+    free_energy_diff(fi3,fi4,5,beta=1,P=15)
     #plt.figure(3)
     #plt.title(r'$\mathrm{Without~Metadynamics}$')
     #free_energy_diff(fi3,fi4,4,beta=1,P=10)

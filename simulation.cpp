@@ -481,6 +481,7 @@ void Simulation::update_histogram()
 		histogram_delta_e[bin] += rew_factor;
 		
 	double fd_argument;
+	cv = bias.energy_diff(polymers);
 	for(bin=0; bin<hist_c_num_bins; ++bin)
 	{
 		fd_argument = cv+(hist_c_min+bin*hist_c_resolution); //DeltaU + C
