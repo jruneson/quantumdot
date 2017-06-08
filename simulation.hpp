@@ -91,24 +91,24 @@ private:
 	std::vector<std::vector<double>> histogram_2d_avg;
 	std::vector<std::vector<double>> histogram_2d_sq_avg;
 	const int num_bins_2d;
-	std::vector<double> bde_hist;
+	std::vector<double> cv_hist;
 	std::vector<double> exc_fac_hist;
 	std::vector<double> weight_en_hist;
 	//std::vector<double> cv_hist;
-	double bde_hist_min = -100;
-	double bde_hist_max = 100;
-	double bde_hist_width;
-	double bde_hist_res = 0.1; //resolution, i.e. bin size
-	int bde_hist_num_bins;
+	double cv_hist_min = -100;
+	double cv_hist_max = 100;
+	double cv_hist_width;
+	double cv_hist_res = 0.1; //resolution, i.e. bin size
+	int cv_hist_num_bins;
 	std::vector<double> histogram_delta_e;
 	std::vector<double> hist_c;
 	const double hist_1d_min;
 	const double hist_size_1d;
-	double hist_de_resolution=0.1;
+	/*double hist_de_resolution=0.05;
 	double hist_de_max=100;
 	double hist_de_min=-100;
 	double hist_de_width;
-	double hist_de_num_bins;
+	double hist_de_num_bins;*/
 	double hist_c_min=-2;
 	double hist_c_max=0;
 	double hist_c_resolution=0.1;

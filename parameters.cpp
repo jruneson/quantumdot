@@ -180,7 +180,7 @@ void Parameters::calculate_dependencies()
 	length_scale = std::sqrt(1.0/(m_hbar2*hw));
 	hist_size = length_scale * 4;	
 	
-	std::cout << hwx << "\t" << hwy << "\t" << wigner_parameter << "\t" << virial_offset << std::endl;
+	//std::cout << hwx << "\t" << hwy << "\t" << wigner_parameter << "\t" << virial_offset << std::endl;
 }
 
 

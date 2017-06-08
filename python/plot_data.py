@@ -592,7 +592,7 @@ def plot_2d_dist(f,fig_nr):
     surf = ax.plot_surface(X,Y,Z, rstride=10, cstride=10, cmap=cm.coolwarm)
     
             
-def free_energy_diff(f1,f2,fig_nr,beta=1.0,P=10):
+def free_energy_diff(f1,f2,fig_nr,beta=1.0,P=10,opt='FB',deg=1):
     c_hist_unconn = np.loadtxt(f1+'fsum_N2_P'+str(P)+'.dat')[:,1:]
     c_hist_conn = np.loadtxt(f2+'fsum_N1_P'+str(P)+'.dat')[:,1:]
     dE_unconn = np.loadtxt(f1+'CV_distributions.dat')[:,0:2]
@@ -606,9 +606,9 @@ def free_energy_diff(f1,f2,fig_nr,beta=1.0,P=10):
     hist_oo /= sum(hist_oo)*ds
     hist_O = dE_conn[:,1]
     hist_O /= sum(hist_O)*ds
-    plt.plot(-s, -np.log(hist_oo), 'b', label='From oo')
+    plt.plot(s, -np.log(hist_oo), 'b', label='From oo')
     plt.plot(s, -np.log(hist_O),'k--',label='From O' )
-    C = 0#-0.08
+    C = -0.041#-0.08
     #plt.plot(s, hist_oo*f_FD(s+C)*50)
     #plt.plot(s, hist_O*f_FD(-s-C)*50)
     plt.xlim([-50,50])
@@ -635,12 +635,12 @@ def free_energy_diff(f1,f2,fig_nr,beta=1.0,P=10):
     sq_O *= ds
     #n=200000
     #err = ((sq_O - avg_O**2)/avg_O**2 + (sq_oo-avg_oo**2)/avg_O**2)/n
-    #print("F_O-F_oo with f_FD:\t"+str(dF))
+    print("F_O-F_oo with f_FD:\t"+str(dF))
 
     #dF_p = -np.log(ds*sum(hist_oo*np.exp(-s)))
     #print("F_O-F_oo, only oo:\t"+str(dF_p))
-    #dF_FB = -np.log((1-np.exp(dF))/(1+np.exp(dF)))
-    #print("F_F-F_B with f_FD:\t"+str(dF_FB))
+    dF_FB = -np.log((1-np.exp(dF))/(1+np.exp(dF)))
+    print("F_F-F_B with f_FD:\t"+str(dF_FB/beta))
     #dF_FBp = -np.log((1-np.exp(-dF_p))/(1+np.exp(-dF)))
     #print("F_F-F_B, only oo:\t"+str(dF_FBp))
     #print("Error in DeltaF:\t"+str(np.sqrt(err)))
@@ -652,7 +652,7 @@ def free_energy_diff(f1,f2,fig_nr,beta=1.0,P=10):
     #plt.plot(Cs,-np.log((1-np.exp(Cs))/(2)))
     numblocks = len(c_hist_unconn[1:,0])
     Czeros = np.zeros(numblocks)    
-    scale = 1e6    
+    scale = 1e6
     for i in range(1,numblocks+1):
     #for i in range(1,2):
         b1u = c_hist_unconn[i,:]/scale
@@ -670,20 +670,24 @@ def free_energy_diff(f1,f2,fig_nr,beta=1.0,P=10):
         Czeros[i-1]=C
     #print(Czeros)
     #print(np.mean(Czeros))
-    avg_sign = (1-np.exp(Czeros))/(2)
+    if(opt=='FB'):
+        dF = -np.log((1-np.exp(Czeros))/(1+np.exp(Czeros))/deg)
+        dF_a = -np.log((1-np.exp(np.mean(Czeros)))/(1+np.exp(np.mean(Czeros)))/deg)
+    if(opt=='FD'):
+        dF = -np.log((1-np.exp(Czeros))/2)
+        dF_a = -np.log((1-np.exp(np.mean(Czeros)))/2)
+    print("Option: "+opt)
     print("F_O-F_oo="+str(np.mean(Czeros))+"+/-"+str(np.std(Czeros)/np.sqrt(numblocks)))
-    dF = -np.log((1-np.exp(Czeros))/(2))
     print("dF="+str(np.mean(dF/beta))+"+/-"+str(np.std(dF/beta)/np.sqrt(numblocks)))
-    dF = -np.log((1-np.exp(np.mean(Czeros)))/(1+np.exp(np.mean(Czeros))))
-    print("dF_alternative_mean="+str(dF/beta))    
+    print("dF_alternative_mean="+str(dF_a/beta))    
+    avg_sign = (1-np.exp(Czeros))/(1+np.exp(Czeros))
     print("<sign>="+str(np.mean(avg_sign))+"+/-"+str(np.std(avg_sign)/np.sqrt(numblocks)))
     
-def plot_theoretical_energies(fig_nr,d=1):
-    T = np.linspace(1.5,25,100)
+def plot_theoretical_energies(fig_nr,clear=False,d=1,hw=3.0,color='k',label=''):
+    T = np.linspace(1.5,25,500)
     kB = 1/11.6045
     beta = 1.0/(kB*T)
-    tau = 0.1
-    hw = 3.0
+    tau = 0.0001
     tmp = beta/tau
     #P = map(lambda i: int(i), tmp)
     P = tmp.astype(int)
@@ -718,33 +722,68 @@ def plot_theoretical_energies(fig_nr,d=1):
     Ef = const*d*(frac2 - frac3*frac1)/(1-frac1) #fermion
     #Results are in units of hw
     plt.figure(fig_nr)
-    plt.plot(T,E,'k--')
-    plt.plot(T,Eb,'k--')
-    plt.plot(T,Ef,'k--')
+    if(clear):
+        plt.clf()
+    plt.plot(T,E,'--',color=color,label=label)
+    plt.plot(T,Eb,'--',color=color)
+    plt.plot(T,Ef,'--',color=color)
     
 def plot_bennett_vs_T(f,fig_nr):
     bennett = np.loadtxt(f+'energies_bennett.dat',comments='%')
     fermion = np.loadtxt(f+'energies_fermion.dat',comments='%')
     beta = bennett[:,0]
     Tb = 11.6045/beta
-    d = bennett[:,1]/en_scale
-    derr = bennett[:,2]/en_scale
+    en_scale = hw
+    b = bennett[:,1]/en_scale
+    berr = bennett[:,2]/en_scale
     DF = bennett[:,3]/en_scale
     DFerr = bennett[:,4]/en_scale
-    sgn = bennett[:,5]
-    sgnerr = bennett[:,6]
+    sgn_ben = bennett[:,5]
+    sgnerr_ben = bennett[:,6]
+    WB = bennett[:,7]
+    WBerr = bennett[:,8]
     beta2 = fermion[:,0]
     Tf = 11.6045/beta2
     f = fermion[:,1]/en_scale
     ferr = fermion[:,2]/en_scale
+    WF = fermion[:,3]
+    WFerr = fermion[:,4]
+    sgn_expavg = WF/WB  
     plt.figure(fig_nr)
     plt.clf()
-    plt.errorbar(Tb,d+DF,derr+DFerr,color='r',linestyle='',marker='v',label='Bennett method')
-    plt.errorbar(Tf,f,ferr,color='b',linestyle='',marker='.',label='Direct method')
+    plt.plot(Tb,b+(-np.log(sgn_expavg)/beta)/en_scale,'bo',label='Exponent average')
+    plt.errorbar(Tb,b+DF,berr+DFerr,color='r',linestyle='',marker='s',label='Bennett method')
+    plt.errorbar(Tf,f,ferr,color='g',linestyle='',marker='v',label='Direct method')
     plt.xlabel('$T~\mathrm{(K)}$')
-    plt.ylabel(r'$E~(\hbar\omega_0)$')
-    plt.legend(loc='lower right',fontsize=22)
+    plt.ylabel(r'$E/\hbar\omega_0$')
+    plt.legend(loc='upper left',fontsize=22)
     plt.title('Fermions at low temperature')
+    plt.xlim([0,26])
+    plt.ylim([1.85,2.5])
+    
+    plt.figure(fig_nr+1)    
+    plt.clf()
+    ind = np.isfinite(beta) & np.isfinite(sgn_expavg) & (sgn_expavg>0)
+    ind2 = np.isfinite(beta) & np.isfinite(sgn_ben) & (sgn_ben>0)
+    poly1,cov1 = np.polyfit(beta[ind],np.log(sgn_expavg[ind]),1,cov=True)
+    print(poly1)
+    poly2,cov2 = np.polyfit(beta[ind2],np.log(sgn_ben[ind2]),1,cov=True)
+    print(poly2)
+    plt.plot(beta,sgn_expavg,'go',label='Exp. avg: 3.309 meV')
+    plt.plot(beta,sgn_ben,'rs',label='Bennett: 2.976 meV')
+    plt.xlabel(r'$\beta\,(\mathrm{meV}^{-1})$')
+    x = np.linspace(beta[0],beta[-2])
+    plt.plot(x,np.exp(np.polyval(poly1,x)),'g--')
+    plt.plot(x,np.exp(np.polyval(poly2,x)),'r--')
+    ax = plt.gca()
+    ax.set_yscale('log')
+    plt.ylabel(r'$\log\,\langle\mathrm{sgn}\rangle$')
+    plt.legend(loc='upper right',fontsize=22)
+    plt.xlim([0.4,1.6])
+    plt.ylim([0.005,0.5])
+    ax.tick_params(length=6,which='major')
+    ax.tick_params(length=3,which='minor')
+    plt.title('1D')
 
 if __name__=="__main__":
     f0 = '../'
@@ -777,7 +816,7 @@ if __name__=="__main__":
     md=['noMetaD/','MetaD/']
     sym = ['bos/','fer/']
     P=['P10/','P20/','P40/','P50/','P60/']
-    s=['noLJ/','s20/','s50/','s100/']
+    s=['s0-5/','s1/','s2/','s4/']
     dt=['','dt5e-3/','dt1e-3/','dt1e-4/']
     t=['t100000/']
     fa1 = f0+interac[2]+beta[0]+sym[0]+md[0]
@@ -805,36 +844,52 @@ if __name__=="__main__":
     fi2 ='../ideal/boson/1D/beta1/MetaD_longer/connected/'
     fi3 = '../coulomb/singlet/beta1/MetaD/disconnected/'
     fi4 ='../coulomb/singlet/beta1/MetaD/connected/'
-    fif = '../ideal/fermion/1D/beta1/MetaD_longer/'
-    fid = '../ideal/distinguish/1D/beta1/'
+    fiucon = '../ideal/boson/1D/beta2/MetaD/disconnected/'
+    ficonn = '../ideal/boson/1D/beta2/MetaD/connected/'
+    #fiucon = '../to_send/singlet/beta1/MetaD/disconnected/'    
+    #ficonn = '../to_send/singlet/beta1/MetaD/connected/'    
     #fi3 ='../ideal/distinguish/1D/beta1/'
     #fi4 ='../ideal/boson/2D/beta2/MetaD/disconnected/'
     fi5 ='../ideal/boson/1D/beta2/MetaD/disconnected/'
-    fi6 ='../LJ/distinguish/s1/'
-    fi7 ='../LJ/boson/s1/'
-    fi8 ='../LJ/fermion/s1/'
+    k = 3
+    fi6 ='../LJ/distinguish/'+s[k]
+    fi7 ='../LJ/boson/'+s[k]
+    fi8 ='../LJ/fermion/'+s[k]
     
-    fbennett = '../ideal/fermion/1D/Energy_vs_T/MetaD/'
+    fbennett = '../ideal/fermion/1D/Energy_vs_T/FreeEnergyDiff/'
 
-    #plot_bennett_vs_T(fbennett,1)
-    #plot_theoretical_energies(1,1)
+    plot_bennett_vs_T(fbennett,1)
+    plot_theoretical_energies(1,0)
     
-    plot_rAB(fi6,2,1,2,'r',marker='x',name=None,linestyle='-',show_errors=1)
-    plot_rAB(fi7,2,0,2,'b',marker='x',name=None,linestyle='-',show_errors=1)
-    plot_rAB(fi8,2,0,2,'g',marker='x',name=None,linestyle='-',show_errors=1)
+    #free_energy_diff(fiucon,ficonn,5,beta=2.0,P=20,opt='FB')
+
+    if 1:
+        plot_rAB(fi6,2,1,2,'r',marker='x',name='Disting.',linestyle='-',show_errors=1)
+        plot_rAB(fi7,2,0,2,'b',marker='x',name='Boson',linestyle='-',show_errors=1)
+        plot_rAB(fi8,2,0,2,'g',marker='x',name='Fermion',linestyle='-',show_errors=1)
+        plt.legend(loc='upper right',fontsize=22)    
+        plt.title(r'$\sigma_\mathrm{LJ}=4\,\mathrm{nm}$')
+        plot_gauss_data(fi7,3,'Wt')
     
     if 0:
         #plot_cv(f1,0,100000,'')
-        #plot_cv(f2,1,100000,'')
+        #plot_cv(f3,0,100000,'')
         #plot_energies_vs_t(f1,0,n=100000)
-        #plot_gauss_data(fi7,3,'Wt',name='disc')
-        #plot_gauss_data(f2,8,'Wt',name='conn')
-        plot_s_int(f1,3,1,'')
+        plot_gauss_data(f8,8,'Ws',name='cv4')
+        plot_gauss_data(f8,9,'Wt',name='cv4')
+        plot_s_int(f1,1,1,'')
         plt.ylim([0,2])
-        plt.xlim([-1,15])
-        plot_s_int(f2,4,1,'')
+        plt.xlim([-1,25])
+        plot_s_int(f2,2,1,'')
         plt.ylim([0,2])
-        plt.xlim([-1,15])
+        plt.xlim([-1,25])
+        plot_s_int(f7,3,1,'')
+        plt.ylim([-1,2])
+        plt.xlim([-1,20])
+        plot_s_int(f8,4,1,'log')
+        #plt.ylim([-1,5])
+        plt.xlim([-1,20])
+        
         #Ws,pW = plot_cont(fi2 ,4,-1,100000,cv='G')
         #Ws2,pW2 = plot_cont(fi2m,5,-1,100000,cv='G')
         """plt.figure(6)
@@ -852,6 +907,14 @@ if __name__=="__main__":
         #plt.plot([0,10],[2,2],'k--',label=r'$\mathrm{Theoretical~value}$')
         plt.legend(loc='lower right',fontsize=26)
         plt.title('Three particles')
+
+    if 0:
+        plot_theoretical_energies(1,True,2,3.0,'k',r'$\hbar\omega_0=3\,\mathrm{meV}$')
+        plot_theoretical_energies(1,False,2,15.0,'b',r'$\hbar\omega_0=15\,\mathrm{meV}$')    
+        plot_theoretical_energies(1,False,2,30.0,'r',r'$\hbar\omega_0=30\,\mathrm{meV}$')    
+        plt.legend(loc='upper left',fontsize=24)
+        plt.xlabel(r'$T\,(\mathrm{K})$')
+        plt.ylabel(r'$E/\hbar\omega_0$')
 
     if 0:
         plot_energies(f3a,1,1,'P',label='beta1',linestyle='',marker='o',plot_all=0)
@@ -876,7 +939,6 @@ if __name__=="__main__":
             plt.grid(True)
         
         
-    free_energy_diff(fi3,fi4,5,beta=1,P=15)
     #plt.figure(3)
     #plt.title(r'$\mathrm{Without~Metadynamics}$')
     #free_energy_diff(fi3,fi4,4,beta=1,P=10)

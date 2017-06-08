@@ -25,7 +25,8 @@ Graph::Graph(const Parameters& params, int graph_id) //Chain lengths given as nu
 		{
 			for(int i=0; i<=1; ++i)
 			{
-				std::vector<int> tmp_ch = {i};
+				std::vector<int> tmp_ch;
+				tmp_ch.push_back(i);
 				chains.push_back(tmp_ch);
 			} 
 			//chains.push_back(std::vector<int>(0));
@@ -65,6 +66,12 @@ Graph::Graph(const Parameters& params, int graph_id) //Chain lengths given as nu
 			std::vector<std::pair<int,int>> tmp;
 			tmp.push_back(std::pair<int,int>(1,2));//cyclic(n+1,num_parts)));
 			exchange_pairs.push_back(tmp);
+			if(spin==1)
+				if(spin_proj)
+				{
+					mult = 1;
+					positive = false;
+				}
 			if(spin==3)
 			{
 				//both for spin_proj true and false
@@ -92,10 +99,7 @@ Graph::Graph(const Parameters& params, int graph_id) //Chain lengths given as nu
 			}
 			if(spin==3)
 			{
-				if(spin_proj)
-					mult = 1;
-				else
-					mult = 2;
+				mult = 2; //for both with and without spin_proj
 			}
 		}		
 	}
@@ -103,24 +107,29 @@ Graph::Graph(const Parameters& params, int graph_id) //Chain lengths given as nu
 
 int Graph::cyclic(int i, int n) const
 {
-	return (i+n)%n;
+	return i%n;
 }
 
 double Graph::get_weight(const std::vector<Polymer>& pols, bool use_positive) const
 {
 	if(positive == use_positive)
-		return std::abs(get_weight_signed(pols));
+		return weight(pols);
 	return 0;
 }
 
 double Graph::get_weight_signed(const std::vector<Polymer>& pols) const
+{
+	return get_sign()*weight(pols);
+}
+
+double Graph::weight(const std::vector<Polymer>& pols) const
 {
 	if(exchange_pairs.size()==0)
 		return 1;
 	double tmp = 0;
 	for(const auto& list : exchange_pairs)
 		tmp += std::exp(exponent_sign * calc_exponent(pols,list));
-	return get_sign()*mult*tmp/exchange_pairs.size();
+	return mult*tmp/exchange_pairs.size();
 }
 
 double Graph::calc_exponent(const std::vector<Polymer>& pols, const std::vector<std::pair<int,int>>& list) const
@@ -145,7 +154,7 @@ Force Graph::get_grad_weight(const std::vector<Polymer>& pols, bool use_positive
 			return tmp;
 		for(const auto& list : exchange_pairs)
 			tmp += std::exp(exponent_sign*calc_exponent(pols,list))*grad_exponent(pols,list,bead,part);
-		return mult*exc_const/exchange_pairs.size() * tmp;	
+		return exponent_sign*mult*exc_const/exchange_pairs.size() * tmp;	
 	}		
 	return tmp;
 }

@@ -28,8 +28,20 @@ Simulation::Simulation(const Parameters& params, std::ofstream& _res_file, bool 
 		polymers.push_back(Polymer(params));
 
 	//
+	std::cout << "Graph\tMult\tSign\tChainlengths" << std::endl;
 	for(const Graph& graph: graphs)
-		std::cout << graph.get_id() << "\t" << graph.get_mult() << "\t" << graph.get_sign() << std::endl;
+	{
+		std::cout << graph.get_id() << "\t" << graph.get_mult() << "\t" << graph.get_sign() << "\t";
+		const auto& chains = graph.get_chains();
+		for(const std::vector<int>& chain : chains)
+		{
+			std::cout << chain.size() << " ";
+			/*for(int pol : chain)
+				std::cout << pol << ", ";
+			std::cout << "; ";*/
+		}
+		std::cout << std::endl;
+	}
 	//
 	
 	finished = false;
@@ -62,15 +74,15 @@ Simulation::Simulation(const Parameters& params, std::ofstream& _res_file, bool 
 	histogram_2d_avg.assign(num_bins_2d, tmp_2d);
 	histogram_2d_sq_avg.assign(num_bins_2d, tmp_2d);	
 	
-	bde_hist_num_bins = (int) std::round((bde_hist_max-bde_hist_min)/bde_hist_res)+1;
-	bde_hist.assign(bde_hist_num_bins,0);
-	weight_en_hist.assign(bde_hist_num_bins,0);
-	exc_fac_hist.assign(bde_hist_num_bins,0);
-	bde_hist_width = bde_hist_max-bde_hist_min;
+	cv_hist_num_bins = (int) std::round((cv_hist_max-cv_hist_min)/cv_hist_res)+1;
+	cv_hist.assign(cv_hist_num_bins,0);
+	weight_en_hist.assign(cv_hist_num_bins,0);
+	exc_fac_hist.assign(cv_hist_num_bins,0);
+	cv_hist_width = cv_hist_max-cv_hist_min;
 	
-	hist_de_num_bins = round((hist_de_max-hist_de_min)/hist_de_resolution);
-	histogram_delta_e.assign(hist_de_num_bins,0);
-	hist_de_width=hist_de_max-hist_de_min;
+	//hist_de_num_bins = round((hist_de_max-hist_de_min)/hist_de_resolution);
+	//histogram_delta_e.assign(hist_de_num_bins,0);
+	//hist_de_width=hist_de_max-hist_de_min;
 	hist_c_num_bins=round((hist_c_max-hist_c_min)/hist_c_resolution) + 1;
 	hist_c.assign(hist_c_num_bins,0);
 	
@@ -466,19 +478,19 @@ void Simulation::update_histogram()
 			histogram_1p[1][bin] += 1;*/
 	}
 	
-	double cv_rel = cv-bde_hist_min;
-	bin = calc_bin(cv_rel,bde_hist_num_bins,bde_hist_width);
-	if((bin<bde_hist_num_bins)&&(bin>=0))
+	double cv_rel = cv-cv_hist_min;
+	bin = calc_bin(cv_rel,cv_hist_num_bins,cv_hist_width);
+	if((bin<cv_hist_num_bins)&&(bin>=0))
 	{
-		bde_hist[bin] += rew_factor;
+		cv_hist[bin] += rew_factor;
 		exc_fac_hist[bin] += weight;
 		weight_en_hist[bin] += obs.at(2).get_last_value();
 	}
 	
-	cv_rel = cv-hist_de_min;
+	/*cv_rel = cv-hist_de_min;
 	bin = calc_bin(cv_rel,hist_de_num_bins,hist_de_width);
 	if((bin<hist_de_num_bins)&&(bin>=0))
-		histogram_delta_e[bin] += rew_factor;
+		histogram_delta_e[bin] += rew_factor;*/
 		
 	double fd_argument;
 	cv = bias.energy_diff(polymers);
@@ -605,30 +617,30 @@ void Simulation::stop()
 		//hist_file_2derr.close();
 	}
 	
-	std::ofstream bde_hist_file("CV_distributions.dat");
+	std::ofstream cv_hist_file("CV_distributions.dat");
 	//std::ofstream weighted_en_file("Energy_distr.dat");
 	double rew_factor_avg = bias.get_rew_factor_avg();
 	double norm=0;
-	for(int bin=0; bin<bde_hist_num_bins; ++bin)
-		norm += bde_hist[bin];
-	norm *= bde_hist_res;
-	for(int bin=0; bin<bde_hist_num_bins; ++bin)
+	for(int bin=0; bin<cv_hist_num_bins; ++bin)
+		norm += cv_hist[bin];
+	norm *= cv_hist_res;
+	for(int bin=0; bin<cv_hist_num_bins; ++bin)
 	{
-		double s = bde_hist_width*((double) bin/bde_hist_num_bins) + bde_hist_min;
+		double s = cv_hist_width*((double) bin/cv_hist_num_bins) + cv_hist_min;
 		//double bde_entry = bde_hist[bin]/norm;
 		//double exc_fac_entry = exc_fac_hist[bin]/norm;
-		bde_hist_file << s << "\t" << bde_hist[bin]/norm << "\t" << exc_fac_hist[bin]/norm 
+		cv_hist_file << s << "\t" << cv_hist[bin]/norm << "\t" << exc_fac_hist[bin]/norm 
 					  << "\t" << weight_en_hist[bin]/norm << std::endl;
 		/*	bde_hist_file << std::exp(s) + sign << std::endl;
 		else
 			bde_hist_file << (1 + sign*std::exp(-s))*hist_entry << std::endl;*/
 		//weighted_en_file << s << "\t" << weight_en_hist[bin]/(rew_factor_avg*bde_hist_res) << std::endl;
 	}
-	bde_hist_file.close();
+	cv_hist_file.close();
 	//weighted_en_file.close();
 	
-	std::string particles;
-	if(polymers[0].connected)
+	//std::string particles;
+	/*if(polymers[0].connected)
 		particles = "1";
 	else
 		particles = "2";
@@ -637,10 +649,10 @@ void Simulation::stop()
 	double normalization=0;
 	for(int bin=0; bin<hist_de_num_bins; ++bin)
 		normalization += histogram_delta_e[bin];
-	normalization *= hist_de_resolution;
+	normalization *= hist_cv_resolution;
 	for(int bin = 0; bin<hist_de_num_bins; ++bin)
 		de_file << hist_de_width*((double) bin/hist_de_num_bins) + hist_de_min 
-				<< "\t" << histogram_delta_e[bin]/normalization << std::endl;
+				<< "\t" << histogram_delta_e[bin]/normalization << std::endl;*/
 					
 	delete gle;
 	

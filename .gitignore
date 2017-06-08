@@ -20,3 +20,5 @@ to_send/
 presentation/
 .csync*
 .owncloud*
+*.zip
+ideal2D/

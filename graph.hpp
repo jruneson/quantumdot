@@ -38,7 +38,7 @@ private:
 	int cyclic(int,int) const;
 	double calc_exponent(const std::vector<Polymer>&, const std::vector<std::pair<int,int>>&) const;
 	Force grad_exponent(const std::vector<Polymer>&, const std::vector<std::pair<int,int>>&, int, int) const;
-
+	double weight(const std::vector<Polymer>&) const;
 
 };
 

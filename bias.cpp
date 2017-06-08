@@ -92,7 +92,7 @@ double Bias::coll_var(const std::vector<Polymer>& pols) const
 				pos_weight += graph.get_weight(pols,true);
 				neg_weight += graph.get_weight(pols,false);
 			}
-			return std::log(std::abs(pos_weight-neg_weight));
+			return std::log(pos_weight+neg_weight);
 			/*if(pols[0].connected)
 				return -std::log(std::abs(e_s+sign));
 			else
@@ -271,7 +271,7 @@ Force Bias::cv_grad(const std::vector<Polymer>& pols, int bead, int part) const
 				tmp += graph.get_grad_weight(pols,true,bead,part); //grad W+
 				tmp2 += graph.get_grad_weight(pols,false,bead,part); //grad W-
 			}
-			return (-1)*(tmp - tmp2)/(std::abs(pos_weight-neg_weight));
+			return (tmp + tmp2)/(pos_weight+neg_weight);
 		/*	tmp = two_terms(pols,bead,part);
 			tmp3 = std::pow(-1,part)*exc_const/num_beads;
 			if(pols[0].connected)
