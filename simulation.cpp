@@ -53,6 +53,7 @@ Simulation::Simulation(const Parameters& params, std::ofstream& _res_file, bool 
 	progress=0;
 	exchange_factor=1.0;
 	exc_sum=exc_avg=exc_avg_sq=exc_sq=exc_sq_avg=e_s_sum=e_s_avg=e_s_avg_sq=0;
+	sgn_sum=sgn_avg=sgn_avg_sq=0;
 	std::vector<int> to_print = params.to_print_every_sample;
 	for(int id : params.to_measure)
 	{
@@ -150,7 +151,7 @@ void Simulation::setup()
 	logfile << "P=" << num_beads << " dim=" << dim << " dt=" << dt_md 
 			<< " sampl_time=" << sampling_time
 			<< " samples=" << std::round(sampling_time/dt_sample) << " T=" << temperature << std::endl << std::endl;
-	logfile << "Block\tExc_const";
+	logfile << "Block\tExc_const\tAvg_sign";
 	for(auto& pair : obs)
 		logfile << "\t" << pair.second.get_name();
 	logfile << std::endl;
@@ -399,6 +400,10 @@ void Simulation::update_avgs()
 	exc_sq_avg = (exc_sq_avg*block + exc_sq)/(block+1.0);
 	exc_sq = 0;
 	exc_sum = 0;
+	double tmp_sgn = sgn_sum/(bias.get_rew_factor_block());
+	sgn_avg = (sgn_avg*block + tmp_sgn)/(block+1.0);
+	sgn_avg_sq = (sgn_avg_sq*block + tmp_sgn)/(block+1.0);
+	sgn_sum = 0;
 	//e_s_avg = (e_s_avg*block + tmp2)/(block+1.0);
 	//e_s_avg_sq = (e_s_avg_sq*block + tmp2*tmp2)/(block+1.0);
 	//e_s_sum = 0;
@@ -530,6 +535,7 @@ void Simulation::update_screen()
 void Simulation::print_to_logfile()
 {
 	logfile << block << "\t" << exc_avg/bias.get_rew_factor_avg();
+	logfile << "\t" << sgn_avg;
 	for(auto& ob : obs)
 		logfile <<	"\t" << ob.second.get_weighted_avg(); 
 	logfile << std::endl;
@@ -554,6 +560,7 @@ void Simulation::stop()
 	double rew_norm = bias.get_rew_factor_avg();
 	logfile << "Exc_factor\t" << exc_avg/rew_norm << "\t" << simple_uncertainty(exc_avg,exc_avg_sq)/rew_norm 
 			<< "\t" << std::sqrt(exc_sq_avg-exc_avg*exc_avg)/rew_norm << std::endl; // sqrt(n/(n-1)) unnecessary for large n
+	logfile << "Avg_sign\t" << sgn_avg << "\t" << simple_uncertainty(sgn_avg,exc_avg_sq) << std::endl;
 	//logfile << "Exp_en_diff\t" << e_s_avg/rew_norm << "\t" << simple_uncertainty(e_s_avg,e_s_avg_sq)/rew_norm
 	//		<< std::endl;
 	res_file << beta;//polymers[0].num_beads;
@@ -607,7 +614,7 @@ void Simulation::stop()
 			//hist_file_2derr << hist_size_1d*((double) bin2/num_bins_2d) + hist_1d_min;
 			for(int bin1=0; bin1<num_bins_2d; ++bin1)
 			{
-				hist_file_2d << "\t" << histogram_2d_avg[bin2][bin1];
+				hist_file_2d << "\t" << histogram_2d_avg[bin1][bin2];
 				//hist_file_2derr << "\t" << simple_uncertainty(histogram_2d_avg[bin2][bin1],histogram_2d_sq_avg[bin2][bin1]);
 			}
 			hist_file_2d << std::endl;
@@ -771,6 +778,7 @@ void Simulation::update_exc(bool count_to_average)
 		neg_weight += graph.get_weight(polymers,false);
 	}
 	exchange_factor = pos_weight - neg_weight;
+	sgn = (pos_weight - neg_weight)/(pos_weight+neg_weight);
 	//e_s = std::abs(exchange_factor-1);
 	//std::cout << pos_weight << "\t" << neg_weight << std::endl; // 
 	if(count_to_average)
@@ -780,7 +788,9 @@ void Simulation::update_exc(bool count_to_average)
 		exc_sum += exc_weighted;
 		exc_sq = (exc_sq*samples + exc_weighted*exc_weighted)/(samples+1.0);
 		//e_s_sum += e_s_weighted;
+		sgn_sum += sgn*bias.get_rew_factor();
 	}
+	bias.set_weights(pos_weight,neg_weight);
 }
 
 double Simulation::simple_uncertainty(double avg, double avg_sq) const

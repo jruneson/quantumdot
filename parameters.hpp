@@ -28,6 +28,7 @@ public:
 	int thermalization_time;
 	int num_bins;
 	int num_bins_2d;
+	double hist_size_in_r_star;
 	int sign;
 	int spin; //In halves 
 	bool spin_proj; //Tells if "spin" means z projection or total spin
@@ -79,7 +80,7 @@ public:
 	double exc_der_const;
 	double kin_offset;
 	double virial_offset;
-	double length_scale; //in a_0
+	double length_scale; //r_star in nm
 	double hist_size;
 	
 	

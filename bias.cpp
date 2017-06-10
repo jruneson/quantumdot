@@ -57,8 +57,8 @@ double Bias::coll_var(const std::vector<Polymer>& pols) const
 	double tmp = 0;
 	double dist;
 	double s;
-	double pos_weight;
-	double neg_weight;
+	//double pos_weight;
+	//double neg_weight;
 	switch(id)
 	{
 		/*case 1:
@@ -85,13 +85,13 @@ double Bias::coll_var(const std::vector<Polymer>& pols) const
 			tmp = sum_exp_distcorr(pols);
 			return -std::log(tmp/pols[0].num_beads);
 		case 4:
-			pos_weight = 0;
+			/*pos_weight = 0;
 			neg_weight = 0;
 			for(const Graph& graph : graphs)
 			{
 				pos_weight += graph.get_weight(pols,true);
 				neg_weight += graph.get_weight(pols,false);
-			}
+			}*/
 			return std::log(pos_weight+neg_weight);
 			/*if(pols[0].connected)
 				return -std::log(std::abs(e_s+sign));
@@ -102,13 +102,13 @@ double Bias::coll_var(const std::vector<Polymer>& pols) const
 				tmp += std::exp(-exc_const*(scalar_product(pols,bead)-dist));
 			return -std::log(tmp/pols[0].num_beads);*/
 		case 5:
-			pos_weight = 0;
+			/*pos_weight = 0;
 			neg_weight = 0;
 			for(const Graph& graph : graphs)
 			{
 				pos_weight += graph.get_weight(pols,true);
 				neg_weight += graph.get_weight(pols,false);
-			}
+			}*/
 			if(neg_weight==0 && pols.size()==2)
 			{
 				if(pols[0].connected)
@@ -123,14 +123,28 @@ double Bias::coll_var(const std::vector<Polymer>& pols) const
 		case 6:
 			return graphs[biased_graph].get_energy_diff(pols);
 			/*s = energy_diff(pols);
-			return 0.5*(1.1*s-0.9*s*std::tanh(s));
+			return 0.5*(1.1*s-0.9*s*std::tanh(s));*/
 		case 7:
-			s = energy_diff(pols);
+			/*pos_weight = 0;
+			neg_weight = 0;
+			for(const Graph& graph : graphs)
+			{
+				pos_weight += graph.get_weight(pols,true);
+				neg_weight += graph.get_weight(pols,false);
+			}*/
+			return (pos_weight-neg_weight)/(pos_weight+neg_weight);
+			/*s = energy_diff(pols);
 			return 0.5*(1.1*s+20-(0.9*s-20)*std::tanh(0.2*(s-20)));*/
 		default:
 			std::cout << "Not a valid CV option" << std::endl;
 			return pols[0][0][0];
 	}
+}
+
+void Bias::set_weights(double pos, double neg)
+{
+	pos_weight = pos;
+	neg_weight = neg;
 }
 
 double Bias::sum_exp(const std::vector<Polymer>& pols, int num_beads) const
@@ -187,8 +201,8 @@ Force Bias::cv_grad(const std::vector<Polymer>& pols, int bead, int part) const
 	Force tmp(pols[0][0].size());
 	Force tmp2(pols[0][0].size());
 	double tmp3;
-	double pos_weight=0;
-	double neg_weight=0;
+	//double pos_weight=0;
+	//double neg_weight=0;
 	int num_beads = pols[0].num_beads;
 	int tmp_bead;
 	int sign2=1;
@@ -266,8 +280,8 @@ Force Bias::cv_grad(const std::vector<Polymer>& pols, int bead, int part) const
 		case 4:
 			for(const Graph& graph : graphs)
 			{
-				pos_weight += graph.get_weight(pols,true);
-				neg_weight += graph.get_weight(pols,false);
+				//pos_weight += graph.get_weight(pols,true);
+				//neg_weight += graph.get_weight(pols,false);
 				tmp += graph.get_grad_weight(pols,true,bead,part); //grad W+
 				tmp2 += graph.get_grad_weight(pols,false,bead,part); //grad W-
 			}
@@ -294,8 +308,8 @@ Force Bias::cv_grad(const std::vector<Polymer>& pols, int bead, int part) const
 		case 5:
 			for(const Graph& graph : graphs)
 			{
-				pos_weight += graph.get_weight(pols,true);
-				neg_weight += graph.get_weight(pols,false);
+				//pos_weight += graph.get_weight(pols,true);
+				//neg_weight += graph.get_weight(pols,false);
 				tmp += graph.get_grad_weight(pols,true,bead,part); //grad W+
 				tmp2 += graph.get_grad_weight(pols,false,bead,part); //grad W-
 			}
@@ -306,6 +320,18 @@ Force Bias::cv_grad(const std::vector<Polymer>& pols, int bead, int part) const
 			return tmp/pos_weight - tmp2/neg_weight;
 		case 6:
 			return graphs[biased_graph].get_energy_diff_grad(pols,bead,part);
+		case 7:
+			//replace with method which does not have to recalc weights
+			//pos_weight = 0;
+			//neg_weight = 0;
+			for(const Graph& graph : graphs)
+			{
+				//pos_weight += graph.get_weight(pols,true);
+				//neg_weight += graph.get_weight(pols,false);
+				tmp += graph.get_grad_weight(pols,true,bead,part);
+				tmp2 += graph.get_grad_weight(pols,false,bead,part);
+			}
+			return (tmp*neg_weight - tmp2*pos_weight)/std::pow(pos_weight+neg_weight,2);
 		default:
 			std::cout << "No gradCV is implemented!" << std::endl;
 			return tmp;

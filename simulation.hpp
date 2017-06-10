@@ -78,6 +78,10 @@ private:
 	double e_s_sum;
 	double e_s_avg; //<exp(-s)>
 	double e_s_avg_sq;
+	double sgn;
+	double sgn_sum;
+	double sgn_avg;
+	double sgn_avg_sq;
 	
 	std::vector<Graph> graphs;
 	std::map<int,Observable> obs;	
@@ -95,10 +99,10 @@ private:
 	std::vector<double> exc_fac_hist;
 	std::vector<double> weight_en_hist;
 	//std::vector<double> cv_hist;
-	double cv_hist_min = -100;
-	double cv_hist_max = 100;
+	double cv_hist_min = -1;
+	double cv_hist_max = 1;
 	double cv_hist_width;
-	double cv_hist_res = 0.1; //resolution, i.e. bin size
+	double cv_hist_res = 0.01; //resolution, i.e. bin size
 	int cv_hist_num_bins;
 	std::vector<double> histogram_delta_e;
 	std::vector<double> hist_c;

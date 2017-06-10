@@ -1,7 +1,7 @@
 *.o
 *.dat
 run*
-tests/
+test*
 *.xyz
 *.m~
 pimd
@@ -22,3 +22,5 @@ presentation/
 .owncloud*
 *.zip
 ideal2D/
+sign_cv/
+*.pdf

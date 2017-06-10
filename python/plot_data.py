@@ -22,6 +22,8 @@ hw = 3.0 #4.828
 en_scale = hw
 offset = 2*hw*0
 
+
+
 def plot_cv(f,fig_nr,n=0,opt=None):
     if(n==0):
         data = np.loadtxt(f+'cv.dat')
@@ -37,7 +39,7 @@ def plot_cv(f,fig_nr,n=0,opt=None):
     plt.xlabel('$t$ (ps)')
     if opt is None:
         plt.ylabel('$s$')
-    if(opt=='rw'):
+    if(opt=='rew'):
         data = np.genfromtxt(f+'rew_factor.dat',max_rows=n)
         rw = data[:,1]
         plt.plot(t,rw,label='rew-factor')
@@ -579,18 +581,69 @@ def plot_1d_dist(f,fig_nr,clear=1):
     plt.xlim([-20,20])
     plt.xlabel(r'$r~(\mathrm{nm})$')
     plt.ylabel(r'$p(r)$')
-        
-def plot_2d_dist(f,fig_nr):
-    data = np.loadtxt(f+'Prob_dist2d.dat')
-    r1 = data[1:,0]
-    r2 = data[0,1:]
-    hist = data[1:,1:]
-    fig = plt.figure(fig_nr)
-    ax = fig.add_subplot(111,projection='3d')
-    X,Y = np.meshgrid(r1,r2)
-    Z = hist.reshape(X.shape)
-    surf = ax.plot_surface(X,Y,Z, rstride=10, cstride=10, cmap=cm.coolwarm)
     
+def smooth(data, n):
+    for k in range(n):
+        for i in range(1,data.shape[0]-2):
+            for j in range(1,data.shape[1]-2):
+                data[i,j] = (data[i-1,j]+data[i,j-1]+4*data[i,j]+data[i+1,j]+data[i,j+1])*0.125
+    return data
+
+def darken(x, ):
+    return x*0.8    
+        
+def plot_2d_dist(files,fig_nr,titles,suptitle='', stride=1,use_contour=True,
+                 num_smooths=0):
+    fig = plt.figure(num=fig_nr,figsize=(12,6.7))    
+    #fig.set_size_inches(12,6.2)
+    plt.clf()
+        
+    for i,f in enumerate(files):
+        data = np.loadtxt(f+'Prob_dist2d.dat')
+        r1 = data[1:,0]
+        r2 = data[0,1:]
+        dr1 = r1[1]-r1[0]
+        dr2 = r2[1]-r2[0]
+        histpre = data[1:,1:]
+        hist = smooth(histpre,num_smooths)
+        norm = sum(sum(hist))*dr1*dr2
+        hist = hist/norm*1000
+        X,Y = np.meshgrid(r1,r2)
+        Z = hist.reshape(X.shape)
+        if use_contour:
+
+            if i==0:
+                ax0 = fig.add_subplot(121)
+            else:
+                ax1 = fig.add_subplot(122,sharey=ax0)
+                plt.setp(ax1.get_yticklabels(),visible=False)
+                xticks = ax1.xaxis.get_major_ticks()
+                #xticks[0].label1.set_visible(False)
+            #levels=np.arange(2,11,2)
+            #dark_inferno=cmap_map(darken,plt.get_cmap('inferno_r'))
+            c = plt.contour(X,Y,Z,cmap=cm.viridis)#,levels=levels)
+            plt.clabel(c, inline=1,fontsize=16,fmt='%1.1f')
+            plt.xlabel(r'$x~(\mathrm{nm})$')
+            if i==0:
+                plt.ylabel(r'$y~(\mathrm{nm})$')
+                ax0.set_title(titles[0],fontsize=28)
+            else:
+                ax1.set_title(titles[1],fontsize=28)
+            #plt.xlim([-52,52])
+            #plt.ylim([-52,52])
+        else:
+            ax = fig.add_subplot(111,projection='3d')
+            surf = ax.plot_surface(X,Y,Z, rstride=stride, cstride=stride, cmap=cm.viridis)
+            ax.set_zlabel(r'$p(x,y)$')
+            ax.set_xlabel(r'$x~(\mathrm{nm})$')
+            ax.set_ylabel(r'$y~(\mathrm{nm})$')
+            ax.set_zlim([-0.05,0.5])
+    #plt.set_aspect('equal')
+    plt.subplots_adjust(wspace=None)
+    plt.suptitle(suptitle,x=0.53,y=0.995,fontsize=32)
+    if use_contour:
+        ax0.set_aspect('equal')
+        ax1.set_aspect('equal')
             
 def free_energy_diff(f1,f2,fig_nr,beta=1.0,P=10,opt='FB',deg=1):
     c_hist_unconn = np.loadtxt(f1+'fsum_N2_P'+str(P)+'.dat')[:,1:]
@@ -840,55 +893,59 @@ if __name__=="__main__":
     f3b = '../three/distinguish/beta2/Energy_vs_P/'
 
     
-    fi1 = '../ideal/boson/1D/beta1/MetaD_longer/disconnected/'
-    fi2 ='../ideal/boson/1D/beta1/MetaD_longer/connected/'
-    fi3 = '../coulomb/singlet/beta1/MetaD/disconnected/'
-    fi4 ='../coulomb/singlet/beta1/MetaD/connected/'
+    fi1 ='../three/spin3half/beta1-5/woMetaD/'
+    fi2 ='../coulomb/singlet/beta1/MetaD/disconnected/'
+    fi3 = '../coulomb/triplet/beta1/MetaD/'
+    fi4 ='../three/spin3half/beta1-5/MetaD/test/'
     fiucon = '../ideal/boson/1D/beta2/MetaD/disconnected/'
     ficonn = '../ideal/boson/1D/beta2/MetaD/connected/'
     #fiucon = '../to_send/singlet/beta1/MetaD/disconnected/'    
     #ficonn = '../to_send/singlet/beta1/MetaD/connected/'    
     #fi3 ='../ideal/distinguish/1D/beta1/'
     #fi4 ='../ideal/boson/2D/beta2/MetaD/disconnected/'
-    fi5 ='../ideal/boson/1D/beta2/MetaD/disconnected/'
-    k = 3
+    fi5 ='../three/spin3half/beta1-5/MetaD/'
+    k = 1
     fi6 ='../LJ/distinguish/'+s[k]
     fi7 ='../LJ/boson/'+s[k]
     fi8 ='../LJ/fermion/'+s[k]
     
     fbennett = '../ideal/fermion/1D/Energy_vs_T/FreeEnergyDiff/'
 
-    plot_bennett_vs_T(fbennett,1)
-    plot_theoretical_energies(1,0)
+    #plot_bennett_vs_T(fbennett,1)
+    #plot_theoretical_energies(1,0)
     
-    #free_energy_diff(fiucon,ficonn,5,beta=2.0,P=20,opt='FB')
+    #free_energy_diff(fi1,fi2,5,beta=1.34,P=20,opt='FB')
 
-    if 1:
+    if 0:
         plot_rAB(fi6,2,1,2,'r',marker='x',name='Disting.',linestyle='-',show_errors=1)
         plot_rAB(fi7,2,0,2,'b',marker='x',name='Boson',linestyle='-',show_errors=1)
         plot_rAB(fi8,2,0,2,'g',marker='x',name='Fermion',linestyle='-',show_errors=1)
         plt.legend(loc='upper right',fontsize=22)    
-        plt.title(r'$\sigma_\mathrm{LJ}=4\,\mathrm{nm}$')
+        plt.title(r'$\sigma_\mathrm{LJ}=1\,\mathrm{nm}$')
         plot_gauss_data(fi7,3,'Wt')
-    
+        
     if 0:
-        #plot_cv(f1,0,100000,'')
-        #plot_cv(f3,0,100000,'')
+        plot_2d_dist([fi2,fi3],2,[r'$\mathrm{Singlet}$',r'$\mathrm{Triplet}$'],
+                     r'$\mathrm{With~Metadynamics}$',use_contour=False,stride=10,num_smooths=0)
+    
+    if 1:
+        plot_cv('../sign_cv/woMetaD/',0,100000,'')
+        plot_cv('../sign_cv/MetaD/',1,100000,'rew')
         #plot_energies_vs_t(f1,0,n=100000)
-        plot_gauss_data(f8,8,'Ws',name='cv4')
-        plot_gauss_data(f8,9,'Wt',name='cv4')
-        plot_s_int(f1,1,1,'')
-        plt.ylim([0,2])
-        plt.xlim([-1,25])
-        plot_s_int(f2,2,1,'')
-        plt.ylim([0,2])
-        plt.xlim([-1,25])
-        plot_s_int(f7,3,1,'')
-        plt.ylim([-1,2])
-        plt.xlim([-1,20])
-        plot_s_int(f8,4,1,'log')
-        #plt.ylim([-1,5])
-        plt.xlim([-1,20])
+        plot_gauss_data('../sign_cv/MetaD/',8,'Wt',name='Sign CV')
+        #plot_gauss_data('../test2/',9,'Wt',name='Sign CV')
+        plot_s_int('../sign_cv/woMetaD/',2,1,'')
+        plt.ylim([-5,5])
+        plt.xlim([-1.1,1.1])
+        plt.title('woMetaD')
+        plot_s_int('../sign_cv/MetaD2/',3,1,'')
+        plt.ylim([-5,5])
+        plt.xlim([-1.1,1.1])
+        plt.title('MetaD')
+        """plot_s_int(fi5,4,1,'')
+        plt.ylim([-1,1])
+        #plt.xlim([-1,20])
+        plt.title('cv5')"""
         
         #Ws,pW = plot_cont(fi2 ,4,-1,100000,cv='G')
         #Ws2,pW2 = plot_cont(fi2m,5,-1,100000,cv='G')

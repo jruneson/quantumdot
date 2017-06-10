@@ -52,6 +52,8 @@ void Parameters::read_file(std::string filename)
 				iss >> num_bins;
 			else if(name=="num_bins_2d")
 				iss >> num_bins_2d;
+			else if(name=="hist_size_in_r_star")
+				iss >> hist_size_in_r_star;
 			else if(name=="sign")
 				iss >> sign;
 			else if(name=="spin_times_two")
@@ -178,7 +180,7 @@ void Parameters::calculate_dependencies()
 	//else
 	//	virial_offset = num_parts*dim/(2.0*beta);
 	length_scale = std::sqrt(1.0/(m_hbar2*hw));
-	hist_size = length_scale * 4;	
+	hist_size = length_scale*hist_size_in_r_star;	
 	
 	//std::cout << hwx << "\t" << hwy << "\t" << wigner_parameter << "\t" << virial_offset << std::endl;
 }

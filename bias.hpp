@@ -17,6 +17,7 @@ public:
 	void update_cv(const std::vector<Polymer>&);
 	void update_cv_rew(const std::vector<Polymer>&, double);
 	double get_cv() const;
+	void set_weights(double,double);
 
 	void update_bias(const std::vector<Polymer>&,double,double);
 	void restore_splines_transient(double);
@@ -56,6 +57,8 @@ private:
 	double regularization;
 	
 	const std::vector<Graph>& graphs;
+	double pos_weight;
+	double neg_weight;
 	
 	Spline v_spline;
 	Spline vder_spline;
