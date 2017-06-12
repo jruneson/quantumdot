@@ -8,7 +8,7 @@ Bias::Bias(const Parameters& params, bool cont_sim, const std::vector<Graph>& gr
 			gauss_width(params.gauss_width), bias_factor(params.bias_factor),
 			exc_const(params.exc_const), first_height(params.first_height),
 			exponent_factor(1.0/(2*params.gauss_width*params.gauss_width)),
-			metad_on(params.metad_on),spline_step(gauss_width/10.0),
+			metad_on(params.metad_on),spline_step(gauss_width/20.0),
 			wall_id(params.wall_id),wall_energy(params.wall_energy),
 			wall_pos(params.wall_pos),biased_graph(params.biased_graph)
 {
@@ -121,9 +121,9 @@ double Bias::coll_var(const std::vector<Polymer>& pols) const
 			/*s = energy_diff(pols);
 			return 0.5*(1+s+(1-s)*std::tanh(s));*/
 		case 6:
-			return graphs[biased_graph].get_energy_diff(pols);
+			return graphs[1].energy_diff(pols,graphs[0]);
 			/*s = energy_diff(pols);
-			return 0.5*(1.1*s-0.9*s*std::tanh(s));*/
+			return 0.5*(1.1*s-0.9*s*std::tanh(s));
 		case 7:
 			/*pos_weight = 0;
 			neg_weight = 0;
@@ -282,8 +282,8 @@ Force Bias::cv_grad(const std::vector<Polymer>& pols, int bead, int part) const
 			{
 				//pos_weight += graph.get_weight(pols,true);
 				//neg_weight += graph.get_weight(pols,false);
-				tmp += graph.get_grad_weight(pols,true,bead,part); //grad W+
-				tmp2 += graph.get_grad_weight(pols,false,bead,part); //grad W-
+				tmp += graph.get_grad_weight(pols,graphs[current_graph_id], true,bead,part); //grad W+
+				tmp2 += graph.get_grad_weight(pols,graphs[current_graph_id], false,bead,part); //grad W-
 			}
 			return (tmp + tmp2)/(pos_weight+neg_weight);
 		/*	tmp = two_terms(pols,bead,part);
@@ -310,8 +310,8 @@ Force Bias::cv_grad(const std::vector<Polymer>& pols, int bead, int part) const
 			{
 				//pos_weight += graph.get_weight(pols,true);
 				//neg_weight += graph.get_weight(pols,false);
-				tmp += graph.get_grad_weight(pols,true,bead,part); //grad W+
-				tmp2 += graph.get_grad_weight(pols,false,bead,part); //grad W-
+				tmp += graph.get_grad_weight(pols,graphs[current_graph_id],true,bead,part); //grad W+
+				tmp2 += graph.get_grad_weight(pols,graphs[current_graph_id],false,bead,part); //grad W-
 			}
 			//if((tmp/pos_weight - tmp2/neg_weight).dist0()!=(tmp/pos_weight - tmp2/neg_weight).dist0())
 			//	std::cout << tmp.dist0() << "\t" << tmp2.dist0() << "\t" << pos_weight << std::endl;
@@ -319,7 +319,7 @@ Force Bias::cv_grad(const std::vector<Polymer>& pols, int bead, int part) const
 				return tmp/pos_weight;
 			return tmp/pos_weight - tmp2/neg_weight;
 		case 6:
-			return graphs[biased_graph].get_energy_diff_grad(pols,bead,part);
+			return graphs[1].energy_diff_grad(pols,graphs[0],bead,part);
 		case 7:
 			//replace with method which does not have to recalc weights
 			//pos_weight = 0;
@@ -328,8 +328,8 @@ Force Bias::cv_grad(const std::vector<Polymer>& pols, int bead, int part) const
 			{
 				//pos_weight += graph.get_weight(pols,true);
 				//neg_weight += graph.get_weight(pols,false);
-				tmp += graph.get_grad_weight(pols,true,bead,part);
-				tmp2 += graph.get_grad_weight(pols,false,bead,part);
+				tmp += graph.get_grad_weight(pols,graphs[current_graph_id],true,bead,part);
+				tmp2 += graph.get_grad_weight(pols,graphs[current_graph_id],false,bead,part);
 			}
 			return (tmp*neg_weight - tmp2*pos_weight)/std::pow(pos_weight+neg_weight,2);
 		default:
@@ -386,6 +386,11 @@ double Bias::calc_bias(double cv) const
 	return tmp;
 }
 
+double Bias::calc_bias2(double cv) const
+{
+	return gaussian(cv,latest_cv_center,latest_height) + v_spline.eval_spline(cv);
+}
+
 double Bias::calc_bias_der(double cv) const
 {
 	double tmp=0;
@@ -399,6 +404,11 @@ double Bias::calc_bias_der(double cv) const
 	return tmp/std::pow(gauss_width,2);
 }
 
+double Bias::calc_bias_der2(double cv) const
+{
+	return (cv-latest_height)*gaussian(cv,latest_cv_center,latest_height)/std::pow(gauss_width,2) + vder_spline.eval_spline(cv);
+}
+
 double Bias::gaussian(double cv, double center, double height) const
 {
 	return height*std::exp(- std::pow(cv-center,2)*exponent_factor);
@@ -409,7 +419,9 @@ void Bias::update_bias(const std::vector<Polymer>& pols, double beta, double t)
 	if(metad_on)
 	{
 		double cv_now = coll_var(pols);
-		double h = first_height * std::exp(-beta/(bias_factor-1.0)*calc_bias(cv_now));
+		double h = first_height * std::exp(-beta/(bias_factor-1.0)*v_spline.eval_spline(cv_now));
+		latest_cv_center = cv_now;
+		latest_height = h;
 		cv_centers.push_back(cv_now);
 		heights.push_back(h);
 		cv_centers_file << t << "\t" << cv << "\t" << h << std::endl;
@@ -428,16 +440,31 @@ void Bias::create_splines()
 		std::vector<double> vs;
 		std::vector<double> vders;
 		std::vector<double> cvs;
-		auto it = std::min_element(std::begin(cv_centers),std::end(cv_centers));
+		//double min = 0;
+		//double max = 0;
+		double min = v_spline.get_min();
+		double max = v_spline.get_max();
+		if(latest_cv_center < min)
+			min = latest_cv_center-5*gauss_width;
+		if(latest_cv_center > max)
+			max = latest_cv_center+5*gauss_width;
+		int num_steps_for_spline = std::floor((max-min)/spline_step);
+		if(num_steps_for_spline != num_steps_for_spline)
+			std::cout << "Have a look at the Bias::create_splines method!" << std::endl;
+		cvs.assign(num_steps_for_spline,0.0);
+		vders.assign(num_steps_for_spline,0.0);
+		vs.assign(num_steps_for_spline,0.0);
+		/*auto it = std::min_element(std::begin(cv_centers),std::end(cv_centers));
 		double min = *it - 5*gauss_width;
 		it = std::max_element(std::begin(cv_centers),std::end(cv_centers));
-		double max = *it + 5*gauss_width;
-		//assign zeros
-		for(double s=min; s<=max; s+=spline_step)
+		double max = *it + 5*gauss_width;*/
+		double s=0;
+		for(int i=0; i<num_steps_for_spline; ++i)
 		{
-			cvs.push_back(s);
-			vs.push_back(calc_bias(s));
-			vders.push_back(calc_bias_der(s));
+			s = min+i*spline_step;
+			cvs[i]=s;
+			vs[i]=calc_bias(s);
+			vders[i]=calc_bias_der(s);
 		}
 		v_spline.create_spline(cvs,vs);
 		vder_spline.create_spline(cvs,vders);
@@ -584,4 +611,9 @@ std::vector<double> Bias::get_heights() const
 std::vector<double> Bias::get_centers() const
 {
 	return cv_centers;
+}
+
+void Bias::set_current_graph(int g_id)
+{
+	current_graph_id = g_id;
 }

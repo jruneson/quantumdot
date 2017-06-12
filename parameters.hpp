@@ -43,6 +43,8 @@ public:
 	double first_height;
 	double bias_update_time;
 	int biased_graph;
+	double permutation_trial_time;
+	bool allow_perm_switch;
 	
 	double wigner_parameter; //electrostatic energy scale / hw
 	double hw; //in meV

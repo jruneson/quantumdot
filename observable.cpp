@@ -125,7 +125,8 @@ void Observable::set_print_on()
 }
 
 void Observable::measure(const std::vector<Polymer>& polymers, const Interaction& interac, 
-						double time, double exc_factor, double rew_factor, const std::vector<Graph>& graphs)
+						double time, double exc_factor, double rew_factor, const std::vector<Graph>& graphs,
+						int current_graph_id)
 {
 	double tmp = 0;
 	switch(id)
@@ -172,7 +173,7 @@ void Observable::measure(const std::vector<Polymer>& polymers, const Interaction
 			break;
 		case 2:
 		case 3:
-			tmp += virial_terms(polymers,graphs);
+			tmp += virial_terms(polymers,graphs,current_graph_id);
 			break;
 		default:
 			break;
@@ -369,7 +370,8 @@ double Observable::exc_der(const std::vector<Polymer>& pols) const
 	return exc_der_const * tmp;
 }
 
-double Observable::virial_terms(const std::vector<Polymer>& pols,const std::vector<Graph>& graphs) const
+double Observable::virial_terms(const std::vector<Polymer>& pols,const std::vector<Graph>& graphs,
+								int current_graph_id) const
 {
 	double tmp = 0;
 	for(const Graph& graph : graphs)
@@ -382,7 +384,7 @@ double Observable::virial_terms(const std::vector<Polymer>& pols,const std::vect
 			tmp_graph += calc_centroid(pols,chain)*calc_total_force(pols,chain)/2;
 			//minus sign is included in the force, num_beads in force
 		}
-		tmp += tmp_graph * graph.get_weight_signed(pols);
+		tmp += tmp_graph * graph.get_weight_signed(pols,graphs[current_graph_id]);
 	}
 	//if(id==3)
 	//	std::cout << "\t" << virial_offset*2 << "\t" << tmp-virial_offset*2 << "\t" << graphs[0].get_weight_signed(pols) << std::endl;

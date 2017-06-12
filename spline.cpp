@@ -71,11 +71,15 @@ double Spline::eval_spline(double r) const
 
 double Spline::get_min() const
 {
+	if(!created)
+		return 0;
 	return min_;
 }
 
 double Spline::get_max() const
 {
+	if(!created)
+		return 0;
 	return max_;
 }
 

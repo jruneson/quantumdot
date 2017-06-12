@@ -7,6 +7,7 @@
 #include <ctime>
 #include <map>
 #include <algorithm>
+#include <random>
 
 #include "parameters.hpp"
 #include "polymer.hpp"
@@ -55,10 +56,13 @@ private:
 	Bias bias;
 	const double bias_update_time;
 	double bias_update_counter;
+	double permutation_switch_counter;
+	const double permutation_trial_time;
 	int iteration_nbr;
 	const bool cont_sim; //continue a previous simulation
 	const bool more_output;
 	bool printed_warning;
+	const bool allow_perm_switch;
 	
 	const double beta;
 	const double tau;
@@ -84,6 +88,7 @@ private:
 	double sgn_avg_sq;
 	
 	std::vector<Graph> graphs;
+	int current_graph_id;
 	std::map<int,Observable> obs;	
 	std::vector<double> histogram; //pair correlation function. 
 	std::vector<double> histogram_avg;
@@ -99,10 +104,10 @@ private:
 	std::vector<double> exc_fac_hist;
 	std::vector<double> weight_en_hist;
 	//std::vector<double> cv_hist;
-	double cv_hist_min = -1;
-	double cv_hist_max = 1;
+	double cv_hist_min = -100;
+	double cv_hist_max = 100;
 	double cv_hist_width;
-	double cv_hist_res = 0.01; //resolution, i.e. bin size
+	double cv_hist_res = 0.1; //resolution, i.e. bin size
 	int cv_hist_num_bins;
 	std::vector<double> histogram_delta_e;
 	std::vector<double> hist_c;
@@ -133,6 +138,11 @@ private:
 	std::ofstream vmd_file;
 	std::ofstream vmd_file2;
 	std::ofstream file_fsum;
+	
+	std::random_device rd;
+	std::mt19937 mt;
+	std::uniform_real_distribution<double> uni_distr;
+	std::uniform_int_distribution<int> int_distr;
 
 	void setup();
 	void read_input_coords();
@@ -158,6 +168,7 @@ private:
 	double exc_exponent(int) const;
 	double simple_uncertainty(double,double) const;
 	double weighted_uncertainty(double,double) const;
+	void try_permutation_change();
 		
 	//double coll_var() const;
 	//Force grad_coll_var() const;

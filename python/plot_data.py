@@ -42,16 +42,18 @@ def plot_cv(f,fig_nr,n=0,opt=None):
     if(opt=='rew'):
         data = np.genfromtxt(f+'rew_factor.dat',max_rows=n)
         rw = data[:,1]
-        plt.plot(t,rw,label='rew-factor')
+        plt.plot(t,5*rw,label='rew-factor')
         plt.legend(loc='upper right',fontsize=20)
     if(opt=='bdE'):
         bdE = data[:,2]
         plt.plot(t,1*bdE,label=r'$\beta\Delta E$')
         plt.legend(loc='upper right',fontsize=20)
-    if(opt=='exp'):
+    """if(opt=='exp'):
         plt.clf()
         plt.plot(t,np.exp(cv))
-        plt.plot(t,data[:,3]*100)
+        plt.plot(t,data[:,3]*100)"""
+    if(opt=='perm'):
+        plt.plot(t,data[:,3])
         
         
     
@@ -172,7 +174,7 @@ def plot_s_int(f, fig_nr, clear=1, opt=''):
         plt.plot(s,shist)
         plt.plot(s,Whist)
         plt.plot(s,Ehist)
-    plt.xlim([-40,40])
+    #plt.xlim([-40,40])
     ds = s[1]-s[0]
     print(sum(Whist)*ds)
     
@@ -594,7 +596,7 @@ def darken(x, ):
         
 def plot_2d_dist(files,fig_nr,titles,suptitle='', stride=1,use_contour=True,
                  num_smooths=0):
-    fig = plt.figure(num=fig_nr,figsize=(12,6.7))    
+    fig = plt.figure(num=fig_nr,figsize=(12,4.5))    
     #fig.set_size_inches(12,6.2)
     plt.clf()
         
@@ -605,32 +607,40 @@ def plot_2d_dist(files,fig_nr,titles,suptitle='', stride=1,use_contour=True,
         dr1 = r1[1]-r1[0]
         dr2 = r2[1]-r2[0]
         histpre = data[1:,1:]
+        for k in range(0,histpre.shape[0]-1):
+            for l in range(0,histpre.shape[1]-1):
+                if histpre[k,l]<0:
+                    histpre[k,l]=0
         hist = smooth(histpre,num_smooths)
         norm = sum(sum(hist))*dr1*dr2
         hist = hist/norm*1000
         X,Y = np.meshgrid(r1,r2)
-        Z = hist.reshape(X.shape)
+        Z = hist.reshape(X.shape)#.transpose()
+        #print(Z.shape)
         if use_contour:
 
             if i==0:
                 ax0 = fig.add_subplot(121)
+                #Z0 = Z
             else:
                 ax1 = fig.add_subplot(122,sharey=ax0)
                 plt.setp(ax1.get_yticklabels(),visible=False)
                 xticks = ax1.xaxis.get_major_ticks()
+                #Z = (2*np.sqrt(Z)-np.sqrt(Z0))**2
                 #xticks[0].label1.set_visible(False)
             #levels=np.arange(2,11,2)
             #dark_inferno=cmap_map(darken,plt.get_cmap('inferno_r'))
-            c = plt.contour(X,Y,Z,cmap=cm.viridis)#,levels=levels)
-            plt.clabel(c, inline=1,fontsize=16,fmt='%1.1f')
+            plt.imshow(Z,interpolation='gaussian',extent=[r1[0],r1[-1],r2[0],r2[-1]])
+            #c = plt.contour(X,Y,Z,cmap=cm.viridis)#,levels=levels)
+            #plt.clabel(c, inline=1,fontsize=16,fmt='%1.1f')
             plt.xlabel(r'$x~(\mathrm{nm})$')
             if i==0:
                 plt.ylabel(r'$y~(\mathrm{nm})$')
                 ax0.set_title(titles[0],fontsize=28)
             else:
                 ax1.set_title(titles[1],fontsize=28)
-            #plt.xlim([-52,52])
-            #plt.ylim([-52,52])
+            plt.xlim([-60,60])
+            plt.ylim([-30,30])
         else:
             ax = fig.add_subplot(111,projection='3d')
             surf = ax.plot_surface(X,Y,Z, rstride=stride, cstride=stride, cmap=cm.viridis)
@@ -869,7 +879,7 @@ if __name__=="__main__":
     md=['noMetaD/','MetaD/']
     sym = ['bos/','fer/']
     P=['P10/','P20/','P40/','P50/','P60/']
-    s=['s0-5/','s1/','s2/','s4/']
+    s=['s0-25/','s0-5/','s1/','s2/','s4/']
     dt=['','dt5e-3/','dt1e-3/','dt1e-4/']
     t=['t100000/']
     fa1 = f0+interac[2]+beta[0]+sym[0]+md[0]
@@ -894,8 +904,8 @@ if __name__=="__main__":
 
     
     fi1 ='../three/spin3half/beta1-5/woMetaD/'
-    fi2 ='../coulomb/singlet/beta1/MetaD/disconnected/'
-    fi3 = '../coulomb/triplet/beta1/MetaD/'
+    fi2 ='../coulomb170612/anisotropy3/singlet/beta1/disconnected/'
+    fi3 = '../coulomb170612/anisotropy3/triplet/beta1/'
     fi4 ='../three/spin3half/beta1-5/MetaD/test/'
     fiucon = '../ideal/boson/1D/beta2/MetaD/disconnected/'
     ficonn = '../ideal/boson/1D/beta2/MetaD/connected/'
@@ -904,10 +914,12 @@ if __name__=="__main__":
     #fi3 ='../ideal/distinguish/1D/beta1/'
     #fi4 ='../ideal/boson/2D/beta2/MetaD/disconnected/'
     fi5 ='../three/spin3half/beta1-5/MetaD/'
-    k = 1
+    k = 3
     fi6 ='../LJ/distinguish/'+s[k]
     fi7 ='../LJ/boson/'+s[k]
     fi8 ='../LJ/fermion/'+s[k]
+    fi9 ='../ideal/boson/2D/beta1/woMetaD_longer/disconnected/'
+    fi10='../ideal/fermion/2D/beta1/woMetaD_longer/'
     
     fbennett = '../ideal/fermion/1D/Energy_vs_T/FreeEnergyDiff/'
 
@@ -921,32 +933,36 @@ if __name__=="__main__":
         plot_rAB(fi7,2,0,2,'b',marker='x',name='Boson',linestyle='-',show_errors=1)
         plot_rAB(fi8,2,0,2,'g',marker='x',name='Fermion',linestyle='-',show_errors=1)
         plt.legend(loc='upper right',fontsize=22)    
-        plt.title(r'$\sigma_\mathrm{LJ}=1\,\mathrm{nm}$')
+        plt.title(r'$\sigma_\mathrm{LJ}=0.5\,\mathrm{nm}$')
         plot_gauss_data(fi7,3,'Wt')
+        plot_s_int(fi8,4,1,'')
         
     if 0:
-        plot_2d_dist([fi2,fi3],2,[r'$\mathrm{Singlet}$',r'$\mathrm{Triplet}$'],
-                     r'$\mathrm{With~Metadynamics}$',use_contour=False,stride=10,num_smooths=0)
+        plot_2d_dist([fi2,fi3],1,[r'$\mathrm{Singlet}$',r'$\mathrm{Triplet}$'],
+                     r'$\mathrm{Anisotropy}~\omega_y/\omega_x = 3$',use_contour=True,stride=10,num_smooths=0)
     
     if 1:
-        plot_cv('../sign_cv/woMetaD/',0,100000,'')
-        plot_cv('../sign_cv/MetaD/',1,100000,'rew')
+        #plot_cv('../sign_cv/woMetaD/',0,100000,'')
+        plot_cv('../test3/',1,200000,'rew')
         #plot_energies_vs_t(f1,0,n=100000)
-        plot_gauss_data('../sign_cv/MetaD/',8,'Wt',name='Sign CV')
-        #plot_gauss_data('../test2/',9,'Wt',name='Sign CV')
-        plot_s_int('../sign_cv/woMetaD/',2,1,'')
-        plt.ylim([-5,5])
-        plt.xlim([-1.1,1.1])
-        plt.title('woMetaD')
-        plot_s_int('../sign_cv/MetaD2/',3,1,'')
-        plt.ylim([-5,5])
-        plt.xlim([-1.1,1.1])
-        plt.title('MetaD')
-        """plot_s_int(fi5,4,1,'')
-        plt.ylim([-1,1])
-        #plt.xlim([-1,20])
-        plt.title('cv5')"""
-        
+        plot_gauss_data(fi3,8,'Wt',name='')
+        plot_gauss_data('../test2/',9,'Wt',name='test2')
+        plot_s_int(fi2,2,1,'')
+        #plt.ylim([-5,5])
+        #plt.xlim([-1.1,1.1])
+        plt.title('sing')
+        plot_s_int(fi3,3,1,'')
+        #plt.ylim([-5,5])
+        #plt.xlim([-1.1,1.1])
+        plt.title('trip')
+        plot_s_int('../test/',4,1,'')
+        #plt.ylim([-1,1])
+        plt.xlim([-40,40])
+        plt.title('test')
+        plot_s_int('../test2/',5,1,'')
+        #plt.ylim([-1,1])
+        plt.xlim([-40,40])
+        plt.title('test2')
         #Ws,pW = plot_cont(fi2 ,4,-1,100000,cv='G')
         #Ws2,pW2 = plot_cont(fi2m,5,-1,100000,cv='G')
         """plt.figure(6)

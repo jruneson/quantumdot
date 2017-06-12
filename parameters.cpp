@@ -94,6 +94,13 @@ void Parameters::read_file(std::string filename)
 				iss >> first_height_in_kBT;
 			else if(name=="bias_update_time")
 				iss >> bias_update_time;
+			else if(name=="permutation_trial_time")
+				iss >> permutation_trial_time;
+			else if(name=="allow_permutation_switch")
+			{	
+				iss >> to_bool;
+				allow_perm_switch = (to_bool != 0);
+			}
 			else if(name=="wigner_parameter")
 				iss >> wigner_parameter;
 			else if(name=="hwx")

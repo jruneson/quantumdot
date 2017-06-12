@@ -19,7 +19,7 @@ public:
 	Observable(int,const Parameters&);
 	
 	void measure(const std::vector<Polymer>&, const Interaction&, double, 
-				 double, double, const std::vector<Graph>&);
+				 double, double, const std::vector<Graph>&,int);
 	void print_measure(double, double, double);
 	
 	void set_zero();
@@ -67,7 +67,7 @@ private:
 	double spring_energy_cl(const std::vector<Polymer>&, const Interaction&) const;
 	
 	double exc_der(const std::vector<Polymer>&) const;
-	double virial_terms(const std::vector<Polymer>&, const std::vector<Graph>&) const;
+	double virial_terms(const std::vector<Polymer>&, const std::vector<Graph>&,int) const;
 	double scalar_product(const std::vector<Polymer>&, int) const;
 	//double scalar_product_conn(const std::vector<Polymer>&, int, int) const;
 	

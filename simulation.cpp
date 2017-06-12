@@ -22,6 +22,7 @@ Simulation::Simulation(const Parameters& params, std::ofstream& _res_file, bool 
 	  tau(params.tau), bias(Bias(params,continue_sim,graphs_in)),
 	  graphs(graphs_in), spin(params.spin),
 	  bias_update_time(params.bias_update_time), cont_sim(continue_sim),
+	  allow_perm_switch(params.allow_perm_switch), permutation_trial_time(params.permutation_trial_time),
 	  more_output(params.more_output)
 {
 	for(int n=0; n<num_parts; ++n)
@@ -43,6 +44,9 @@ Simulation::Simulation(const Parameters& params, std::ofstream& _res_file, bool 
 		std::cout << std::endl;
 	}
 	//
+	current_graph_id = 0;
+	if(polymers[0].connected)
+		current_graph_id=1;
 	
 	finished = false;
 	block = 0;
@@ -88,6 +92,7 @@ Simulation::Simulation(const Parameters& params, std::ofstream& _res_file, bool 
 	hist_c.assign(hist_c_num_bins,0);
 	
 	bias_update_counter = 0;
+	permutation_switch_counter = 0;
 	movie_start_time = 0;//non_sampling_time + sampling_time/2.0;
 	movie_end_time = 50;// movie_start_time + dt_sample*10000;
 	try 
@@ -101,6 +106,10 @@ Simulation::Simulation(const Parameters& params, std::ofstream& _res_file, bool 
 		return;
 	}
 	
+	mt = std::mt19937(rd());
+	uni_distr = std::uniform_real_distribution<double>(0.0,1.0);
+	int_distr = std::uniform_int_distribution<int>(0,graphs.size()-1);
+	
 	printed_warning = false;
 }
 
@@ -110,7 +119,6 @@ Simulation::Simulation(const Parameters& params, std::ofstream& _res_file, bool 
 void Simulation::setup() 
 {
 	timer.start();
-
 	if(cont_sim)
 	{
 		read_input_coords();
@@ -306,6 +314,15 @@ void Simulation::run_wo_sampling()
 		double tmp = time_before_sampl/(0.1*non_sampling_time);
 		if(std::fmod(tmp,1.0)<tmp2)
 			update_screen();
+		update_exc(false);
+		/*if(more_output)
+		{
+			exc_file << overall_time << "\t" << exchange_factor << std::endl;
+			cv_file << overall_time << "\t" << bias.get_cv() << "\t"
+					<< bias.energy_diff(polymers) << "\t" << current_graph_id
+					<< "\t" << polymers[0].bias_forces[0][0] << std::endl;
+			rew_factor_file << overall_time << "\t" << bias.get_rew_factor() << std::endl;
+		}*/
 	}
 }
 
@@ -336,11 +353,22 @@ void Simulation::run_block()
 		update_exc(true);
 		measure();
 		bias_update_counter += dt_sample;
+		permutation_switch_counter += dt_sample;
 		if(bias_update_counter >= bias_update_time) //check if remainder is 0
 		{
 			bias.update_bias(polymers,beta,overall_time);
 			//bias.update_cv(polymers,exchange_factor);
 			bias_update_counter = 0;
+		}
+		if(permutation_switch_counter >= permutation_trial_time)
+		{
+			try_permutation_change();
+			permutation_switch_counter = 0;
+		}
+		if((polymers[0][0][0]!=polymers[0][0][0])&&(!printed_warning))
+		{
+			std::cout << overall_time << "\t" << "warning, coordinates are NaN!" << std::endl;
+			printed_warning = true;
 		}
 	}
 	update_avgs();
@@ -373,7 +401,7 @@ void Simulation::verlet_step()
 void Simulation::measure()
 {
 	for(auto& pair : obs)
-		pair.second.measure(polymers,interac,overall_time,exchange_factor,bias.get_rew_factor(),graphs);	
+		pair.second.measure(polymers,interac,overall_time,exchange_factor,bias.get_rew_factor(),graphs,current_graph_id);	
 	update_histogram();
 	if((bias.get_cv()!=bias.get_cv())&&(!printed_warning))
 	{
@@ -383,8 +411,11 @@ void Simulation::measure()
 	if(more_output)
 	{
 		exc_file << overall_time << "\t" << exchange_factor << std::endl;
-		cv_file << overall_time << "\t" << bias.get_cv() << "\t" << bias.energy_diff(polymers) << //std::endl;
-					"\t" << polymers[0].bias_forces[0][0] << std::endl;
+		cv_file << overall_time << "\t" << bias.get_cv() << "\t"
+				<< bias.energy_diff(polymers) << "\t" << current_graph_id
+				<< "\t" << polymers[0].bias_forces[0][0] << std::endl;
+					//bias.energy_diff(polymers) << //std::endl;
+					// << std::endl;
 		rew_factor_file << overall_time << "\t" << bias.get_rew_factor() << std::endl;
 	}
 	if(overall_time>movie_start_time && overall_time<movie_end_time)
@@ -393,14 +424,14 @@ void Simulation::measure()
 
 void Simulation::update_avgs()
 {
-	double tmp = exc_sum/samples;
+	double tmp = exc_sum/bias.get_rew_factor_block();
 	//double tmp2 = e_s_sum/samples;
 	exc_avg = (exc_avg*block + tmp) / (block+1.0);
 	exc_avg_sq = (exc_avg_sq*block + tmp*tmp)/(block+1.0);
 	exc_sq_avg = (exc_sq_avg*block + exc_sq)/(block+1.0);
 	exc_sq = 0;
 	exc_sum = 0;
-	double tmp_sgn = sgn_sum/(bias.get_rew_factor_block());
+	double tmp_sgn = sgn_sum/bias.get_rew_factor_block();
 	sgn_avg = (sgn_avg*block + tmp_sgn)/(block+1.0);
 	sgn_avg_sq = (sgn_avg_sq*block + tmp_sgn)/(block+1.0);
 	sgn_sum = 0;
@@ -534,7 +565,7 @@ void Simulation::update_screen()
 
 void Simulation::print_to_logfile()
 {
-	logfile << block << "\t" << exc_avg/bias.get_rew_factor_avg();
+	logfile << block << "\t" << exc_avg;
 	logfile << "\t" << sgn_avg;
 	for(auto& ob : obs)
 		logfile <<	"\t" << ob.second.get_weighted_avg(); 
@@ -558,8 +589,8 @@ void Simulation::stop()
 	print_config();
 	logfile << "Name\t\tMeanValue\tErrorOfMean\tStandDev" << std::endl;
 	double rew_norm = bias.get_rew_factor_avg();
-	logfile << "Exc_factor\t" << exc_avg/rew_norm << "\t" << simple_uncertainty(exc_avg,exc_avg_sq)/rew_norm 
-			<< "\t" << std::sqrt(exc_sq_avg-exc_avg*exc_avg)/rew_norm << std::endl; // sqrt(n/(n-1)) unnecessary for large n
+	logfile << "Exc_factor\t" << exc_avg << "\t" << simple_uncertainty(exc_avg,exc_avg_sq) 
+			<< "\t" << std::sqrt(exc_sq_avg-exc_avg*exc_avg) << std::endl; // sqrt(n/(n-1)) unnecessary for large n
 	logfile << "Avg_sign\t" << sgn_avg << "\t" << simple_uncertainty(sgn_avg,exc_avg_sq) << std::endl;
 	//logfile << "Exp_en_diff\t" << e_s_avg/rew_norm << "\t" << simple_uncertainty(e_s_avg,e_s_avg_sq)/rew_norm
 	//		<< std::endl;
@@ -774,9 +805,11 @@ void Simulation::update_exc(bool count_to_average)
 	neg_weight = 0;
 	for(const Graph& graph : graphs)
 	{
-		pos_weight += graph.get_weight(polymers,true);
-		neg_weight += graph.get_weight(polymers,false);
+		pos_weight += graph.get_weight(polymers,graphs[current_graph_id],true);
+		neg_weight += graph.get_weight(polymers,graphs[current_graph_id],false);
+		//std::cout << graph.get_weight(polymers,graphs[current_graph_id],true)<< "\t";
 	}
+	//std::cout << std::endl;
 	exchange_factor = pos_weight - neg_weight;
 	sgn = (pos_weight - neg_weight)/(pos_weight+neg_weight);
 	//e_s = std::abs(exchange_factor-1);
@@ -799,6 +832,32 @@ double Simulation::simple_uncertainty(double avg, double avg_sq) const
 		return std::sqrt((avg_sq - avg*avg)/(block));
 	return 0;
 }
+
+void Simulation::try_permutation_change()
+{
+	if(allow_perm_switch)
+	{
+		int graph_id_to_try=-1;
+		do
+		{
+			graph_id_to_try = int_distr(mt);
+			//std::cout << graph_id_to_try << " ";
+		}	
+		while(graph_id_to_try == current_graph_id);	
+		//std::cout << std::endl;
+		double en_diff = graphs[graph_id_to_try].energy_diff(polymers,graphs[current_graph_id]);
+		if((en_diff<0)||(uni_distr(mt) < std::exp(-beta*en_diff)))
+		{
+			//std::cout << "switched from diagram " << current_graph_id<< " to diagram " << graph_id_to_try << std::endl;
+			current_graph_id = graph_id_to_try;
+			if(current_graph_id==1)
+				polymers[0].connected=true;
+			if(current_graph_id==0)
+				polymers[0].connected=false;
+		}
+	}
+}
+
 
 /*
 double Simulation::weighted_uncertainty(double avg, double avg_sq) const

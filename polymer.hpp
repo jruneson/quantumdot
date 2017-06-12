@@ -30,7 +30,7 @@ public:
 	const double dt_2m;
 	const double dt;
 	const double mass;
-	const bool connected;
+	bool connected;
 };
 
 #endif

@@ -63,6 +63,12 @@ void Point::operator+=(const Point& p)
 		point_coords[d] += p.point_coords[d];
 }
 
+void Point::operator-=(const Point& p)
+{
+	for(int d=0; d<point_coords.size(); ++d)
+		point_coords[d] -= p.point_coords[d];
+}
+
 void Point::operator*=(double c)
 {
 	for(int d=0; d<point_coords.size(); ++d)

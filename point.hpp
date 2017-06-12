@@ -27,6 +27,7 @@ public:
 	double& operator[](int);
 	const double& operator[](int) const;
 	void operator+=(const Point&);
+	void operator-=(const Point&);
 	void operator*=(double);
 	void operator/=(double);
 };
