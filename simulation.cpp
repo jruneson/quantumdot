@@ -676,10 +676,12 @@ void Simulation::stop()
 			{
 				double r1 = hist_size_1d*((double) bin1/num_bins_2d) + hist_1d_min;
 				double r2 = hist_size_1d*((double) bin2/num_bins_2d) + hist_1d_min;
-				pair_corr_2d << r1 << r2 << pair_distr_2d[bin1][bin2] << std::endl;
-				hist_file_2d << r1 << r2 << histogram_2d_avg[bin1][bin2] << std::endl;
+				pair_corr_2d << r1 << "\t" << r2 << "\t" << pair_distr_2d[bin1][bin2] << std::endl;
+				hist_file_2d_other_format << r1 << "\t" << r2 << "\t" << histogram_2d_avg[bin1][bin2] << std::endl;
 			}
 		}
+		pair_corr_2d.close();
+		hist_file_2d_other_format.close();
 	}
 	
 	std::ofstream cv_hist_file("CV_distributions.dat");

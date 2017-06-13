@@ -947,11 +947,11 @@ if __name__=="__main__":
         plot_gauss_data(fi7,3,'Wt')
         plot_s_int(fi8,4,1,'')
         
-    if 0:
-        plot_2d_dist([fi2,fi3],1,[r'$\mathrm{Singlet}$',r'$\mathrm{Triplet}$'],
-                     r'$\mathrm{}~\omega_y/\omega_x = 1.3$',use_contour=False,stride=10,num_smooths=3)
-    
     if 1:
+        plot_2d_dist(['../test4/',fi3],1,[r'$\mathrm{Singlet}$',r'$\mathrm{Triplet}$'],
+                     r'$\mathrm{}~\omega_y/\omega_x = 1.3$',use_contour=True,stride=10,num_smooths=3)
+    
+    if 0:
         #plot_cv('../sign_cv/woMetaD/',0,100000,'')
         #plot_cv('../test3/',1,100000,'onlyperm')
         #plot_energies_vs_t(f1,0,n=100000)
