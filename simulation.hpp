@@ -99,6 +99,7 @@ private:
 	std::vector<std::vector<double>> histogram_2d;
 	std::vector<std::vector<double>> histogram_2d_avg;
 	std::vector<std::vector<double>> histogram_2d_sq_avg;
+	std::vector<std::vector<double>> pair_distr_2d;
 	const int num_bins_2d;
 	std::vector<double> cv_hist;
 	std::vector<double> exc_fac_hist;

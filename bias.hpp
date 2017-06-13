@@ -37,6 +37,11 @@ public:
 	std::vector<double> get_heights() const;
 	std::vector<double> get_centers() const;
 	
+	double calc_bias(double) const; //calculate bias using all gaussians 
+	double calc_bias2(double) const; //version using spline plus last gaussian
+	double calc_bias_der(double) const;
+	double calc_bias_der2(double) const;
+	
 	void set_current_graph(int);
 	
 private:
@@ -70,10 +75,6 @@ private:
 	Spline vder_spline;
 	const double spline_step;
 	
-	double calc_bias(double) const; //calculate bias explicitly (only used when creating spline)
-	double calc_bias2(double) const;
-	double calc_bias_der(double) const;
-	double calc_bias_der2(double) const;
 	double coll_var(const std::vector<Polymer>&) const;
 	double coll_var_der(const std::vector<Polymer>&) const;
 	double scalar_product(const std::vector<Polymer>&, int) const;

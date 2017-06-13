@@ -18,6 +18,7 @@ public:
 	double get_min() const;
 	double get_max() const;
 	double get_step() const;
+	bool is_created() const;
 	
 private:
 	std::array<std::vector<double>,4> f_; //spline matrix with 4*npoints entries. The [0][i] entries are the values.

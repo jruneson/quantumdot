@@ -30,13 +30,13 @@ def plot_cv(f,fig_nr,n=0,opt=None):
     else:
         data = np.genfromtxt(f+'cv.dat',max_rows=n)
     #data = np.loadtxt(f+'cv.dat')
-    t = data[:,0]
+    t = data[:,0]/1000
     cv = data[:,1]
     plt.figure(fig_nr)
     plt.clf()
     plt.plot(t,cv,label='s')
     #plt.plot(t,data[:,2])
-    plt.xlabel('$t$ (ps)')
+    plt.xlabel('$t$ (ns)')
     if opt is None:
         plt.ylabel('$s$')
     if(opt=='rew'):
@@ -53,11 +53,14 @@ def plot_cv(f,fig_nr,n=0,opt=None):
         plt.plot(t,np.exp(cv))
         plt.plot(t,data[:,3]*100)"""
     if(opt=='perm'):
-        plt.plot(t,data[:,3])
+        plt.plot(t,data[:,3]*10)
+    if(opt=='onlyperm'):
+        plt.clf()
+        plt.plot(t,data[:,3]*10)
         
         
     
-def plot_gauss_data(f,fig_nr,opt='Ws',xlim=None,name=None):
+def plot_gauss_data(f,fig_nr,clear=True,opt='Ws',xlim=None,name=None):
     centers = np.loadtxt(f+'cv_centers.dat')
     t = centers[:,0]/1000
     c = centers[:,1]
@@ -67,7 +70,8 @@ def plot_gauss_data(f,fig_nr,opt='Ws',xlim=None,name=None):
         heights = np.loadtxt(f+'heights.dat')
         W = heights[:,1]
     plt.figure(fig_nr)
-    plt.clf()
+    if(clear):
+        plt.clf()
     if(opt=='Ws'):
         plt.plot(c,W,'x')
         plt.xlabel('$s_k$')
@@ -169,7 +173,12 @@ def plot_s_int(f, fig_nr, clear=1, opt=''):
     #for i in range(2):
     #    s,hist=bin_hist(s,shist)
     if(opt=='log'):
-        plt.plot(s,-np.log(shist))
+        plt.plot(s,-np.log(shist),label='F(s)')
+        if data.shape[1]>4:        
+            bias = data[:,4]
+            plt.plot(s,-bias+np.max(bias),label='-V(s)')
+            plt.plot(s,-np.log(shist)+bias-np.max(bias),label='F(s)+V(s)')
+            plt.legend(loc='upper right',fontsize=20)
     else:
         plt.plot(s,shist)
         plt.plot(s,Whist)
@@ -617,16 +626,17 @@ def plot_2d_dist(files,fig_nr,titles,suptitle='', stride=1,use_contour=True,
         X,Y = np.meshgrid(r1,r2)
         Z = hist.reshape(X.shape)#.transpose()
         #print(Z.shape)
-        if use_contour:
-
-            if i==0:
-                ax0 = fig.add_subplot(121)
-                #Z0 = Z
-            else:
-                ax1 = fig.add_subplot(122,sharey=ax0)
+        if i==0:
+            ax0 = fig.add_subplot(121)
+            Z0 = Z
+        else:
+            ax1 = fig.add_subplot(122,sharey=ax0)
+            if use_contour:
                 plt.setp(ax1.get_yticklabels(),visible=False)
                 xticks = ax1.xaxis.get_major_ticks()
-                #Z = (2*np.sqrt(Z)-np.sqrt(Z0))**2
+            Z = Z-0.5*Z0
+        if use_contour:
+
                 #xticks[0].label1.set_visible(False)
             #levels=np.arange(2,11,2)
             #dark_inferno=cmap_map(darken,plt.get_cmap('inferno_r'))
@@ -904,8 +914,8 @@ if __name__=="__main__":
 
     
     fi1 ='../three/spin3half/beta1-5/woMetaD/'
-    fi2 ='../coulomb170612/anisotropy3/singlet/beta1/disconnected/'
-    fi3 = '../coulomb170612/anisotropy3/triplet/beta1/'
+    fi2 ='../coulomb170612/singlet/beta1/MetaD/disconnected/'
+    fi3 = '../coulomb170612/triplet/beta1/MetaD/'
     fi4 ='../three/spin3half/beta1-5/MetaD/test/'
     fiucon = '../ideal/boson/1D/beta2/MetaD/disconnected/'
     ficonn = '../ideal/boson/1D/beta2/MetaD/connected/'
@@ -939,30 +949,30 @@ if __name__=="__main__":
         
     if 0:
         plot_2d_dist([fi2,fi3],1,[r'$\mathrm{Singlet}$',r'$\mathrm{Triplet}$'],
-                     r'$\mathrm{Anisotropy}~\omega_y/\omega_x = 3$',use_contour=True,stride=10,num_smooths=0)
+                     r'$\mathrm{}~\omega_y/\omega_x = 1.3$',use_contour=False,stride=10,num_smooths=3)
     
     if 1:
         #plot_cv('../sign_cv/woMetaD/',0,100000,'')
-        plot_cv('../test3/',1,200000,'rew')
+        #plot_cv('../test3/',1,100000,'onlyperm')
         #plot_energies_vs_t(f1,0,n=100000)
-        plot_gauss_data(fi3,8,'Wt',name='')
-        plot_gauss_data('../test2/',9,'Wt',name='test2')
-        plot_s_int(fi2,2,1,'')
+        plot_gauss_data('../test4/',2,1,'Wt',name='test3')
+        plot_gauss_data('../test3/faster_spline/',9,1,'st',name='test3')
+        """plot_s_int(fi2,2,1,'')
         #plt.ylim([-5,5])
         #plt.xlim([-1.1,1.1])
         plt.title('sing')
         plot_s_int(fi3,3,1,'')
         #plt.ylim([-5,5])
         #plt.xlim([-1.1,1.1])
-        plt.title('trip')
-        plot_s_int('../test/',4,1,'')
+        plt.title('trip')"""
+        plot_s_int('../test3/',4,1,'')
         #plt.ylim([-1,1])
         plt.xlim([-40,40])
-        plt.title('test')
-        plot_s_int('../test2/',5,1,'')
+        plt.title('full gaussian')
+        plot_s_int('../test3/faster_spline/',5,1,'')
         #plt.ylim([-1,1])
         plt.xlim([-40,40])
-        plt.title('test2')
+        plt.title('spline+last gaussian')
         #Ws,pW = plot_cont(fi2 ,4,-1,100000,cv='G')
         #Ws2,pW2 = plot_cont(fi2m,5,-1,100000,cv='G')
         """plt.figure(6)

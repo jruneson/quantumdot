@@ -78,6 +78,7 @@ Simulation::Simulation(const Parameters& params, std::ofstream& _res_file, bool 
 	histogram_2d.assign(num_bins_2d, tmp_2d);
 	histogram_2d_avg.assign(num_bins_2d, tmp_2d);
 	histogram_2d_sq_avg.assign(num_bins_2d, tmp_2d);	
+	pair_distr_2d.assign(num_bins_2d,tmp_2d);
 	
 	cv_hist_num_bins = (int) std::round((cv_hist_max-cv_hist_min)/cv_hist_res)+1;
 	cv_hist.assign(cv_hist_num_bins,0);
@@ -152,7 +153,8 @@ void Simulation::setup()
 	vmd_file2.precision(8);
 	std::cout << iteration_nbr << std::endl;
 	std::cout << "cumulated time = " << non_sampling_time + sampling_time << ", P = " << num_beads 
-				<< ", spin = " << spin << ", dt = " << dt_md << ", conn = " << (int)polymers[0].connected << std::endl;
+				<< ", spin = " << spin << ", dt = " << dt_md << ", conn = " << (int)polymers[0].connected
+				<< ", perm switch: " << (int) allow_perm_switch << std::endl;
 	std::time_t t = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
 	logfile.open("logfile_P"+std::to_string(num_beads)+"_"+std::to_string(iteration_nbr));
 	logfile << std::ctime(&t);
@@ -304,17 +306,24 @@ void Simulation::run_wo_sampling()
 		verlet_step();
 		time_before_sampl += dt_md;
 		bias_update_counter += dt_md;
+		permutation_switch_counter += dt_md;
 		overall_time += dt_md;
+		update_exc(false);
 		if(bias_update_counter >= bias_update_time)
 		{
 			bias.update_bias(polymers,beta,overall_time);
 			//bias.update_cv(polymers,beta);
 			bias_update_counter = 0;
 		}
+		if(permutation_switch_counter >= permutation_trial_time)
+		{
+			try_permutation_change();
+			permutation_switch_counter = 0;
+		}
 		double tmp = time_before_sampl/(0.1*non_sampling_time);
 		if(std::fmod(tmp,1.0)<tmp2)
 			update_screen();
-		update_exc(false);
+
 		/*if(more_output)
 		{
 			exc_file << overall_time << "\t" << exchange_factor << std::endl;
@@ -403,7 +412,7 @@ void Simulation::measure()
 	for(auto& pair : obs)
 		pair.second.measure(polymers,interac,overall_time,exchange_factor,bias.get_rew_factor(),graphs,current_graph_id);	
 	update_histogram();
-	if((bias.get_cv()!=bias.get_cv())&&(!printed_warning))
+	if((!printed_warning)&&(bias.get_cv()!=bias.get_cv()))
 	{
 		std::cout << "time: " << overall_time << "\tWarning, CV is NaN!" << std::endl;
 		printed_warning = true;
@@ -503,8 +512,14 @@ void Simulation::update_histogram()
 					histogram_1d[d][bin] += weight;
 			}
 			if(polymers[n][bead].size()==2)
+			{
 				if(bin1>=0 && bin2>= 0 && bin1<num_bins_2d && bin2<num_bins_2d)
 					histogram_2d[bin1][bin2] += weight;
+				int pc_bin1 = calc_bin(polymers[0][bead][0]-polymers[1][bead][0],num_bins_2d, hist_size_1d);
+				int pc_bin2 = calc_bin(polymers[0][bead][1]-polymers[1][bead][1],num_bins_2d, hist_size_1d);
+				if(pc_bin1>=0 && pc_bin2>=0 && pc_bin1<num_bins_2d && pc_bin2<num_bins_2d)
+					pair_distr_2d[bin1][bin2] += weight;
+			}
 		}
 		/*bin = calc_bin(polymers[0][bead].dist0());
 		if(bin>=0 && bin<num_bins)
@@ -652,7 +667,19 @@ void Simulation::stop()
 			//hist_file_2derr << std::endl;
 		} 
 		hist_file_2d.close();
-		//hist_file_2derr.close();
+		
+		std::ofstream pair_corr_2d("Pair_corr2d.dat");
+		std::ofstream hist_file_2d_other_format("Prob_dist2d_for_gnu.dat");
+		for(int bin1=0; bin1<num_bins_2d; ++bin1)
+		{
+			for(int bin2=0; bin2<num_bins_2d; ++bin2)
+			{
+				double r1 = hist_size_1d*((double) bin1/num_bins_2d) + hist_1d_min;
+				double r2 = hist_size_1d*((double) bin2/num_bins_2d) + hist_1d_min;
+				pair_corr_2d << r1 << r2 << pair_distr_2d[bin1][bin2] << std::endl;
+				hist_file_2d << r1 << r2 << histogram_2d_avg[bin1][bin2] << std::endl;
+			}
+		}
 	}
 	
 	std::ofstream cv_hist_file("CV_distributions.dat");
@@ -668,7 +695,8 @@ void Simulation::stop()
 		//double bde_entry = bde_hist[bin]/norm;
 		//double exc_fac_entry = exc_fac_hist[bin]/norm;
 		cv_hist_file << s << "\t" << cv_hist[bin]/norm << "\t" << exc_fac_hist[bin]/norm 
-					  << "\t" << weight_en_hist[bin]/norm << std::endl;
+					  << "\t" << weight_en_hist[bin]/norm 
+					  << "\t" << bias.calc_bias2(s) << std::endl;
 		/*	bde_hist_file << std::exp(s) + sign << std::endl;
 		else
 			bde_hist_file << (1 + sign*std::exp(-s))*hist_entry << std::endl;*/
@@ -854,6 +882,8 @@ void Simulation::try_permutation_change()
 				polymers[0].connected=true;
 			if(current_graph_id==0)
 				polymers[0].connected=false;
+			//for(int i=0; i<100; ++i)
+			//	verlet_step();
 		}
 	}
 }

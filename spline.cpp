@@ -26,9 +26,9 @@ void Spline::create_spline(const std::vector<double>& xs, const std::vector<doub
 	max_ = xs.back();
 	npoints_ = xs.size();
 	f_[0] = ys;
-	f_[1].resize(npoints_); //the last three lines are just to make size right, could be done differently
-	f_[2].resize(npoints_);
-	f_[3].resize(npoints_);
+	f_[1].assign(npoints_,0); //the last three lines are just to make size right, could be done differently
+	f_[2].assign(npoints_,0);
+	f_[3].assign(npoints_,0);
 	build_spline();
 }
 
@@ -86,4 +86,9 @@ double Spline::get_max() const
 double Spline::get_step() const
 {
 	return step_;
+}
+
+bool Spline::is_created() const
+{
+	return created;
 }

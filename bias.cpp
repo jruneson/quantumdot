@@ -386,9 +386,9 @@ double Bias::calc_bias(double cv) const
 	return tmp;
 }
 
-double Bias::calc_bias2(double cv) const
+double Bias::calc_bias2(double s) const
 {
-	return gaussian(cv,latest_cv_center,latest_height) + v_spline.eval_spline(cv);
+	return gaussian(s,latest_cv_center,latest_height) + v_spline.eval_spline(s);
 }
 
 double Bias::calc_bias_der(double cv) const
@@ -404,14 +404,15 @@ double Bias::calc_bias_der(double cv) const
 	return tmp/std::pow(gauss_width,2);
 }
 
-double Bias::calc_bias_der2(double cv) const
+double Bias::calc_bias_der2(double s) const
 {
-	return (cv-latest_height)*gaussian(cv,latest_cv_center,latest_height)/std::pow(gauss_width,2) + vder_spline.eval_spline(cv);
+	return (s-latest_cv_center)*gaussian(s,latest_cv_center,latest_height)/std::pow(gauss_width,2) 
+			+ vder_spline.eval_spline(cv);
 }
 
-double Bias::gaussian(double cv, double center, double height) const
+double Bias::gaussian(double s, double center, double height) const
 {
-	return height*std::exp(- std::pow(cv-center,2)*exponent_factor);
+	return height*std::exp(- std::pow(s-center,2)*exponent_factor);
 }
 
 void Bias::update_bias(const std::vector<Polymer>& pols, double beta, double t)
@@ -424,7 +425,7 @@ void Bias::update_bias(const std::vector<Polymer>& pols, double beta, double t)
 		latest_height = h;
 		cv_centers.push_back(cv_now);
 		heights.push_back(h);
-		cv_centers_file << t << "\t" << cv << "\t" << h << std::endl;
+		cv_centers_file << t << "\t" << latest_cv_center << "\t" << latest_height << std::endl;
 		//heights_file << t << "\t" << h << std::endl;
 		create_splines();
 		update_transient(beta);
@@ -444,11 +445,11 @@ void Bias::create_splines()
 		//double max = 0;
 		double min = v_spline.get_min();
 		double max = v_spline.get_max();
-		if(latest_cv_center < min)
+		if((latest_cv_center) < min || (!v_spline.is_created()))
 			min = latest_cv_center-5*gauss_width;
-		if(latest_cv_center > max)
+		if((latest_cv_center) > max || (!v_spline.is_created()))
 			max = latest_cv_center+5*gauss_width;
-		int num_steps_for_spline = std::floor((max-min)/spline_step);
+		int num_steps_for_spline = std::round((max-min)/spline_step)+1;
 		if(num_steps_for_spline != num_steps_for_spline)
 			std::cout << "Have a look at the Bias::create_splines method!" << std::endl;
 		cvs.assign(num_steps_for_spline,0.0);
@@ -476,7 +477,7 @@ void Bias::update_transient(double beta)
 {
 	double smin = v_spline.get_min();
 	double smax = v_spline.get_max();
-	double step = 0.01*gauss_width;
+	double step = 0.02*gauss_width;
 	int num_samples = round((smax-smin)/step);
 	const double num_const = beta*bias_factor/(bias_factor-1.0);
 	const double den_const = beta/(bias_factor-1.0);

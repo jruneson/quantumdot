@@ -22,7 +22,7 @@ Graph::Graph(const Parameters& params, int graph_id) //Chain lengths given as nu
 		//std::vector<int> graph1 = {2,0};
 		//std::vector<int> graph2 = {0,1};
 		mult = 1;
-		if(graph_id==1) //{2,0}
+		if(graph_id==0) //{2,0}
 		{
 			for(int i=0; i<=1; ++i)
 			{
@@ -34,7 +34,7 @@ Graph::Graph(const Parameters& params, int graph_id) //Chain lengths given as nu
 			//chains.push_back(std::vector<int>(0));
 			//chains.push_back(std::vector<int>(1));
 		}
-		if(graph_id==2) // {0,1}
+		if(graph_id==1) // {0,1}
 		{
 			std::vector<int> tmp_ch = {0,1};
 			chains.push_back(tmp_ch);
@@ -50,7 +50,7 @@ Graph::Graph(const Parameters& params, int graph_id) //Chain lengths given as nu
 	}
 	if(num_parts==3)
 	{
-		if(graph_id==1) //{3,0,0}
+		if(graph_id==0) //{3,0,0}
 		{
 			mult = 1;
 			for(int i=0; i<3; ++i)
@@ -60,7 +60,7 @@ Graph::Graph(const Parameters& params, int graph_id) //Chain lengths given as nu
 				exchange_pairs.push_back(std::pair<int,int>(i,i));
 			}
 		}
-		if(graph_id==2) //{1,1,0}
+		if(graph_id==1) //{1,1,0}
 		{
 			std::vector<int> tmp_ch = {0};
 			chains.push_back(tmp_ch);
@@ -83,7 +83,7 @@ Graph::Graph(const Parameters& params, int graph_id) //Chain lengths given as nu
 				positive = false;
 			}
 		}
-		if(graph_id==3) //{0,0,1}
+		if(graph_id==2) //{0,0,1}
 		{
 			std::vector<int> tmp_ch = {0,1,2};
 			chains.push_back(tmp_ch);

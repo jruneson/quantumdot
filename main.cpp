@@ -53,11 +53,11 @@ int main(int argc, char* argv[])
 
 	std::vector<Graph> graphs;
 	if(params.sign==0)
-		graphs.push_back(Graph(params,1));
+		graphs.push_back(Graph(params,0));
 	else
 	{
 		int num_graphs = params.num_parts; //Needs to be modified for N>3
-		for(int id=1; id<=num_graphs; ++id)
+		for(int id=0; id<num_graphs; ++id)
 			graphs.push_back(Graph(params,id));
 	}
 	
