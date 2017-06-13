@@ -63,6 +63,7 @@ private:
 	const bool more_output;
 	bool printed_warning;
 	const bool allow_perm_switch;
+	const double wigner_parameter;
 	
 	const double beta;
 	const double tau;

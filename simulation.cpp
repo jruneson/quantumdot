@@ -23,7 +23,7 @@ Simulation::Simulation(const Parameters& params, std::ofstream& _res_file, bool 
 	  graphs(graphs_in), spin(params.spin),
 	  bias_update_time(params.bias_update_time), cont_sim(continue_sim),
 	  allow_perm_switch(params.allow_perm_switch), permutation_trial_time(params.permutation_trial_time),
-	  more_output(params.more_output)
+	  more_output(params.more_output), wigner_parameter(params.wigner_parameter)
 {
 	for(int n=0; n<num_parts; ++n)
 		polymers.push_back(Polymer(params));
@@ -160,7 +160,8 @@ void Simulation::setup()
 	logfile << std::ctime(&t);
 	logfile << "P=" << num_beads << " dim=" << dim << " dt=" << dt_md 
 			<< " sampl_time=" << sampling_time
-			<< " samples=" << std::round(sampling_time/dt_sample) << " T=" << temperature << std::endl << std::endl;
+			<< " samples=" << std::round(sampling_time/dt_sample) 
+			<< " T=" << temperature << " RW=" << wigner_parameter << std::endl << std::endl;
 	logfile << "Block\tExc_const\tAvg_sign";
 	for(auto& pair : obs)
 		logfile << "\t" << pair.second.get_name();
