@@ -20,6 +20,7 @@ public:
 	//Force get_energy_diff_grad(const std::vector<Polymer>&, int,int) const;
 	double energy_diff(const std::vector<Polymer>&, const Graph&) const;
 	Force energy_diff_grad(const std::vector<Polymer>&, const Graph&, int, int) const;
+	double energy_absolute(const std::vector<Polymer>&) const;
 	
 	int get_id() const;
 	int get_mult() const;

@@ -443,7 +443,7 @@ void Simulation::update_avgs()
 	exc_sum = 0;
 	double tmp_sgn = sgn_sum/bias.get_rew_factor_block();
 	sgn_avg = (sgn_avg*block + tmp_sgn)/(block+1.0);
-	sgn_avg_sq = (sgn_avg_sq*block + tmp_sgn)/(block+1.0);
+	sgn_avg_sq = (sgn_avg_sq*block + tmp_sgn*tmp_sgn)/(block+1.0);
 	sgn_sum = 0;
 	//e_s_avg = (e_s_avg*block + tmp2)/(block+1.0);
 	//e_s_avg_sq = (e_s_avg_sq*block + tmp2*tmp2)/(block+1.0);
@@ -604,7 +604,7 @@ void Simulation::stop()
 {
 	print_config();
 	logfile << "Name\t\tMeanValue\tErrorOfMean\tStandDev" << std::endl;
-	double rew_norm = bias.get_rew_factor_avg();
+	//double rew_norm = bias.get_rew_factor_avg();
 	logfile << "Exc_factor\t" << exc_avg << "\t" << simple_uncertainty(exc_avg,exc_avg_sq) 
 			<< "\t" << std::sqrt(exc_sq_avg-exc_avg*exc_avg) << std::endl; // sqrt(n/(n-1)) unnecessary for large n
 	logfile << "Avg_sign\t" << sgn_avg << "\t" << simple_uncertainty(sgn_avg,exc_avg_sq) << std::endl;
@@ -699,7 +699,7 @@ void Simulation::stop()
 		//double exc_fac_entry = exc_fac_hist[bin]/norm;
 		cv_hist_file << s << "\t" << cv_hist[bin]/norm << "\t" << exc_fac_hist[bin]/norm 
 					  << "\t" << weight_en_hist[bin]/norm 
-					  << "\t" << bias.calc_bias2(s) << std::endl;
+					  << "\t" << bias.calc_bias(s) << "\t" << bias.calc_bias_der(s) << std::endl;
 		/*	bde_hist_file << std::exp(s) + sign << std::endl;
 		else
 			bde_hist_file << (1 + sign*std::exp(-s))*hist_entry << std::endl;*/

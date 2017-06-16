@@ -55,6 +55,8 @@ private:
 	const double bias_factor;
 	const double gauss_width;
 	const double first_height;
+	const double border_region;
+	const double gauss2; //gauss_width^2
 	const int biased_graph;
 	const int sign;
 	const double exc_const;

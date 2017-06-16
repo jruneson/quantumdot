@@ -84,7 +84,8 @@ public:
 	double virial_offset;
 	double length_scale; //r_star in nm
 	double hist_size;
-	
+	double spline_step;
+
 	
 	
 	//observables to measure

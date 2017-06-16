@@ -53,6 +53,8 @@ RNumgen::RNumgen()
 	n[2]=2896;
 	n[3]=1233;
 }
+
+
 // returns uniform distributed random number
 double RNumgen::runGen()
 {

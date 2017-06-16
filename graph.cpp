@@ -157,6 +157,17 @@ double Graph::single_spring(const std::vector<Polymer>& pols,int n, int m) const
 	return pols[n][exc_bead].sqdist(pols[m][exc_bead2]);
 }
 
+double Graph::energy_absolute(const std::vector<Polymer>& pols) const
+{
+	double tmp = 0;
+	for(int n=0; n<num_parts; ++n)
+	{
+		tmp += single_spring(pols,n,std::get<1>(exchange_pairs[n]));
+		tmp += single_spring(pols,std::get<0>(exchange_pairs[n]),n);
+	}
+	return 0.25*exc_const*tmp;
+}
+
 Force Graph::get_grad_weight(const std::vector<Polymer>& pols, const Graph& current_graph, 
 							 bool use_positive, int bead, int part) const
 {

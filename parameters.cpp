@@ -188,6 +188,7 @@ void Parameters::calculate_dependencies()
 	//	virial_offset = num_parts*dim/(2.0*beta);
 	length_scale = std::sqrt(1.0/(m_hbar2*hw));
 	hist_size = length_scale*hist_size_in_r_star;	
+	spline_step = gauss_width/20.0;
 	
 	//std::cout << hwx << "\t" << hwy << "\t" << wigner_parameter << "\t" << virial_offset << std::endl;
 }

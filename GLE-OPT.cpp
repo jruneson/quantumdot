@@ -50,12 +50,24 @@ GLE::GLE(std::vector<Polymer>& pols, const double& timestep, const double& tempe
 			*psvec[i+j+1]=0;
 		}
 	}
-	gen = new RNumgen();
+	int* seeds = new int[4];
+	seeds[0]=0;
+	seeds[1]=0;
+	seeds[2]=0;
+	seeds[3]=1;
+	//seeds={0,0,0,1};
+	int prime1=2892;
+	int prime2=2587;
+	gen = new RNumgen(seeds,prime1,prime2,true);
+	delete[] seeds;
+	//gen = new RNumgen();
 }
 
 GLE::~GLE()
 {
+	//std::cout << "try to delete rnumgen" << std::endl;
 	delete gen;
+	//std::cout << "deleted rnumgen" << std::endl;
 	for(int i=0; i<ssize;i+=(snum+1))
 		for(int j=0; j<snum; ++j)
 			delete psvec[i+j+1];

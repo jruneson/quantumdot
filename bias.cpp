@@ -8,9 +8,12 @@ Bias::Bias(const Parameters& params, bool cont_sim, const std::vector<Graph>& gr
 			gauss_width(params.gauss_width), bias_factor(params.bias_factor),
 			exc_const(params.exc_const), first_height(params.first_height),
 			exponent_factor(1.0/(2*params.gauss_width*params.gauss_width)),
-			metad_on(params.metad_on),spline_step(gauss_width/20.0),
+			gauss2(params.gauss_width*params.gauss_width),
+			metad_on(params.metad_on),spline_step(params.spline_step),
+			v_spline(Spline(params.spline_step,0)),vder_spline(Spline(params.spline_step,0)),
 			wall_id(params.wall_id),wall_energy(params.wall_energy),
-			wall_pos(params.wall_pos),biased_graph(params.biased_graph)
+			wall_pos(params.wall_pos),biased_graph(params.biased_graph),
+			border_region(8*params.gauss_width)
 {
 	if(cont_sim)
 	{
@@ -22,14 +25,15 @@ Bias::Bias(const Parameters& params, bool cont_sim, const std::vector<Graph>& gr
 		cv_centers_file.open("cv_centers.dat");
 		//heights_file.open("heights.dat");
 	}
-	v_spline = Spline(spline_step);
-	vder_spline = Spline(spline_step);
+	//v_spline = Spline(spline_step);
+	//vder_spline = Spline(spline_step);
 	rew_factor = 1;
 	rew_factor_avg = 0;
 	rew_factor_block = 0;
 	transient=0;
 	count = 0;
 	regularization = 1e-4;
+	std::cout << border_region << std::endl;
 }
 
 double Bias::energy_diff(const std::vector<Polymer>& pols) const
@@ -92,7 +96,8 @@ double Bias::coll_var(const std::vector<Polymer>& pols) const
 				pos_weight += graph.get_weight(pols,true);
 				neg_weight += graph.get_weight(pols,false);
 			}*/
-			return std::log(pos_weight+neg_weight);
+			return -std::log(std::exp(-graphs[0].energy_absolute(pols))
+							+std::exp(-graphs[0].energy_absolute(pols)));
 			/*if(pols[0].connected)
 				return -std::log(std::abs(e_s+sign));
 			else
@@ -132,7 +137,7 @@ double Bias::coll_var(const std::vector<Polymer>& pols) const
 				pos_weight += graph.get_weight(pols,true);
 				neg_weight += graph.get_weight(pols,false);
 			}*/
-			return (pos_weight-neg_weight)/(pos_weight+neg_weight);
+			//return (pos_weight-neg_weight)/(pos_weight+neg_weight);
 			/*s = energy_diff(pols);
 			return 0.5*(1.1*s+20-(0.9*s-20)*std::tanh(0.2*(s-20)));*/
 		default:
@@ -365,6 +370,7 @@ Force Bias::calc_force(const std::vector<Polymer>& pols, int bead, int part) con
 	//std::cout << "before eval" << std::endl;
 	//double tmp = vder_spline.eval_spline(cv);
 	//std::cout << "after eval" << std::endl;
+	//return calc_bias_der(cv)*cv_grad(pols,bead,part);
 	return vder_spline.eval_spline(cv)*cv_grad(pols,bead,part);
 }
 
@@ -378,11 +384,11 @@ double Bias::scalar_product(const std::vector<Polymer>& pols, int bead) const
 	return (pols[0][bead]-pols[0][bead+num_beads])*(pols[0][bead+1]-pols[0][bead+num_beads+1]);
 }*/
 
-double Bias::calc_bias(double cv) const
+double Bias::calc_bias(double s) const
 {
 	double tmp = 0;
 	for(int index=0; index<heights.size(); ++index)
-		tmp += gaussian(cv,cv_centers[index],heights[index]);
+		tmp += gaussian(s,cv_centers[index],heights[index]);
 	return tmp;
 }
 
@@ -391,27 +397,30 @@ double Bias::calc_bias2(double s) const
 	return gaussian(s,latest_cv_center,latest_height) + v_spline.eval_spline(s);
 }
 
-double Bias::calc_bias_der(double cv) const
+double Bias::calc_bias_der(double s) const
 {
 	double tmp=0;
 	for(int index=0; index<heights.size(); ++index)
-		tmp += (cv-cv_centers[index])*gaussian(cv,cv_centers[index],heights[index]);
+		tmp += (s-cv_centers[index])*gaussian(s,cv_centers[index],heights[index]);
 	/*if(id==5)
 	{
 		double tan = std::tanh(cv);
 		tmp *= 0.5*(1-tan+(1-cv)*(1-tan*tan));
 	}*/
-	return tmp/std::pow(gauss_width,2);
+	return tmp/gauss2;
 }
 
 double Bias::calc_bias_der2(double s) const
 {
-	return (s-latest_cv_center)*gaussian(s,latest_cv_center,latest_height)/std::pow(gauss_width,2) 
-			+ vder_spline.eval_spline(cv);
+	double tmp =(s-latest_cv_center)*gaussian(s,latest_cv_center,latest_height)/gauss2
+				 + vder_spline.eval_spline(s);
+	return tmp;
 }
 
 double Bias::gaussian(double s, double center, double height) const
 {
+	if(std::abs(s-center)>border_region)
+		return 0;
 	return height*std::exp(- std::pow(s-center,2)*exponent_factor);
 }
 
@@ -420,6 +429,7 @@ void Bias::update_bias(const std::vector<Polymer>& pols, double beta, double t)
 	if(metad_on)
 	{
 		double cv_now = coll_var(pols);
+		//double h = first_height * std::exp(-beta/(bias_factor-1.0)*calc_bias(cv_now));
 		double h = first_height * std::exp(-beta/(bias_factor-1.0)*v_spline.eval_spline(cv_now));
 		latest_cv_center = cv_now;
 		latest_height = h;
@@ -445,11 +455,11 @@ void Bias::create_splines()
 		//double max = 0;
 		double min = v_spline.get_min();
 		double max = v_spline.get_max();
-		if((latest_cv_center) < min || (!v_spline.is_created()))
-			min = latest_cv_center-5*gauss_width;
-		if((latest_cv_center) > max || (!v_spline.is_created()))
-			max = latest_cv_center+5*gauss_width;
-		int num_steps_for_spline = std::round((max-min)/spline_step)+1;
+		if((latest_cv_center) < (min+border_region))
+			min = latest_cv_center - border_region;
+		if((latest_cv_center) > (max-border_region))
+			max = latest_cv_center + border_region;
+		int num_steps_for_spline = std::floor((max-min)/spline_step)+1;
 		if(num_steps_for_spline != num_steps_for_spline)
 			std::cout << "Have a look at the Bias::create_splines method!" << std::endl;
 		cvs.assign(num_steps_for_spline,0.0);
@@ -460,12 +470,13 @@ void Bias::create_splines()
 		it = std::max_element(std::begin(cv_centers),std::end(cv_centers));
 		double max = *it + 5*gauss_width;*/
 		double s=0;
+		min = std::round(min/spline_step)*spline_step;
 		for(int i=0; i<num_steps_for_spline; ++i)
 		{
 			s = min+i*spline_step;
 			cvs[i]=s;
-			vs[i]=calc_bias(s);
-			vders[i]=calc_bias_der(s);
+			vs[i]=calc_bias2(s);
+			vders[i]=calc_bias_der2(s);
 		}
 		v_spline.create_spline(cvs,vs);
 		vder_spline.create_spline(cvs,vders);
@@ -475,10 +486,10 @@ void Bias::create_splines()
 
 void Bias::update_transient(double beta)
 {
-	double smin = v_spline.get_min();
-	double smax = v_spline.get_max();
+	double smin = v_spline.get_min()+2*gauss_width;
+	double smax = v_spline.get_max()-2*gauss_width;
 	double step = 0.02*gauss_width;
-	int num_samples = round((smax-smin)/step);
+	//int num_steps = round((smax-smin)/step);
 	const double num_const = beta*bias_factor/(bias_factor-1.0);
 	const double den_const = beta/(bias_factor-1.0);
 	double tmp_avg=0;
@@ -489,8 +500,9 @@ void Bias::update_transient(double beta)
 	tmp_avg *= step/(smax-smin);
 	for(double s = smin; s<smax; s+=step)
 	{
-		tmp_int_num += std::exp(num_const*(v_spline.eval_spline(s)-tmp_avg));
-		tmp_int_den += std::exp(den_const*(v_spline.eval_spline(s)-tmp_avg));
+		double diff = v_spline.eval_spline(s)-tmp_avg;
+		tmp_int_num += std::exp(num_const*diff);
+		tmp_int_den += std::exp(den_const*diff);
 	}
 	transient = beta*tmp_avg + std::log(tmp_int_num/tmp_int_den);
 	//std::cout << smin << "\t" << smax << "\t" << transient;

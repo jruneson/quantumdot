@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib as mpl
 import matplotlib.ticker as tic
 from matplotlib import rcParams, interactive, cm
 from mpl_toolkits.mplot3d import Axes3D
@@ -178,6 +179,9 @@ def plot_s_int(f, fig_nr, clear=1, opt=''):
             bias = data[:,4]
             plt.plot(s,-bias+np.max(bias),label='-V(s)')
             plt.plot(s,-np.log(shist)+bias-np.max(bias),label='F(s)+V(s)')
+            if data.shape[1]>5:
+                bias_der = data[:,5]
+                plt.plot(s,bias_der,label='grad V')
             plt.legend(loc='upper right',fontsize=20)
     else:
         plt.plot(s,shist)
@@ -603,23 +607,28 @@ def smooth(data, n):
 def darken(x, ):
     return x*0.8    
         
-def plot_2d_dist(files,fig_nr,titles,suptitle='', stride=1,use_contour=True,
+def plot_2d_dist(folders,fig_nr,titles,suptitle='', stride=1,use_contour=True,
                  num_smooths=0):
-    fig = plt.figure(num=fig_nr,figsize=(12,4.5))    
+    fig = plt.figure(num=fig_nr,figsize=(15,5.7))   
+    gs = mpl.gridspec.GridSpec(1,3)
+    gs.update(wspace=0.02,bottom=0.2)
     #fig.set_size_inches(12,6.2)
-    plt.clf()
-        
-    for i,f in enumerate(files):
+    plt.clf()  
+    for i in range(3):
+        if i==0:
+            f = files[0]
+        else:
+            f = files[1]
         data = np.loadtxt(f+'Prob_dist2d.dat')
         r1 = data[1:,0]
         r2 = data[0,1:]
         dr1 = r1[1]-r1[0]
         dr2 = r2[1]-r2[0]
         histpre = data[1:,1:]
-        for k in range(0,histpre.shape[0]-1):
+        """for k in range(0,histpre.shape[0]-1):
             for l in range(0,histpre.shape[1]-1):
                 if histpre[k,l]<0:
-                    histpre[k,l]=0
+                    histpre[k,l]=0"""
         hist = smooth(histpre,num_smooths)
         norm = sum(sum(hist))*dr1*dr2
         hist = hist/norm*1000
@@ -627,30 +636,38 @@ def plot_2d_dist(files,fig_nr,titles,suptitle='', stride=1,use_contour=True,
         Z = hist.reshape(X.shape)#.transpose()
         #print(Z.shape)
         if i==0:
-            ax0 = fig.add_subplot(121)
-            Z0 = Z
-        else:
-            ax1 = fig.add_subplot(122,sharey=ax0)
+            ax0 = fig.add_subplot(gs[0])
+            Z0 = copy.deepcopy(Z)
+            Z *= 0.7
+        if i==1:
+            ax1 = fig.add_subplot(gs[1],sharey=ax0)
+            
             if use_contour:
                 plt.setp(ax1.get_yticklabels(),visible=False)
-                xticks = ax1.xaxis.get_major_ticks()
+        if i==2:
+            ax2 = fig.add_subplot(gs[2],sharey=ax0)
             Z = Z-0.5*Z0
+            plt.setp(ax2.get_yticklabels(),visible=False)
+            Z *= 2
         if use_contour:
-
                 #xticks[0].label1.set_visible(False)
             #levels=np.arange(2,11,2)
             #dark_inferno=cmap_map(darken,plt.get_cmap('inferno_r'))
-            plt.imshow(Z,interpolation='gaussian',extent=[r1[0],r1[-1],r2[0],r2[-1]])
+            im = plt.imshow(Z,interpolation='gaussian',extent=[r1[0],r1[-1],r2[0],r2[-1]],
+                            )#vmin=0,vmax=0.4)
             #c = plt.contour(X,Y,Z,cmap=cm.viridis)#,levels=levels)
             #plt.clabel(c, inline=1,fontsize=16,fmt='%1.1f')
             plt.xlabel(r'$x~(\mathrm{nm})$')
             if i==0:
                 plt.ylabel(r'$y~(\mathrm{nm})$')
                 ax0.set_title(titles[0],fontsize=28)
-            else:
+            if i==1:
                 ax1.set_title(titles[1],fontsize=28)
-            plt.xlim([-60,60])
-            plt.ylim([-30,30])
+            if i==2:
+                ax2.set_title(titles[2],fontsize=28)
+            #plt.xlim([-60,60])
+            plt.ylim([-50,50])
+
         else:
             ax = fig.add_subplot(111,projection='3d')
             surf = ax.plot_surface(X,Y,Z, rstride=stride, cstride=stride, cmap=cm.viridis)
@@ -659,11 +676,61 @@ def plot_2d_dist(files,fig_nr,titles,suptitle='', stride=1,use_contour=True,
             ax.set_ylabel(r'$y~(\mathrm{nm})$')
             ax.set_zlim([-0.05,0.5])
     #plt.set_aspect('equal')
+    cax = fig.add_axes([0.905,0.2,0.03,0.7])
+    fig.colorbar(im,cax=cax,orientation='vertical',ticks=None)
     plt.subplots_adjust(wspace=None)
     plt.suptitle(suptitle,x=0.53,y=0.995,fontsize=32)
+    if 0:
+        #xticksc = ax2.get_xticks()
+        #print(xticksc)
+        ax0.set_xticks([-30,-15,0,15,30])
+        ax1.set_xticks([-30,-15,0,15,30])
+        ax2.set_xticks([-30,-15,0,15,30])
     if use_contour:
         ax0.set_aspect('equal')
         ax1.set_aspect('equal')
+        ax2.set_aspect('equal')
+    #fig.tight_layout()
+        
+def plot_2dpaircorr(folders,fig_nr,titles,suptitle,num_smooths=0):    
+    fig = plt.figure(num=fig_nr,figsize=(11,5.7))   
+    gs = mpl.gridspec.GridSpec(1,2)
+    gs.update(wspace=0.22,bottom=0.2,top=0.85)
+    plt.clf()
+    for i in range(2):
+        f = folders[i]
+        data = np.loadtxt(f+'Pair_corr2d.dat')
+        r1 = data[:,0]
+        r2 = data[:,1]
+        p = data[:,2]/100000
+        n = np.sqrt(np.size(r1))
+        #X = r1.reshape((n,n))
+        Zpre = p.reshape((n,n))
+        Z = smooth(Zpre,num_smooths) 
+        if i==0:
+            ax0 = fig.add_subplot(gs[0])
+            plt.ylabel(r'$y~(\mathrm{nm})$')
+            Z0 = Z
+        if i==1:
+            ax1 = fig.add_subplot(gs[1],sharey=ax0)
+            plt.setp(ax1.get_yticklabels(),visible=False)
+        im = plt.imshow(Z,interpolation='gaussian',extent=[r1[0],r1[-1],r2[0],r2[-1]],
+                    )
+        plt.ylim([-50,50])
+        plt.xlabel(r'$x~(\mathrm{nm})$')
+        if i==0:
+            ax0.set_title(titles[0],fontsize=28)
+            cax = fig.add_axes([0.47,0.2,0.03,0.65])
+            fig.colorbar(im,cax,cax,orientation='vertical')
+        if i==1:
+            ax1.set_title(titles[1],fontsize=28)
+            cax = fig.add_axes([0.90,0.2,0.03,0.65])
+            fig.colorbar(im,cax=cax,orientation='vertical',ticks=None)
+    #plt.subplots_adjust(wspace=None)
+    plt.suptitle(suptitle,x=0.53,y=0.985,fontsize=32)
+    ax0.set_aspect('equal')
+    ax1.set_aspect('equal')
+    
             
 def free_energy_diff(f1,f2,fig_nr,beta=1.0,P=10,opt='FB',deg=1):
     c_hist_unconn = np.loadtxt(f1+'fsum_N2_P'+str(P)+'.dat')[:,1:]
@@ -914,8 +981,8 @@ if __name__=="__main__":
 
     
     fi1 ='../three/spin3half/beta1-5/woMetaD/'
-    fi2 ='../coulomb170612/singlet/beta1/MetaD/disconnected/'
-    fi3 = '../coulomb170612/triplet/beta1/MetaD/'
+    fi2 ='../coulomb170614/anisotropy3/singlet/beta1/disconnected/'
+    fi3 = '../coulomb170614/anisotropy1-38/triplet/beta1/MetaD/'
     fi4 ='../three/spin3half/beta1-5/MetaD/test/'
     fiucon = '../ideal/boson/1D/beta2/MetaD/disconnected/'
     ficonn = '../ideal/boson/1D/beta2/MetaD/connected/'
@@ -933,6 +1000,8 @@ if __name__=="__main__":
     
     fbennett = '../ideal/fermion/1D/Energy_vs_T/FreeEnergyDiff/'
 
+    fr2sing = '../coulomb170614/circular/RW4/singlet/'
+    fr2trip = '../coulomb170614/circular/RW1-4/triplet/beta1/'
     #plot_bennett_vs_T(fbennett,1)
     #plot_theoretical_energies(1,0)
     
@@ -947,16 +1016,22 @@ if __name__=="__main__":
         plot_gauss_data(fi7,3,'Wt')
         plot_s_int(fi8,4,1,'')
         
-    if 1:
-        plot_2d_dist(['../test4/',fi3],1,[r'$\mathrm{Singlet}$',r'$\mathrm{Triplet}$'],
-                     r'$\mathrm{}~\omega_y/\omega_x = 1.3$',use_contour=True,stride=10,num_smooths=3)
-    
     if 0:
+        plot_2d_dist([fi2,fi3],1,[r'$\mathrm{Singlet}$',r'$\mathrm{Triplet}$',r'$\mathrm{Partial}$'],
+                     r'$\mathrm{}$',use_contour=True,stride=5,num_smooths=1)
+   
+    if 0:
+        plot_2dpaircorr([fr2sing,fr2trip],0,[r'$\mathrm{Singlet}$',r'$\mathrm{Triplet}$'],
+                        r'$\mathrm{Pair~correlation~(circular,~}R_\mathrm{W}=2)$',num_smooths=3)
+    plot_rAB(fr2sing,1,1)
+    plot_rAB(fr2trip,1,0,color='red')
+        
+    if 1:
         #plot_cv('../sign_cv/woMetaD/',0,100000,'')
         #plot_cv('../test3/',1,100000,'onlyperm')
         #plot_energies_vs_t(f1,0,n=100000)
-        plot_gauss_data('../test4/',2,1,'Wt',name='test3')
-        plot_gauss_data('../test3/faster_spline/',9,1,'st',name='test3')
+        #plot_gauss_data('../test3/',2,1,'st',name='test3')
+        #plot_gauss_data('../test3/faster_spline/',9,1,'st',name='test3fast')
         """plot_s_int(fi2,2,1,'')
         #plt.ylim([-5,5])
         #plt.xlim([-1.1,1.1])
@@ -965,14 +1040,17 @@ if __name__=="__main__":
         #plt.ylim([-5,5])
         #plt.xlim([-1.1,1.1])
         plt.title('trip')"""
-        plot_s_int('../test3/',4,1,'')
+        plot_s_int(fr2trip,4,1,'')
+        #plt.ylim([-1,1])
+        plt.xlim([-60,100])
+        plt.title('aniso')
+        plot_s_int('../test3/',5,1,'')
         #plt.ylim([-1,1])
         plt.xlim([-40,40])
-        plt.title('full gaussian')
-        plot_s_int('../test3/faster_spline/',5,1,'')
-        #plt.ylim([-1,1])
+        plt.title('all gaussians')
+        plot_s_int('../test3/exact/',6,1,'')
         plt.xlim([-40,40])
-        plt.title('spline+last gaussian')
+        plt.title('exact')
         #Ws,pW = plot_cont(fi2 ,4,-1,100000,cv='G')
         #Ws2,pW2 = plot_cont(fi2m,5,-1,100000,cv='G')
         """plt.figure(6)
@@ -1171,7 +1249,7 @@ if __name__=="__main__":
    #plot_rAB(f0+interac[1]+sym[2]+P[3]+s[0]+'woMetaD/',2,0,'k')
 
     #plot_energies_vs_t(f6,7,100000)
-    plt.show()
+
     
     """plt.figure(0)
     plt.clf()
@@ -1182,7 +1260,8 @@ if __name__=="__main__":
         es[i] = half_energy(0.1,2,beta,3.0,'fer')
     plt.plot(1.0/(kB*betas),es,'o-')"""
 
-    
+
     for i in plt.get_fignums():
-        plt.figure(i)
-        plt.tight_layout()
+        fig = plt.figure(i)
+        fig.tight_layout()
+    plt.show() 
