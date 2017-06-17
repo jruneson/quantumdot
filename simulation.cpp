@@ -519,7 +519,7 @@ void Simulation::update_histogram()
 				int pc_bin1 = calc_bin(polymers[0][bead][0]-polymers[1][bead][0],num_bins_2d, hist_size_1d);
 				int pc_bin2 = calc_bin(polymers[0][bead][1]-polymers[1][bead][1],num_bins_2d, hist_size_1d);
 				if(pc_bin1>=0 && pc_bin2>=0 && pc_bin1<num_bins_2d && pc_bin2<num_bins_2d)
-					pair_distr_2d[bin1][bin2] += weight;
+					pair_distr_2d[pc_bin1][pc_bin2] += weight;
 			}
 		}
 		/*bin = calc_bin(polymers[0][bead].dist0());

@@ -365,7 +365,7 @@ Force Bias::two_terms(const std::vector<Polymer>& pols, int bead, int part) cons
 
 Force Bias::calc_force(const std::vector<Polymer>& pols, int bead, int part) const
 {	
-	if((!metad_on) || cv_centers.size()==0)
+	if((!metad_on))
 		return Force(pols[0][0].size());
 	//std::cout << "before eval" << std::endl;
 	//double tmp = vder_spline.eval_spline(cv);
@@ -428,13 +428,11 @@ void Bias::update_bias(const std::vector<Polymer>& pols, double beta, double t)
 {
 	if(metad_on)
 	{
-		double cv_now = coll_var(pols);
-		//double h = first_height * std::exp(-beta/(bias_factor-1.0)*calc_bias(cv_now));
-		double h = first_height * std::exp(-beta/(bias_factor-1.0)*v_spline.eval_spline(cv_now));
-		latest_cv_center = cv_now;
-		latest_height = h;
-		cv_centers.push_back(cv_now);
-		heights.push_back(h);
+		latest_cv_center = coll_var(pols);
+		//latest_height = first_height * std::exp(-beta/(bias_factor-1.0)*calc_bias(cv_now));
+		latest_height = first_height * std::exp(-beta/(bias_factor-1.0)*v_spline.eval_spline(latest_cv_center));
+		//cv_centers.push_back(latest_cv_center);
+		//heights.push_back(latest_height);
 		cv_centers_file << t << "\t" << latest_cv_center << "\t" << latest_height << std::endl;
 		//heights_file << t << "\t" << h << std::endl;
 		create_splines();
@@ -460,24 +458,27 @@ void Bias::create_splines()
 		if((latest_cv_center) > (max-border_region))
 			max = latest_cv_center + border_region;
 		int num_steps_for_spline = std::floor((max-min)/spline_step)+1;
-		if(num_steps_for_spline != num_steps_for_spline)
-			std::cout << "Have a look at the Bias::create_splines method!" << std::endl;
-		cvs.assign(num_steps_for_spline,0.0);
-		vders.assign(num_steps_for_spline,0.0);
-		vs.assign(num_steps_for_spline,0.0);
+		//if(num_steps_for_spline != num_steps_for_spline)
+		//	std::cout << "Have a look at the Bias::create_splines method!" << std::endl;
+		cvs.resize(num_steps_for_spline);
+		vders.resize(num_steps_for_spline);
+		vs.resize(num_steps_for_spline);
 		/*auto it = std::min_element(std::begin(cv_centers),std::end(cv_centers));
 		double min = *it - 5*gauss_width;
 		it = std::max_element(std::begin(cv_centers),std::end(cv_centers));
 		double max = *it + 5*gauss_width;*/
-		double s=0;
 		min = std::round(min/spline_step)*spline_step;
+		double s = min;
 		for(int i=0; i<num_steps_for_spline; ++i)
 		{
 			s = min+i*spline_step;
 			cvs[i]=s;
 			vs[i]=calc_bias2(s);
 			vders[i]=calc_bias_der2(s);
+			//if(i==1100)
+				//std::cout << calc_bias_der(s) << "\t" << calc_bias_der2(s) << std::endl;
 		}
+		//std::cout << num_steps_for_spline/2 << "\t" << vders[std::round(num_steps_for_spline/2)] << std::endl;
 		v_spline.create_spline(cvs,vs);
 		vder_spline.create_spline(cvs,vders);
 	}

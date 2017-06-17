@@ -616,19 +616,19 @@ def plot_2d_dist(folders,fig_nr,titles,suptitle='', stride=1,use_contour=True,
     plt.clf()  
     for i in range(3):
         if i==0:
-            f = files[0]
+            f = folders[0]
         else:
-            f = files[1]
+            f = folders[1]
         data = np.loadtxt(f+'Prob_dist2d.dat')
         r1 = data[1:,0]
         r2 = data[0,1:]
         dr1 = r1[1]-r1[0]
         dr2 = r2[1]-r2[0]
         histpre = data[1:,1:]
-        """for k in range(0,histpre.shape[0]-1):
+        for k in range(0,histpre.shape[0]-1):
             for l in range(0,histpre.shape[1]-1):
                 if histpre[k,l]<0:
-                    histpre[k,l]=0"""
+                    histpre[k,l]=0
         hist = smooth(histpre,num_smooths)
         norm = sum(sum(hist))*dr1*dr2
         hist = hist/norm*1000
@@ -638,7 +638,7 @@ def plot_2d_dist(folders,fig_nr,titles,suptitle='', stride=1,use_contour=True,
         if i==0:
             ax0 = fig.add_subplot(gs[0])
             Z0 = copy.deepcopy(Z)
-            Z *= 0.7
+            #Z *= 0.7
         if i==1:
             ax1 = fig.add_subplot(gs[1],sharey=ax0)
             
@@ -648,7 +648,7 @@ def plot_2d_dist(folders,fig_nr,titles,suptitle='', stride=1,use_contour=True,
             ax2 = fig.add_subplot(gs[2],sharey=ax0)
             Z = Z-0.5*Z0
             plt.setp(ax2.get_yticklabels(),visible=False)
-            Z *= 2
+            #Z *= 2
         if use_contour:
                 #xticks[0].label1.set_visible(False)
             #levels=np.arange(2,11,2)
@@ -666,7 +666,7 @@ def plot_2d_dist(folders,fig_nr,titles,suptitle='', stride=1,use_contour=True,
             if i==2:
                 ax2.set_title(titles[2],fontsize=28)
             #plt.xlim([-60,60])
-            plt.ylim([-50,50])
+            plt.ylim([-15,15])
 
         else:
             ax = fig.add_subplot(111,projection='3d')
@@ -980,16 +980,12 @@ if __name__=="__main__":
     f3b = '../three/distinguish/beta2/Energy_vs_P/'
 
     
-    fi1 ='../three/spin3half/beta1-5/woMetaD/'
+    fi1 ='../ideal/boson/2D/beta1/MetaD_longer/disconnected/'
     fi2 ='../coulomb170614/anisotropy3/singlet/beta1/disconnected/'
     fi3 = '../coulomb170614/anisotropy1-38/triplet/beta1/MetaD/'
-    fi4 ='../three/spin3half/beta1-5/MetaD/test/'
+    fi4 ='../ideal/fermion/2D/beta1/MetaD_longer/'
     fiucon = '../ideal/boson/1D/beta2/MetaD/disconnected/'
     ficonn = '../ideal/boson/1D/beta2/MetaD/connected/'
-    #fiucon = '../to_send/singlet/beta1/MetaD/disconnected/'    
-    #ficonn = '../to_send/singlet/beta1/MetaD/connected/'    
-    #fi3 ='../ideal/distinguish/1D/beta1/'
-    #fi4 ='../ideal/boson/2D/beta2/MetaD/disconnected/'
     fi5 ='../three/spin3half/beta1-5/MetaD/'
     k = 3
     fi6 ='../LJ/distinguish/'+s[k]
@@ -1017,21 +1013,21 @@ if __name__=="__main__":
         plot_s_int(fi8,4,1,'')
         
     if 0:
-        plot_2d_dist([fi2,fi3],1,[r'$\mathrm{Singlet}$',r'$\mathrm{Triplet}$',r'$\mathrm{Partial}$'],
-                     r'$\mathrm{}$',use_contour=True,stride=5,num_smooths=1)
+        plot_2d_dist([fi1,fi4],1,[r'$\mathrm{Singlet}$',r'$\mathrm{Triplet}$',r'$\mathrm{Partial}$'],
+                     r'$\mathrm{}$',use_contour=True,stride=5,num_smooths=15)
    
     if 0:
         plot_2dpaircorr([fr2sing,fr2trip],0,[r'$\mathrm{Singlet}$',r'$\mathrm{Triplet}$'],
                         r'$\mathrm{Pair~correlation~(circular,~}R_\mathrm{W}=2)$',num_smooths=3)
-    plot_rAB(fr2sing,1,1)
-    plot_rAB(fr2trip,1,0,color='red')
+    #plot_rAB(fr2sing,1,1)
+    #plot_rAB(fr2trip,1,0,color='red')
         
     if 1:
         #plot_cv('../sign_cv/woMetaD/',0,100000,'')
         #plot_cv('../test3/',1,100000,'onlyperm')
         #plot_energies_vs_t(f1,0,n=100000)
         #plot_gauss_data('../test3/',2,1,'st',name='test3')
-        #plot_gauss_data('../test3/faster_spline/',9,1,'st',name='test3fast')
+        plot_gauss_data('../ideal/boson/2D/beta1/MetaD/disconnected/',9,1,'Ws',name='test3fast')
         """plot_s_int(fi2,2,1,'')
         #plt.ylim([-5,5])
         #plt.xlim([-1.1,1.1])
@@ -1040,17 +1036,17 @@ if __name__=="__main__":
         #plt.ylim([-5,5])
         #plt.xlim([-1.1,1.1])
         plt.title('trip')"""
-        plot_s_int(fr2trip,4,1,'')
+        plot_s_int('../ideal/fermion/2D/beta1/MetaD/',4,1,'')
         #plt.ylim([-1,1])
         plt.xlim([-60,100])
-        plt.title('aniso')
+        plt.title('fermion')
         plot_s_int('../test3/',5,1,'')
         #plt.ylim([-1,1])
         plt.xlim([-40,40])
-        plt.title('all gaussians')
-        plot_s_int('../test3/exact/',6,1,'')
+        plt.title('fast')
+        plot_s_int('../test4/',6,1,'')
         plt.xlim([-40,40])
-        plt.title('exact')
+        plt.title('gaussians for force')
         #Ws,pW = plot_cont(fi2 ,4,-1,100000,cv='G')
         #Ws2,pW2 = plot_cont(fi2m,5,-1,100000,cv='G')
         """plt.figure(6)
