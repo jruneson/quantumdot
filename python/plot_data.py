@@ -11,6 +11,8 @@ from mpl_toolkits.axes_grid1.inset_locator import zoomed_inset_axes
 from mpl_toolkits.axes_grid1.inset_locator import mark_inset
 import copy
 
+
+
 #from theoretical_energy import half_energy
 
 plt.rc('text',usetex=True)
@@ -604,14 +606,27 @@ def smooth(data, n):
                 data[i,j] = (data[i-1,j]+data[i,j-1]+4*data[i,j]+data[i+1,j]+data[i,j+1])*0.125
     return data
 
-def darken(x, ):
-    return x*0.8    
+#def darken(x, ):
+#    return x*0.8   
+    
+def grayify_cmap(cmap):
+    """Return a grayscale version of the colormap"""
+    cmap = plt.cm.get_cmap(cmap)
+    colors = cmap(np.arange(cmap.N))
+    
+    # convert RGBA to perceived greyscale luminance
+    # cf. http://alienryderflex.com/hsp.html
+    RGB_weight = [0.299, 0.587, 0.114]
+    luminance = np.sqrt(np.dot(colors[:, :3] ** 2, RGB_weight))
+    colors[:, :3] = luminance[:, np.newaxis]
+    
+    return cmap.from_list(cmap.name + "_grayscale", colors, cmap.N)
         
 def plot_2d_dist(folders,fig_nr,titles,suptitle='', stride=1,use_contour=True,
                  num_smooths=0):
     fig = plt.figure(num=fig_nr,figsize=(15,5.7))   
     gs = mpl.gridspec.GridSpec(1,3)
-    gs.update(wspace=0.02,bottom=0.2)
+    gs.update(wspace=0.02,bottom=0.16,top=0.85)
     #fig.set_size_inches(12,6.2)
     plt.clf()  
     for i in range(3):
@@ -625,10 +640,10 @@ def plot_2d_dist(folders,fig_nr,titles,suptitle='', stride=1,use_contour=True,
         dr1 = r1[1]-r1[0]
         dr2 = r2[1]-r2[0]
         histpre = data[1:,1:]
-        for k in range(0,histpre.shape[0]-1):
+        """for k in range(0,histpre.shape[0]-1):
             for l in range(0,histpre.shape[1]-1):
                 if histpre[k,l]<0:
-                    histpre[k,l]=0
+                    histpre[k,l]=0"""
         hist = smooth(histpre,num_smooths)
         norm = sum(sum(hist))*dr1*dr2
         hist = hist/norm*1000
@@ -638,7 +653,7 @@ def plot_2d_dist(folders,fig_nr,titles,suptitle='', stride=1,use_contour=True,
         if i==0:
             ax0 = fig.add_subplot(gs[0])
             Z0 = copy.deepcopy(Z)
-            #Z *= 0.7
+            Z *= 0.5
         if i==1:
             ax1 = fig.add_subplot(gs[1],sharey=ax0)
             
@@ -648,13 +663,14 @@ def plot_2d_dist(folders,fig_nr,titles,suptitle='', stride=1,use_contour=True,
             ax2 = fig.add_subplot(gs[2],sharey=ax0)
             Z = Z-0.5*Z0
             plt.setp(ax2.get_yticklabels(),visible=False)
-            #Z *= 2
+            Z *= 2
         if use_contour:
                 #xticks[0].label1.set_visible(False)
             #levels=np.arange(2,11,2)
+            #plt.set_cmap('hot_r')
             #dark_inferno=cmap_map(darken,plt.get_cmap('inferno_r'))
             im = plt.imshow(Z,interpolation='gaussian',extent=[r1[0],r1[-1],r2[0],r2[-1]],
-                            )#vmin=0,vmax=0.4)
+                            vmin=0,vmax=6.5,cmap=('hot_r'))
             #c = plt.contour(X,Y,Z,cmap=cm.viridis)#,levels=levels)
             #plt.clabel(c, inline=1,fontsize=16,fmt='%1.1f')
             plt.xlabel(r'$x~(\mathrm{nm})$')
@@ -665,8 +681,8 @@ def plot_2d_dist(folders,fig_nr,titles,suptitle='', stride=1,use_contour=True,
                 ax1.set_title(titles[1],fontsize=28)
             if i==2:
                 ax2.set_title(titles[2],fontsize=28)
-            #plt.xlim([-60,60])
             plt.ylim([-15,15])
+            #plt.ylim([-40,40])
 
         else:
             ax = fig.add_subplot(111,projection='3d')
@@ -676,7 +692,7 @@ def plot_2d_dist(folders,fig_nr,titles,suptitle='', stride=1,use_contour=True,
             ax.set_ylabel(r'$y~(\mathrm{nm})$')
             ax.set_zlim([-0.05,0.5])
     #plt.set_aspect('equal')
-    cax = fig.add_axes([0.905,0.2,0.03,0.7])
+    cax = fig.add_axes([0.905,0.16,0.03,0.69])
     fig.colorbar(im,cax=cax,orientation='vertical',ticks=None)
     plt.subplots_adjust(wspace=None)
     plt.suptitle(suptitle,x=0.53,y=0.995,fontsize=32)
@@ -716,7 +732,7 @@ def plot_2dpaircorr(folders,fig_nr,titles,suptitle,num_smooths=0):
             plt.setp(ax1.get_yticklabels(),visible=False)
         im = plt.imshow(Z,interpolation='gaussian',extent=[r1[0],r1[-1],r2[0],r2[-1]],
                     )
-        plt.ylim([-50,50])
+        #plt.ylim([-50,50])
         plt.xlabel(r'$x~(\mathrm{nm})$')
         if i==0:
             ax0.set_title(titles[0],fontsize=28)
@@ -980,10 +996,10 @@ if __name__=="__main__":
     f3b = '../three/distinguish/beta2/Energy_vs_P/'
 
     
-    fi1 ='../ideal/boson/2D/beta1/MetaD_longer/disconnected/'
-    fi2 ='../coulomb170614/anisotropy3/singlet/beta1/disconnected/'
-    fi3 = '../coulomb170614/anisotropy1-38/triplet/beta1/MetaD/'
-    fi4 ='../ideal/fermion/2D/beta1/MetaD_longer/'
+    fi1 ='../ideal/boson/2D/beta1/MetaD/disconnected/'
+    fi2 ='../coulomb/anisotropy1-1/singlet/disconnected/'
+    fi3 = '../coulomb/anisotropy1-1/triplet/'
+    fi4 ='../ideal/fermion/2D/beta1/MetaD/'
     fiucon = '../ideal/boson/1D/beta2/MetaD/disconnected/'
     ficonn = '../ideal/boson/1D/beta2/MetaD/connected/'
     fi5 ='../three/spin3half/beta1-5/MetaD/'
@@ -1014,15 +1030,19 @@ if __name__=="__main__":
         
     if 0:
         plot_2d_dist([fi1,fi4],1,[r'$\mathrm{Singlet}$',r'$\mathrm{Triplet}$',r'$\mathrm{Partial}$'],
-                     r'$\mathrm{}$',use_contour=True,stride=5,num_smooths=15)
-   
+                     r'$\mathrm{Ellipticity~}\omega_y/\omega_x=1.1$',use_contour=True,stride=5,num_smooths=2)
+
     if 0:
-        plot_2dpaircorr([fr2sing,fr2trip],0,[r'$\mathrm{Singlet}$',r'$\mathrm{Triplet}$'],
+        plot_2d_dist([fi1,fi4],1,[r'$\mathrm{Boson}$',r'$\mathrm{Fermion}$',r'$\mathrm{Partial}$'],
+                     r'$\mathrm{With~Metadynamics}$',use_contour=True,stride=5,num_smooths=2)
+   
+    if 1:
+        plot_2dpaircorr([fi1,'../test2/'],0,[r'$\mathrm{Singlet}$',r'$\mathrm{Triplet}$'],
                         r'$\mathrm{Pair~correlation~(circular,~}R_\mathrm{W}=2)$',num_smooths=3)
     #plot_rAB(fr2sing,1,1)
     #plot_rAB(fr2trip,1,0,color='red')
         
-    if 1:
+    if 0:
         #plot_cv('../sign_cv/woMetaD/',0,100000,'')
         #plot_cv('../test3/',1,100000,'onlyperm')
         #plot_energies_vs_t(f1,0,n=100000)
@@ -1040,10 +1060,10 @@ if __name__=="__main__":
         #plt.ylim([-1,1])
         plt.xlim([-60,100])
         plt.title('fermion')
-        plot_s_int('../test3/',5,1,'')
+        plot_s_int('../ideal/boson/2D/beta1/MetaD/disconnected/',5,1,'')
         #plt.ylim([-1,1])
         plt.xlim([-40,40])
-        plt.title('fast')
+        plt.title('boson')
         plot_s_int('../test4/',6,1,'')
         plt.xlim([-40,40])
         plt.title('gaussians for force')

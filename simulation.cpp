@@ -516,8 +516,8 @@ void Simulation::update_histogram()
 			{
 				if(bin1>=0 && bin2>= 0 && bin1<num_bins_2d && bin2<num_bins_2d)
 					histogram_2d[bin1][bin2] += weight;
-				int pc_bin1 = calc_bin(polymers[0][bead][0]-polymers[1][bead][0],num_bins_2d, hist_size_1d);
-				int pc_bin2 = calc_bin(polymers[0][bead][1]-polymers[1][bead][1],num_bins_2d, hist_size_1d);
+				int pc_bin1 = calc_bin(polymers[0][bead][0]-polymers[1][bead][0]-hist_1d_min,num_bins_2d, hist_size_1d);
+				int pc_bin2 = calc_bin(polymers[0][bead][1]-polymers[1][bead][1]-hist_1d_min,num_bins_2d, hist_size_1d);
 				if(pc_bin1>=0 && pc_bin2>=0 && pc_bin1<num_bins_2d && pc_bin2<num_bins_2d)
 					pair_distr_2d[pc_bin1][pc_bin2] += weight;
 			}
@@ -607,7 +607,7 @@ void Simulation::stop()
 	//double rew_norm = bias.get_rew_factor_avg();
 	logfile << "Exc_factor\t" << exc_avg << "\t" << simple_uncertainty(exc_avg,exc_avg_sq) 
 			<< "\t" << std::sqrt(exc_sq_avg-exc_avg*exc_avg) << std::endl; // sqrt(n/(n-1)) unnecessary for large n
-	logfile << "Avg_sign\t" << sgn_avg << "\t" << simple_uncertainty(sgn_avg,exc_avg_sq) << std::endl;
+	logfile << "Avg_sign\t" << sgn_avg << "\t" << simple_uncertainty(sgn_avg,sgn_avg_sq) << std::endl;
 	//logfile << "Exp_en_diff\t" << e_s_avg/rew_norm << "\t" << simple_uncertainty(e_s_avg,e_s_avg_sq)/rew_norm
 	//		<< std::endl;
 	res_file << beta;//polymers[0].num_beads;
