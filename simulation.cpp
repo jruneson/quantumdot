@@ -79,6 +79,11 @@ Simulation::Simulation(const Parameters& params, std::ofstream& _res_file, bool 
 	histogram_2d_avg.assign(num_bins_2d, tmp_2d);
 	histogram_2d_sq_avg.assign(num_bins_2d, tmp_2d);	
 	pair_distr_2d.assign(num_bins_2d,tmp_2d);
+	pair_distr_2d_avg.assign(num_bins_2d,tmp_2d);
+	pair_distr_2d_sq_avg.assign(num_bins_2d,tmp_2d);
+	pair_distr_1d_proj.assign(dim,tmp_2d);
+	pair_distr_1d_proj_avg.assign(dim,tmp_2d);
+	pair_distr_1d_proj_sq_avg.assign(dim,tmp_2d);
 	
 	cv_hist_num_bins = (int) std::round((cv_hist_max-cv_hist_min)/cv_hist_res)+1;
 	cv_hist.assign(cv_hist_num_bins,0);
@@ -476,6 +481,15 @@ void Simulation::update_avgs()
 			histogram_2d_avg[bin1][bin2] = (histogram_2d_avg[bin1][bin2] + histogram_2d[bin1][bin2]/tmp)/(block+1.0);
 			histogram_2d_sq_avg[bin1][bin2] = (histogram_2d_sq_avg[bin1][bin2] + std::pow(histogram_2d[bin1][bin2]/tmp,2))/(block+1.0);
 			histogram_2d[bin1][bin2] = 0;
+			pair_distr_2d_avg[bin1][bin2] = (pair_distr_2d_avg[bin1][bin2] + pair_distr_2d[bin1][bin2]/tmp)/(block+1.0);
+			pair_distr_2d_sq_avg[bin1][bin2] = (pair_distr_2d_sq_avg[bin1][bin2] + std::pow(pair_distr_2d[bin1][bin2]/tmp,2))/(block+1.0);
+			pair_distr_2d[bin1][bin2] = 0;
+		}
+		for(int d=0; d<dim; ++d)
+		{
+			pair_distr_1d_proj_avg[d][bin1] = (pair_distr_1d_proj_avg[d][bin1] + pair_distr_1d_proj[d][bin1]/tmp)/(block+1.0);
+			pair_distr_1d_proj_sq_avg[d][bin1] = (pair_distr_1d_proj_sq_avg[d][bin1] + std::pow(pair_distr_1d_proj[d][bin1]/tmp,2))/(block+1.0);
+			pair_distr_1d_proj[d][bin1] = 0;
 		}
 	}
 	bias.update_rew_factor_avg(block);
@@ -519,7 +533,11 @@ void Simulation::update_histogram()
 				int pc_bin1 = calc_bin(polymers[0][bead][0]-polymers[1][bead][0]-hist_1d_min,num_bins_2d, hist_size_1d);
 				int pc_bin2 = calc_bin(polymers[0][bead][1]-polymers[1][bead][1]-hist_1d_min,num_bins_2d, hist_size_1d);
 				if(pc_bin1>=0 && pc_bin2>=0 && pc_bin1<num_bins_2d && pc_bin2<num_bins_2d)
+				{	
 					pair_distr_2d[pc_bin1][pc_bin2] += weight;
+					pair_distr_1d_proj[0][pc_bin1] += weight;
+					pair_distr_1d_proj[1][pc_bin2] += weight;
+				}
 			}
 		}
 		/*bin = calc_bin(polymers[0][bead].dist0());
@@ -645,44 +663,52 @@ void Simulation::stop()
 	if(polymers[0][0].size()==2)
 	{
 		std::ofstream hist_file_2d("Prob_dist2d.dat");
-		//std::ofstream hist_file_2derr("Prob_dist2d_err.dat");
+		std::ofstream hist_file_2derr("Prob_dist2d_err.dat");
 		hist_file_2d << "-1";
-		//hist_file_2derr << "-1";
+		hist_file_2derr << "-1";
 		for(int bin1=0; bin1<num_bins_2d; ++bin1)
 		{
 			hist_file_2d << "\t" << hist_size_1d*((double) bin1/num_bins_2d) + hist_1d_min;
-			//hist_file_2derr << "\t" << hist_size_1d*((double) bin1/num_bins_2d) + hist_1d_min;		
+			hist_file_2derr << "\t" << hist_size_1d*((double) bin1/num_bins_2d) + hist_1d_min;		
 		}
 		hist_file_2d << std::endl;
-		//hist_file_2derr << std::endl;
+		hist_file_2derr << std::endl;
 		for(int bin2=0; bin2<num_bins_2d; ++bin2)
 		{
 			hist_file_2d << hist_size_1d*((double) bin2/num_bins_2d) + hist_1d_min;
-			//hist_file_2derr << hist_size_1d*((double) bin2/num_bins_2d) + hist_1d_min;
+			hist_file_2derr << hist_size_1d*((double) bin2/num_bins_2d) + hist_1d_min;
 			for(int bin1=0; bin1<num_bins_2d; ++bin1)
 			{
 				hist_file_2d << "\t" << histogram_2d_avg[bin1][bin2];
-				//hist_file_2derr << "\t" << simple_uncertainty(histogram_2d_avg[bin2][bin1],histogram_2d_sq_avg[bin2][bin1]);
+				hist_file_2derr << "\t" << simple_uncertainty(histogram_2d_avg[bin1][bin2],histogram_2d_sq_avg[bin1][bin2]);
 			}
 			hist_file_2d << std::endl;
-			//hist_file_2derr << std::endl;
+			hist_file_2derr << std::endl;
 		} 
 		hist_file_2d.close();
+		hist_file_2derr.close();
 		
 		std::ofstream pair_corr_2d("Pair_corr2d.dat");
 		std::ofstream hist_file_2d_other_format("Prob_dist2d_for_gnu.dat");
+		std::ofstream pair_corr_1d("Pair_corr1d_proj.dat");
 		for(int bin1=0; bin1<num_bins_2d; ++bin1)
 		{
+			double r1 = hist_size_1d*((double) bin1/num_bins_2d) + hist_1d_min;
 			for(int bin2=0; bin2<num_bins_2d; ++bin2)
 			{
-				double r1 = hist_size_1d*((double) bin1/num_bins_2d) + hist_1d_min;
 				double r2 = hist_size_1d*((double) bin2/num_bins_2d) + hist_1d_min;
-				pair_corr_2d << r1 << "\t" << r2 << "\t" << pair_distr_2d[bin1][bin2] << std::endl;
-				hist_file_2d_other_format << r1 << "\t" << r2 << "\t" << histogram_2d_avg[bin1][bin2] << std::endl;
+				pair_corr_2d << r1 << "\t" << r2 << "\t" << pair_distr_2d_avg[bin1][bin2] << "\t" 
+							 << simple_uncertainty(pair_distr_2d_avg[bin1][bin2],pair_distr_2d_sq_avg[bin1][bin2]) << std::endl;
+				hist_file_2d_other_format << r1 << "\t" << r2 << "\t" << histogram_2d_avg[bin1][bin2] << "\t" 
+							 << simple_uncertainty(histogram_2d_avg[bin1][bin2],histogram_2d_sq_avg[bin1][bin2]) << std::endl;
 			}
+			pair_corr_1d << r1 << "\t" << pair_distr_1d_proj_avg[0][bin1] << "\t" << simple_uncertainty(pair_distr_1d_proj_avg[0][bin1],pair_distr_1d_proj_sq_avg[0][bin1])
+						 << "\t" << pair_distr_1d_proj_avg[1][bin1] << "\t" << simple_uncertainty(pair_distr_1d_proj_avg[1][bin1],pair_distr_1d_proj_sq_avg[1][bin1]) << std::endl;
+			
 		}
 		pair_corr_2d.close();
 		hist_file_2d_other_format.close();
+		pair_corr_1d.close();
 	}
 	
 	std::ofstream cv_hist_file("CV_distributions.dat");

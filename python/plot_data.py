@@ -1,4 +1,5 @@
 import numpy as np
+from scipy import ndimage,misc,interpolate
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 import matplotlib.ticker as tic
@@ -6,6 +7,7 @@ from matplotlib import rcParams, interactive, cm
 from mpl_toolkits.mplot3d import Axes3D
 from scipy.special import jv
 from scipy.fftpack import fft
+from matplotlib.ticker import FormatStrFormatter
 
 from mpl_toolkits.axes_grid1.inset_locator import zoomed_inset_axes
 from mpl_toolkits.axes_grid1.inset_locator import mark_inset
@@ -164,7 +166,7 @@ def bin_hist(x,y):
     y = 0.5*(y[:-1:2]+y[1::2])
     return x,y
         
-def plot_s_int(f, fig_nr, clear=1, opt=''):
+def plot_s_int(f, fig_nr, clear=1, opt='',color='b',label=''):
     data = np.loadtxt(f+'CV_distributions.dat')
     s = data[:,0]
     shist = data[:,1]
@@ -185,13 +187,15 @@ def plot_s_int(f, fig_nr, clear=1, opt=''):
                 bias_der = data[:,5]
                 plt.plot(s,bias_der,label='grad V')
             plt.legend(loc='upper right',fontsize=20)
+    elif(opt=='shist'):
+        plt.plot(s,shist,color=color,label=label)
+    elif(opt=='Whist'):
+        plt.plot(s,Whist,color=color,label=label)
+        return s,Whist
     else:
         plt.plot(s,shist)
         plt.plot(s,Whist)
         plt.plot(s,Ehist)
-    #plt.xlim([-40,40])
-    ds = s[1]-s[0]
-    print(sum(Whist)*ds)
     
         
     
@@ -259,8 +263,8 @@ def plot_cont(f, fig_nr,sign,block_size,cv='bdE',obs=None,conn=False):
             #t = line.split()[0]
             if(cv=='G'):
                 plt.plot(Gs,np.log(his_rew_norm+1e-9),label=str(t)+' ps')
-                plt.xlabel(r'$\Gamma$')
-                plt.ylabel(r'$\log\,p(\Gamma)$')            
+                plt.xlabel(r'$W$')
+                plt.ylabel(r'$\log\,p(W)$')            
             elif(cv=='bdE'):
                 plt.plot(Gs,his_rew_norm*(1+sign*np.exp(conn_sign*Gs)),label=str(t)+' ps')
                 plt.xlabel(r'$\beta\Delta E$')    
@@ -341,14 +345,19 @@ def plot_energies_vs_t(f,fig_nr,n=100000,P=20,conn=False):
     plt.ylabel(r'$\mathrm{FFT~of~} E$')
     plt.ylabel(r'$\mathrm{FFT~of~}\langle WE\rangle /\langle W \rangle$')"""
     
-def plot_energies(f,fig_nr,clear=1,var='beta',beta=1,linestyle='-',marker='v',label='Total energy',plot_all=False):
-    data = np.loadtxt(f+'results.dat',comments='%')
+def plot_energies(f,fig_nr,clear=1,var='beta',beta=1,linestyle='',marker='v',label='Total energy',
+                  plot_all=False,col=0,bennett=True,ediff=True,color='b'):
+    if(col==0):
+        data = np.loadtxt(f+'results.dat',comments='%')
+    elif(bennett):
+        data = np.loadtxt(f+'energies_bennett.dat',comments='%')
+    else:
+        data = np.loadtxt(f+'energies_fermion.dat',comments='%')
     if(data.ndim==1):
         data = [data,float('NaN')*np.ones(len(data))]
     if(data.ndim>1):
         x = data[:,0]
         num_obs = round((np.size(data,1)-1)/2)
-        print(num_obs)
         if(num_obs==1):
             etot = data[:,1]/en_scale
             etot_e = data[:,2]/en_scale
@@ -358,6 +367,13 @@ def plot_energies(f,fig_nr,clear=1,var='beta',beta=1,linestyle='-',marker='v',la
         if(num_obs>3):
             etot = data[:,5]/en_scale
             etot_e = data[:,6]/en_scale
+            
+        if(col>0):
+            etot = data[:,col]/en_scale
+            etot_e = data[:,col+1]/en_scale
+            if(ediff):
+                etot += data[:,col+2]/en_scale
+                etot_e += data[:,col+3]/en_scale
    
         plt.figure(fig_nr)
         if(clear):
@@ -374,7 +390,7 @@ def plot_energies(f,fig_nr,clear=1,var='beta',beta=1,linestyle='-',marker='v',la
         elif(var=='tau2'):
             x = 2.0/x**2
             plt.xlabel(r'$1/\tau^2~(\mathrm{meV}^2)$')
-        plt.errorbar(x,etot,etot_e,marker=marker,label=label,linestyle=linestyle)
+        plt.errorbar(x,etot,etot_e,marker=marker,label=label,linestyle=linestyle,color=color)
         if(plot_all==True):   
             epot = data[:,1]/en_scale
             epot_e = data[:,2]/en_scale
@@ -479,9 +495,9 @@ def normalize(p,perr,r,d=2,norm_shell=False):
     p2 = p/norm
     perr2 = perr/norm
     if(norm_shell):
-        norm_shell = np.pi*((r+dr)**d-r**d)
-        p /= norm_shell
-        perr /= norm_shell
+        norm_shell = np.pi*((r+0.01)**d-r**d)
+        p2 /= norm_shell
+        perr2 /= norm_shell
     return (p2,perr2)
     
     
@@ -508,6 +524,7 @@ def plot_rAB(f,fig_nr,clear=True,d=2,color='blue',marker='x',name=None,linestyle
     #    plt.errorbar(r[::3],p[::3],p_err[::3],linestyle='None',label=name,marker=marker,color=color)
     plt.xlabel('$r~(\mathrm{nm})$')
     plt.ylabel(r'$g(r)$')
+    plt.ylim([-0.1,0.7])
     return r,p2,perr2
     
 def plot_rAB_th(fig_nr,r,d,sym):
@@ -537,33 +554,34 @@ def plot_rAB_th(fig_nr,r,d,sym):
         x = np.linspace(0,10*a,1000)
         dx = x[1]-x[0]
         for i,R in enumerate(r):
-            xi = -2j*x*R/a**2
+            xi = 2j*x*R/a**2
             exponential = np.exp(-(2*x**2+R**2)/a**2)
             if(sym=='dis'):
             #p2part = np.exp(-0.5*(r/a)**2)
-                bessels = jv(0,xi)+0.5*((2*x**2+R**2)*jv(0,xi)+1j*2*x*R*jv(1,xi))/a**2 * np.exp(-hwb)
-                p2part[i]=np.absolute(sum(x*R*exponential*bessels)*dx)
+                bessels = jv(0,xi)+0.5*((2*x**2+R**2)*jv(0,xi) - 2*1j*x*R*jv(1,xi))/a**2 * np.exp(-hwb)
+                p2part[i]=(sum(x*R*exponential*bessels)*dx)
                 #p2part[i]=R**2*np.exp(-0.5*R**2/a**2)
                 label=''
                 color='r'
             if(sym=='bos'):
-                p2part[i]=np.absolute(sum(x*R*exponential*jv(0,xi))*dx)
+                p2part[i]=(sum(x*R*exponential*jv(0,xi))*dx)
                 #p2part[i]=np.absolute(sum(x*R*exponential*(2*np.pi*jv(0,2*xi)+jv(0,xi)**2))*dx)
                 label=''
                 color = 'b'
             if(sym=='fer'):
-                p2part[i]=np.absolute(sum(x*R**3*exponential*jv(0,xi))*dx)
+                p2part[i]=(sum(x*R**3*exponential*jv(0,xi))*dx)
                 label=''
                 color='g'
         #color='k'
             #p2part = r**2*np.exp(-(r/a)**2)
-    (p2,_)=normalize(p2part,0,r,d,1)
     dr = r[1]-r[0]
+    print('dr='+str(dr))
+    (p2,_)=normalize(p2part,p2part,r,d,1)
     print(p2.sum()*dr)
     #scale=1e6
     if(fig_nr>-1):
         plt.figure(fig_nr)
-    plt.plot(r,p2,color=color,label=label)
+    plt.plot(r[1:],p2[1:],color=color,label=label)
     return p2
     
 
@@ -583,21 +601,48 @@ def gaussian(s,h,cvc):
 def f_FD(x):
     return 1.0/(1+np.exp(x))            
             
-def plot_1d_dist(f,fig_nr,clear=1):
-    data = np.loadtxt(f+'Prob_dist1d.dat')
-    r = data[:,0]
-    dim = round((np.size(data,1)-1)/2)
+def plot_1d_dist(fs,fig_nr,clear=1):
+    colors = ['b','g','r']
+    labels = ['Boson','Fermion','Partial']
     plt.figure(fig_nr)
     if(clear):
-        plt.clf()
-    for d in range(dim):
-        p = data[:,2*d+1]
-        perr = data[:,2*d+2]
-        normalize(p,perr,r,)
-        plt.errorbar(r,data[:,2*d+1],data[:,2*d+2])
-    plt.xlim([-20,20])
+        plt.clf()    
+    for i in range(3):
+        if i==0:
+            f = fs[0]
+        else:
+            f = fs[1]
+        data = np.loadtxt(f+'Prob_dist1d.dat')
+        r = data[:,0]
+        dim = round((np.size(data,1)-1)/2)
+
+        for d in range(dim):
+            p_pre = data[:,2*d+1]
+            perr_pre = data[:,2*d+2]
+            p,perr = normalize(p_pre,perr_pre,r,d=1)
+            if i==0:
+                p0 = copy.deepcopy(p)
+            if i==2:
+                p = p - p0*0.5
+            plt.errorbar(r[::2],p[::2],perr[::2],color=colors[i],label=labels[i])
+    plt.xlim([-15,15])
+    plt.ylim([-0.01,0.12])
     plt.xlabel(r'$r~(\mathrm{nm})$')
     plt.ylabel(r'$p(r)$')
+    plt.legend(loc=(0.65,0.63),fontsize=20)
+    return r
+    
+def plot_1d_dist_th(fig_nr,r,d=1,hw=3.0):
+    m_hbar2 = 0.013234
+    c = m_hbar2*hw
+    p0_pre = np.exp(-c*r**2)
+    p1_pre = r**2*np.exp(-c*r**2)
+    (p0,_) = normalize(p0_pre,p0_pre,r,d)
+    (p1,_) = normalize(p1_pre,p1_pre,r,d)
+    plt.figure(fig_nr)
+    plt.plot(r,p0,'k--')
+    plt.plot(r,0.5*(p0+p1),'k--')
+    plt.plot(r,0.5*p1,'k--')
     
 def smooth(data, n):
     for k in range(n):
@@ -622,6 +667,74 @@ def grayify_cmap(cmap):
     
     return cmap.from_list(cmap.name + "_grayscale", colors, cmap.N)
         
+        
+def plot_2d_dist_temps(f,fig_nr,num_smooths=0):   
+    fig = plt.figure(num=fig_nr,figsize=(15,5.7))   
+    gs = mpl.gridspec.GridSpec(1,3)
+    gs.update(wspace=0.02,bottom=0.16,top=0.85)
+    #fig.set_size_inches(12,6.2)
+    plt.clf()  
+    betas=['beta0-34/','beta0-67/','beta1/']
+    titles = [r'$T=34\,\mathrm{K}$',r'$T=17\,\mathrm{K}$',r'$T=12\,\mathrm{K}$']
+    for i in range(3):
+        woM = ''
+        if i==0:
+            woM = ''#woMetaD/'
+        data_s = np.loadtxt(f+'singlet/'+betas[i]+'disconnected/Prob_dist2d.dat')
+        data_t = np.loadtxt(f+'triplet/'+betas[i]+woM+'Prob_dist2d.dat')
+        r1 = data_s[1:,0]
+        r2 = data_s[0,1:]
+        dr1 = r1[1]-r1[0]
+        dr2 = r2[1]-r2[0]
+        hist_s = smooth(data_s[1:,1:],num_smooths)
+        hist_t = smooth(data_t[1:,1:],num_smooths)
+        for k in range(0,hist_t.shape[0]-1):
+            for l in range(0,hist_t.shape[1]-1):
+                if hist_t[k,l]<0:
+                    hist_t[k,l]=0
+        norm_s = sum(sum(hist_s))*dr1*dr2
+        norm_t = sum(sum(hist_t))*dr1*dr2
+        hist_s = hist_s/norm_s*10000
+        hist_t = hist_t/norm_t*10000
+        X,Y = np.meshgrid(r1,r2)
+        Z_s = hist_s.reshape(X.shape)
+        Z_t = hist_t.reshape(X.shape)
+        if i==1:
+            Z_s = Z_s.transpose()
+        if i==2:
+            Z_s = Z_s.transpose()
+            Z_t = Z_t.transpose()
+        Z = Z_t - Z_s*0.5
+        if 0:
+            #Z = ndimage.interpolation.zoom(Z,2)
+            #Z = misc.imresize(Z,5.0,interp='bilinear')
+            Z = ndimage.gaussian_filter(Z,4)
+            #Z = misc.imresize(Z,0.2,interp='bilinear')
+            #Z = ndimage.interpolation.zoom(Z,0.5)
+        if i==0:
+            ax0 = fig.add_subplot(gs[0])
+            plt.ylabel(r'$y~(\mathrm{nm})$')
+            ax0.set_title(titles[i],fontsize=28)
+            Z *= 1.5
+        if i==1:
+            ax1 = fig.add_subplot(gs[1],sharey=ax0)
+            plt.setp(ax1.get_yticklabels(),visible=False)
+            ax1.set_title(titles[i],fontsize=28)
+            Z *= 1.2
+            
+        if i==2:
+            ax2 = fig.add_subplot(gs[2],sharey=ax0)
+            plt.setp(ax2.get_yticklabels(),visible=False)
+            ax2.set_title(titles[i],fontsize=28)
+        im = plt.imshow(Z,interpolation='bilinear',extent=[r1[0],r1[-1],r2[0],r2[-1]],
+                        cmap='hot',vmin=0,vmax=4.5)
+
+        plt.xlabel(r'$x~(\mathrm{nm})$')
+    cax = fig.add_axes([0.905,0.16,0.03,0.69])
+    fig.colorbar(im,cax=cax,orientation='vertical',ticks=None)
+    plt.suptitle(r'$\mathrm{Singlet~at~ellipticity}~\omega_y/\omega_x=1.38$',x=0.53,y=0.995,fontsize=32)
+
+        
 def plot_2d_dist(folders,fig_nr,titles,suptitle='', stride=1,use_contour=True,
                  num_smooths=0):
     fig = plt.figure(num=fig_nr,figsize=(15,5.7))   
@@ -640,37 +753,48 @@ def plot_2d_dist(folders,fig_nr,titles,suptitle='', stride=1,use_contour=True,
         dr1 = r1[1]-r1[0]
         dr2 = r2[1]-r2[0]
         histpre = data[1:,1:]
-        """for k in range(0,histpre.shape[0]-1):
+        for k in range(0,histpre.shape[0]-1):
             for l in range(0,histpre.shape[1]-1):
                 if histpre[k,l]<0:
-                    histpre[k,l]=0"""
+                    histpre[k,l]=0
         hist = smooth(histpre,num_smooths)
         norm = sum(sum(hist))*dr1*dr2
         hist = hist/norm*1000
         X,Y = np.meshgrid(r1,r2)
+        use_filter = False
         Z = hist.reshape(X.shape)#.transpose()
-        #print(Z.shape)
+        if 0:
+            Z = misc.imresize(Z,5.0,interp='bilinear')
+            Z = ndimage.gaussian_filter(Z,3)
+            Z = misc.imresize(Z,0.2,interp='bilinear')
         if i==0:
             ax0 = fig.add_subplot(gs[0])
+            #Z = ndimage.interpolation.zoom(Z,5.0)
+            #Z = misc.imresize(Z,5.0,interp='bilinear')
             Z0 = copy.deepcopy(Z)
-            Z *= 0.5
+            Z = Z*0.6
         if i==1:
             ax1 = fig.add_subplot(gs[1],sharey=ax0)
-            
+            if(use_filter):
+                Z = ndimage.gaussian_filter(Z,3)
+                #Z = misc.imresize(Z,0.2,interp='bilinear')
             if use_contour:
                 plt.setp(ax1.get_yticklabels(),visible=False)
         if i==2:
             ax2 = fig.add_subplot(gs[2],sharey=ax0)
+            if(use_filter):
+                Z = ndimage.gaussian_filter(Z,3)
+            #Z = misc.imresize(Z,0.2,interp='bilinear')
             Z = Z-0.5*Z0
             plt.setp(ax2.get_yticklabels(),visible=False)
-            Z *= 2
+            Z *= 2.5
         if use_contour:
                 #xticks[0].label1.set_visible(False)
             #levels=np.arange(2,11,2)
-            #plt.set_cmap('hot_r')
+            plt.set_cmap('hot')
             #dark_inferno=cmap_map(darken,plt.get_cmap('inferno_r'))
-            im = plt.imshow(Z,interpolation='gaussian',extent=[r1[0],r1[-1],r2[0],r2[-1]],
-                            vmin=0,vmax=6.5,cmap=('hot_r'))
+            im = plt.imshow(Z,interpolation='bilinear',extent=[r1[0],r1[-1],r2[0],r2[-1]],
+                           vmin=0,vmax=7.5,cmap=('hot'))
             #c = plt.contour(X,Y,Z,cmap=cm.viridis)#,levels=levels)
             #plt.clabel(c, inline=1,fontsize=16,fmt='%1.1f')
             plt.xlabel(r'$x~(\mathrm{nm})$')
@@ -711,14 +835,14 @@ def plot_2d_dist(folders,fig_nr,titles,suptitle='', stride=1,use_contour=True,
 def plot_2dpaircorr(folders,fig_nr,titles,suptitle,num_smooths=0):    
     fig = plt.figure(num=fig_nr,figsize=(11,5.7))   
     gs = mpl.gridspec.GridSpec(1,2)
-    gs.update(wspace=0.22,bottom=0.2,top=0.85)
+    gs.update(wspace=0.3,bottom=0.2,top=0.85)
     plt.clf()
     for i in range(2):
         f = folders[i]
         data = np.loadtxt(f+'Pair_corr2d.dat')
         r1 = data[:,0]
         r2 = data[:,1]
-        p = data[:,2]/100000
+        p = data[:,2]/5000
         n = np.sqrt(np.size(r1))
         #X = r1.reshape((n,n))
         Zpre = p.reshape((n,n))
@@ -732,17 +856,21 @@ def plot_2dpaircorr(folders,fig_nr,titles,suptitle,num_smooths=0):
             plt.setp(ax1.get_yticklabels(),visible=False)
         im = plt.imshow(Z,interpolation='gaussian',extent=[r1[0],r1[-1],r2[0],r2[-1]],
                     )
-        #plt.ylim([-50,50])
+        plt.ylim([-20,20])
         plt.xlabel(r'$x~(\mathrm{nm})$')
         if i==0:
             ax0.set_title(titles[0],fontsize=28)
-            cax = fig.add_axes([0.47,0.2,0.03,0.65])
+            cax = fig.add_axes([0.46,0.2,0.03,0.65])
             fig.colorbar(im,cax,cax,orientation='vertical')
         if i==1:
             ax1.set_title(titles[1],fontsize=28)
             cax = fig.add_axes([0.90,0.2,0.03,0.65])
             fig.colorbar(im,cax=cax,orientation='vertical',ticks=None)
+            #cax.yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
     #plt.subplots_adjust(wspace=None)
+    if 1:
+        ax0.set_xticks([-15,0,15])
+        ax1.set_xticks([-15,0,15])
     plt.suptitle(suptitle,x=0.53,y=0.985,fontsize=32)
     ax0.set_aspect('equal')
     ax1.set_aspect('equal')
@@ -762,16 +890,17 @@ def free_energy_diff(f1,f2,fig_nr,beta=1.0,P=10,opt='FB',deg=1):
     hist_oo /= sum(hist_oo)*ds
     hist_O = dE_conn[:,1]
     hist_O /= sum(hist_O)*ds
-    plt.plot(s, -np.log(hist_oo), 'b', label='From oo')
-    plt.plot(s, -np.log(hist_O),'k--',label='From O' )
+    plt.plot(s, -np.log(hist_oo), 'b', label='Disc.')
+    plt.plot(s, -np.log(hist_O),'k--',label='Conn.' )
     C = -0.041#-0.08
     #plt.plot(s, hist_oo*f_FD(s+C)*50)
     #plt.plot(s, hist_O*f_FD(-s-C)*50)
     plt.xlim([-50,50])
-    plt.ylim([0,20])
-    plt.xlabel(r'$s=\beta(E_O-E_{oo})$')
-    plt.ylabel(r'$- \log\,p(s)$')
-    #plt.legend(loc='lower right',fontsize=20)
+    plt.ylim([0,16])
+    plt.xlabel(r'$s$')
+    plt.ylabel(r'$F(s) = - \log\,p(s)$')
+    plt.tight_layout()
+    plt.legend(loc='lower right',fontsize=22)
     num=0
     den=0
     sq_oo=0
@@ -802,8 +931,9 @@ def free_energy_diff(f1,f2,fig_nr,beta=1.0,P=10,opt='FB',deg=1):
     #print("Error in DeltaF:\t"+str(np.sqrt(err)))
     
     cs = c_hist_unconn[0,:]
-    plt.figure(fig_nr+2)        
-    plt.clf()
+    
+    #plt.figure(fig_nr+2)        
+    #plt.clf()
     #Cs = np.linspace(-2,1)
     #plt.plot(Cs,-np.log((1-np.exp(Cs))/(2)))
     numblocks = len(c_hist_unconn[1:,0])
@@ -815,14 +945,15 @@ def free_energy_diff(f1,f2,fig_nr,beta=1.0,P=10,opt='FB',deg=1):
         b1c = c_hist_conn[i,:]/scale
         diff = b1u-b1c
         diffl = np.log(b1u)-np.log(b1c)
-        plt.plot(cs,np.log(b1u),'b')
-        plt.plot(cs,np.log(b1c),'r')
-        #plt.plot(cs,diff,'g')
-        plt.plot(cs,diffl,'c')
         poly = np.polyfit(cs,diffl,1)
-        plt.plot(cs,np.polyval(poly,cs),'x--')
         C = -poly[1]/poly[0]
-        plt.plot([C],[0],'bo')
+        if 0:        
+            plt.plot(cs,np.log(b1u),'b')
+            plt.plot(cs,np.log(b1c),'r')
+            #plt.plot(cs,diff,'g')
+            plt.plot(cs,diffl,'c')
+            plt.plot(cs,np.polyval(poly,cs),'x--')
+            plt.plot([C],[0],'bo')
         Czeros[i-1]=C
     #print(Czeros)
     #print(np.mean(Czeros))
@@ -840,10 +971,10 @@ def free_energy_diff(f1,f2,fig_nr,beta=1.0,P=10,opt='FB',deg=1):
     print("<sign>="+str(np.mean(avg_sign))+"+/-"+str(np.std(avg_sign)/np.sqrt(numblocks)))
     
 def plot_theoretical_energies(fig_nr,clear=False,d=1,hw=3.0,color='k',label=''):
-    T = np.linspace(1.5,25,500)
+    T = np.linspace(1.5,300,500)
     kB = 1/11.6045
     beta = 1.0/(kB*T)
-    tau = 0.0001
+    tau = 0.1
     tmp = beta/tau
     #P = map(lambda i: int(i), tmp)
     P = tmp.astype(int)
@@ -966,51 +1097,25 @@ if __name__=="__main__":
     f21= '../run21/'
     f22= '../run22/'
     f23= '../run23/'
-    fs=[f1,f2,f3,f4,f5]
-    interac = ['noInt/','LJ/','coulomb/RW1-34/']
-    beta=['beta2/']
-    md=['noMetaD/','MetaD/']
-    sym = ['bos/','fer/']
-    P=['P10/','P20/','P40/','P50/','P60/']
     s=['s0-25/','s0-5/','s1/','s2/','s4/']
-    dt=['','dt5e-3/','dt1e-3/','dt1e-4/']
-    t=['t100000/']
-    fa1 = f0+interac[2]+beta[0]+sym[0]+md[0]
-    fa2 = f0+interac[2]+beta[0]+sym[1]+md[0]
-    fa3 = f0+interac[2]+beta[0]+sym[0]+md[1]
-    fa4 = f0+interac[2]+beta[0]+sym[1]+md[1]
-    ff = f0+interac[2]+'tau0-04/bos/'
-    flab = '../workstation_lab/metaD_test7/'
-    flabb= '../workstation_lab/metaD_test4_20ns/'
-    flab1= flab+'run1/'
-    flab2= flab+'run2/'
-    flab3= flab+'run3/'
-    flab4= flab+'run4/'
-    flab5= flab+'run5/'
-    flab6= flab+'run6/'
-    flab7= flab+'run7/'
-    flab8= flab+'run8/'
-    flab9= flab+'run9/'
-    flab10=flab+'run10/'
-    f3a = '../three/distinguish/beta1/Energy_vs_P/'
-    f3b = '../three/distinguish/beta2/Energy_vs_P/'
 
+    
     
     fi1 ='../ideal/boson/2D/beta1/MetaD/disconnected/'
     fi2 ='../coulomb/anisotropy1-1/singlet/disconnected/'
     fi3 = '../coulomb/anisotropy1-1/triplet/'
     fi4 ='../ideal/fermion/2D/beta1/MetaD/'
-    fiucon = '../ideal/boson/1D/beta2/MetaD/disconnected/'
-    ficonn = '../ideal/boson/1D/beta2/MetaD/connected/'
-    fi5 ='../three/spin3half/beta1-5/MetaD/'
-    k = 3
-    fi6 ='../LJ/distinguish/'+s[k]
-    fi7 ='../LJ/boson/'+s[k]
-    fi8 ='../LJ/fermion/'+s[k]
-    fi9 ='../ideal/boson/2D/beta1/woMetaD_longer/disconnected/'
+    fiucon = '../ideal/boson/1D/beta1/MetaD_longer/disconnected/'
+    ficonn = '../ideal/boson/1D/beta1/MetaD_longer/connected/'
+    fi5 ='../ideal/distinguish/2D/Energy_vs_T/'
+    fi6 ='../ideal/boson/2D/Energy_vs_T/'
+    fi7 ='../ideal/fermion/2D/Energy_vs_T/'
+    fi8 ='../ideal/distinguish/1D/beta1/Energy_vs_P/'
+    fi9 ='../ideal/distinguish/1D/beta2/Energy_vs_P/'
     fi10='../ideal/fermion/2D/beta1/woMetaD_longer/'
+    fid ='../ideal/distinguish/2D/beta1/'
     
-    fbennett = '../ideal/fermion/1D/Energy_vs_T/FreeEnergyDiff/'
+    fbennett = '../ideal/fermion/2D/Energy_vs_T/FreeEnergyDiff/'
 
     fr2sing = '../coulomb170614/circular/RW4/singlet/'
     fr2trip = '../coulomb170614/circular/RW1-4/triplet/beta1/'
@@ -1029,121 +1134,52 @@ if __name__=="__main__":
         plot_s_int(fi8,4,1,'')
         
     if 0:
-        plot_2d_dist([fi1,fi4],1,[r'$\mathrm{Singlet}$',r'$\mathrm{Triplet}$',r'$\mathrm{Partial}$'],
-                     r'$\mathrm{Ellipticity~}\omega_y/\omega_x=1.1$',use_contour=True,stride=5,num_smooths=2)
+        plot_2d_dist([fi2,fi3],1,[r'$\mathrm{Singlet}$',r'$\mathrm{Triplet}$',r'$\mathrm{Partial}$'],
+                     r'$\mathrm{Ellipticity~}\omega_y/\omega_x=1.1$',use_contour=True,stride=5,num_smooths=1)
 
     if 0:
         plot_2d_dist([fi1,fi4],1,[r'$\mathrm{Boson}$',r'$\mathrm{Fermion}$',r'$\mathrm{Partial}$'],
-                     r'$\mathrm{With~Metadynamics}$',use_contour=True,stride=5,num_smooths=2)
+                     r'$\mathrm{With~Metadynamics}$',use_contour=True,stride=5,num_smooths=3)
    
     if 1:
-        plot_2dpaircorr([fi1,'../test2/'],0,[r'$\mathrm{Singlet}$',r'$\mathrm{Triplet}$'],
-                        r'$\mathrm{Pair~correlation~(circular,~}R_\mathrm{W}=2)$',num_smooths=3)
+        plot_2d_dist_temps('../coulomb170614/anisotropy1-38/',3,0)
+
+    if 0:
+        plot_2dpaircorr([fi1,fi4],0,[r'$\mathrm{Boson}$',r'$\mathrm{Fermion}$'],
+                        r'$\mathrm{2D~Pair~correlation}$',num_smooths=15)
+                        
+    if 1:
+        r,_,_ = plot_rAB(fi1,0,True,2,'b',marker='o',name=r'Boson',linestyle='',show_errors=4)
+        r2,_,_ = plot_rAB(fi4,0,False,2,'g',marker='D',name=r'Fermion',linestyle='',show_errors=4)
+        r3,_,_ = plot_rAB(fid,0,False,2,'r',marker='s',name=r'Distinguishable',linestyle='',show_errors=8)
+        plot_rAB_th(0,r,2,'bos')        
+        plot_rAB_th(0,r2,2,'fer')
+        plot_rAB_th(0,r3,2,'dis')        
+        plt.legend(loc='upper right',fontsize=22)
+        plt.title(r'$\mathrm{2D,~with~Metadynamics}$')
+        #plt.ylim([-0.005,0.025])
+        plt.xlim([0,20])
+        
+        #plot_rAB(f,fig_nr,clear=True,d=2,color='blue',marker='x',name=None,linestyle='-',show_errors=1):
     #plot_rAB(fr2sing,1,1)
     #plot_rAB(fr2trip,1,0,color='red')
         
+    #free_energy_diff(fiucon,ficonn,5,beta=1,P=10)       
+    #plt.title('1D')
     if 0:
-        #plot_cv('../sign_cv/woMetaD/',0,100000,'')
-        #plot_cv('../test3/',1,100000,'onlyperm')
-        #plot_energies_vs_t(f1,0,n=100000)
-        #plot_gauss_data('../test3/',2,1,'st',name='test3')
-        plot_gauss_data('../ideal/boson/2D/beta1/MetaD/disconnected/',9,1,'Ws',name='test3fast')
-        """plot_s_int(fi2,2,1,'')
-        #plt.ylim([-5,5])
-        #plt.xlim([-1.1,1.1])
-        plt.title('sing')
-        plot_s_int(fi3,3,1,'')
-        #plt.ylim([-5,5])
-        #plt.xlim([-1.1,1.1])
-        plt.title('trip')"""
-        plot_s_int('../ideal/fermion/2D/beta1/MetaD/',4,1,'')
-        #plt.ylim([-1,1])
-        plt.xlim([-60,100])
-        plt.title('fermion')
-        plot_s_int('../ideal/boson/2D/beta1/MetaD/disconnected/',5,1,'')
-        #plt.ylim([-1,1])
-        plt.xlim([-40,40])
-        plt.title('boson')
-        plot_s_int('../test4/',6,1,'')
-        plt.xlim([-40,40])
-        plt.title('gaussians for force')
-        #Ws,pW = plot_cont(fi2 ,4,-1,100000,cv='G')
-        #Ws2,pW2 = plot_cont(fi2m,5,-1,100000,cv='G')
-        """plt.figure(6)
-        plt.clf()
-        plt.plot(Ws,pW,'b',label='Without Metadynamics',linewidth=1.5)
-        plt.plot(Ws2,pW2,'r',label='With Metadynamics')
-        plt.legend(loc='upper left',fontsize=22)
-        plt.title('Fermion')
-        plt.xlabel('$W$')
-        plt.ylabel(r'$\log\,p(W)$')"""
-
-    if 0:
-        plot_energies(f3a,1,1,'tau',beta=1,label=r'$\beta=1~\mathrm{meV}^{-1}$')
-        plot_energies(f3b,1,0,'tau',beta=2,label=r'$\beta=2~\mathrm{meV}^{-1}$',marker='o')
-        #plt.plot([0,10],[2,2],'k--',label=r'$\mathrm{Theoretical~value}$')
-        plt.legend(loc='lower right',fontsize=26)
-        plt.title('Three particles')
-
-    if 0:
-        plot_theoretical_energies(1,True,2,3.0,'k',r'$\hbar\omega_0=3\,\mathrm{meV}$')
-        plot_theoretical_energies(1,False,2,15.0,'b',r'$\hbar\omega_0=15\,\mathrm{meV}$')    
-        plot_theoretical_energies(1,False,2,30.0,'r',r'$\hbar\omega_0=30\,\mathrm{meV}$')    
-        plt.legend(loc='upper left',fontsize=24)
-        plt.xlabel(r'$T\,(\mathrm{K})$')
-        plt.ylabel(r'$E/\hbar\omega_0$')
-
-    if 0:
-        plot_energies(f3a,1,1,'P',label='beta1',linestyle='',marker='o',plot_all=0)
-        plot_energies(f3b,1,0,'P',label='beta2',linestyle='',marker='D',plot_all=0)
-        #plot_energies(fi3,1,0,'beta',label='Distinguishable',linestyle='',marker='s',plot_all=0)
-        #plot_theoretical_energies(1,d=1)
-        #plot_energies(f15,1,0,'P',label='Distinguishable',linestyle='-',marker='v',plot_all=0)
-        #plot_energies(f22,1,0,'P',label='Unconnected, dt=1fs')
-        #plt.plot([0,25],[16.4,16.4],'k--',label='Target value')
-        #plt.plot([0,22],[3,3],'k--',label='Target value')
-        plt.xlim([0,80])    
-        plt.ylim([0,7])
-        plt.legend(loc='upper left',fontsize=22)
-        plt.title('1D')
-        #plt.title(r'$\mathrm{Elliptic~QD,~}\tau=0.067~\mathrm{meV}^{-1}$')
-        #plt.title(r'No Coulomb, $\hbar\omega_0=3\,\mathrm{meV}$')
-        if 0:        
-            plt.figure(2)
-            plt.clf()
-            plt.plot(x,euconn-econn,'o-')
-            plt.plot(x,6-euconn,'o-')
-            plt.grid(True)
-        
-        
-    #plt.figure(3)
-    #plt.title(r'$\mathrm{Without~Metadynamics}$')
-    #free_energy_diff(fi3,fi4,4,beta=1,P=10)
-    #plt.figure(4)
-    #plt.title(r'$\mathrm{With~Metadynamics}$')
-    #plt.title(r'Elliptic QD, $\gamma_\mathrm{screen}=1, P=15$')
-    #plt.title(r'No Coulomb, $\hbar\omega=3\,\mathrm{meV}$')
-    #plot_cv(f1,7,200000,opt='bdE')
-    #plot_fes(f14,4)
-    #data = np.loadtxt(f11+'Total_energy.dat')
-    #plt.plot(data[:,0],data[:,2])
-    #plot_2d_dist(fi2,3)
-    #plot_1d_dist(fi,1,1)
-        
-    if 0:
-        fig_nr = -1
+        fig_nr = 2
         d = 1
-        plt.figure(2)
+        plt.figure(fig_nr)
         fig = plt.gcf()
         ax = plt.gca()
-        r,pb,pberr=plot_rAB(fi3,fig_nr,1,d,'b','o',name='Boson',linestyle='-',show_errors=5)
-        r,_,_=plot_rAB(fif,fig_nr,0,d,'g','D',name='Fermion',linestyle='-',show_errors=5)
-        #r,pd,pderr=plot_rAB(fid,fig_nr,0,d,'r','s',name='Distinguishable',linestyle='-',show_errors=5)    
+        r,pb,pberr=plot_rAB(fi1,fig_nr,1,d,'b','o',name=r'Boson',linestyle='',show_errors=5)
+        r,_,_=plot_rAB(fi4,fig_nr,0,d,'g','D',name=r'Fermion',linestyle='',show_errors=5)
+        #r,pd,pderr=plot_rAB(fid,fig_nr,0,d,'r','s',name=r'Distinguishable',linestyle='-',show_errors=5)    
         pbth = plot_rAB_th(fig_nr,r,d,'bos')
         plot_rAB_th(fig_nr,r,d,'fer')
         #pdth = plot_rAB_th(fig_nr,r,d,'dis')
         plt.legend(loc='upper right',fontsize=20)
-        plt.title(r'$\mathrm{1D,~with~Metadynamics}$')
+        plt.title(r'$\mathrm{1D,~without~Metadynamics}$')
         #plt.ylim([-0.02,0.1])
         plt.ylim([0,0.2])
         #inset = np.zeros([50,50])
@@ -1156,126 +1192,125 @@ if __name__=="__main__":
             rins = r[1:22:5]
             pins = pb[1:22:5]
             axins.errorbar(rins,pb[1:22:5],pberr[1:22:5],marker='o',color='b',linestyle='')        
-            #axins.errorbar(rins,pd[1:30:5],pderr[1:30:5],marker='s',color='r',linestyle='')
+            #axins.errorbar(rins,pd[1:22:5],pderr[1:22:5],marker='s',color='r',linestyle='')
             axins.plot(r[1:22],pbth[1:22],'b')
-            #axins.plot(r[1:30],pdth[1:30],'r')
+            #axins.plot(r[1:22],pdth[1:22],'r')
             #axins.imshow(inset, extent=extent, interpolation="nearest",origin="lower")
             x1,x2,y1,y2 = 3,10,0.15,0.25
             #axins.set_xlim(x1,x2)
             #axins.set_ylim(y1,y2)
-            plt.xticks(np.array([0,1,2]))        
-            plt.yticks(np.array([0.15,0.16]))
+            axins.set_xticks(np.array([0,1,2]))        
+            axins.set_yticks(np.array([0.15,0.16]))
             #plt.xticks(visible=False)
         #plt.yticks(visible=False)
         #mark_inset(ax,axins,loc1=1,loc2=4,fc="none",ec="0.5")
-        #fig.sca(ax)
-    
+        #fig.sca(ax)       
+       
     if 0:
-        plt.figure(6)
-        plt.clf()
-        plot_cont_sint(f18,4,50000,1.0,'FES')
-        cvs,Fs = plot_cont_sint(f19,4,50000,1.0,'FES')
-        plt.title('Blue = oo, Green = O')
-        cvs = cvs[130:200]
-        #plt.plot(cvs,cvs)
-
-    if 0:
-        beta = 1.0
-        n = int(len(cvs))
-        interval1 = range(100,145)
-        interval2 = range(160,250)
-        Fsmod = -Fs/beta-cvs
-        poly1,cov1 = np.polyfit(cvs[interval1],Fsmod[interval1],1,cov=True)
-        poly2,cov2 = np.polyfit(cvs[interval2],Fsmod[interval2],1,cov=True)
-        cvs_ext = np.linspace(-25,0,100)
-        cvs_ext2= np.linspace(0,40,100)
-        plt.figure(5)
-        plt.clf()
-        plt.plot(cvs,Fsmod,'b')
-        Fs_ext1 = np.polyval(poly1,cvs_ext)
-        Fs_ext2=np.polyval(poly2,cvs_ext2)
-        plt.plot(cvs_ext,Fs_ext1,'r')
-        plt.plot(cvs_ext2,Fs_ext2,'g')
-        plt.plot(cvs[interval1],Fsmod[interval1],'xr')
-        plt.plot(cvs[interval2],Fsmod[interval2],'xg')
-        plt.xlabel('$s$')
-        plt.ylabel(r'$\log[p(s)e^{-s}]$')
-        plt.ylim([-6,-2])
-        plt.xlim([-30,10])
-        print('slope1: {} +/- {}'.format(poly1[0],np.sqrt(cov1[0][0])))
-        print('slope2: {} +/- {}'.format(poly2[0],np.sqrt(cov2[0][0])))
-    if 0:
-        slope1 = np.array([-1.4727,-1.2749, -1.1468,-1.0935,-1.0606,-1])
-        s1err = np.array([0.0024,0.0017,0.0014,0.0015,0.0013,0.015])        
-        slope2 = np.array([0.9540, 0.6830, 0.4774,0.3662,0.3007,0.1768])
-        plt.figure(6)
-        plt.clf()
-        plt.errorbar(tau,-1-slope1,s1err,marker='.',linestyle='None',label='Slopes')
-        poly3,cov3 = np.polyfit(tau,-1-slope1,2,cov=True)
-        x = np.linspace(0,0.16)
-        plt.plot(x,np.polyval(poly3,x),label='Quadratic fit')
-        print('slope3: {} +/- {}'.format(poly3[0],np.sqrt(cov3[0][0])))
-        plt.xlabel(r'$\tau~\mathrm{(meV)}^{-1}$')
-        plt.ylabel(r'$\mathrm{-1-Slope1}$')
-        plt.legend(loc='lower right', fontsize=20)
-        polyexp,covexp = np.polyfit(tau,np.log(-1-slope1+1),1,cov=True)
-        #plt.plot(x,np.exp(np.polyval(polyexp,x))/np.exp(polyexp[1])-1)
-        #plt.plot(tau,-1-slope2,'o')
-        #plot_cont_sint(f4,4,200000,'FES')
-        #plt.title('bos')
-    if 0:
-        plot_cont(f4,5,1,200000,'bdE','etot')
-        plt.figure(5)
-        plt.xlabel('$s$')
-        plt.ylabel(r'$E\,\Gamma(s) p(s)$')
-        plt.title(r'Low tau, $\beta=1\,\mathrm{meV}^{-1}$')
-        plt.xlim([-40,40])
-        #plot_cont(f12,6,1,200000,'bdE','etot')
-        plt.figure(6)  
-        plt.xlabel('$s$')
-        plt.ylabel(r'$E\,\Gamma(s) p(s)$')
-        plt.title(r'ashoori, $\beta=1\,\mathrm{meV}^{-1}$')
-        plt.xlim([-40,20])
-        plot_cont(f2,7,1,200000,'bdE','etot')
-        
-    #plot_s_int(f11,4)
-    #plot_s_int(fi,5)
-    #plot_s_int(f14,8,opt='log')
-    #plot_s_int(f15,9,opt='log')
-    """plot_s_int(f15,9)
-    plt.ylim([0,10])
-    plt.xlim([-5,5])"""
-    if 0:
-        plot_cont(fi,6,1,200000,'bdE','etot',conn=0)
-        plot_cont(fi,7,1,200000,'bdE',conn=0)
-        
-    
-        plt.figure(6)
-        plt.xlim([-20,20])
-        plt.ylim([0,0.9])
-        plt.ylabel(r'$E(s)(1+\mathrm{e}^{-s})p(s)$') 
+        r=plot_1d_dist([fi1,fi4],0,1)
         plt.title(r'$\mathrm{Without~Metadynamics}$')
-        """plt.figure(7)
-        plt.xlim([-20,20])
-        plt.ylabel(r'$E(s)(1+\mathrm{e}^{-s})p(s)$') 
-        plt.title(r'$\mathrm{With~Metadynamics}$')
-        plt.ylim([0,0.9])"""
-    #plot_cont(f6,7,-1,200000,'bdE')
-    #plt.title('New cv')
-   #plot_rAB(f0+interac[1]+sym[2]+P[3]+s[0]+'woMetaD/',2,0,'k')
-
-    #plot_energies_vs_t(f6,7,100000)
-
+        #plot_1d_dist(fi4,0,0)
+        plot_1d_dist_th(0,r,d=1,hw=3.0)
     
-    """plt.figure(0)
-    plt.clf()
-    Ts = np.linspace(0.1,80,20)
-    betas = 1.0/(kB*Ts)
-    es = np.zeros(20)
-    for i,beta in enumerate(betas):
-        es[i] = half_energy(0.1,2,beta,3.0,'fer')
-    plt.plot(1.0/(kB*betas),es,'o-')"""
+        
+    plot_s_int('../coulomb170614/anisotropy1-38/triplet/beta1/',4,1,'log',color='b',label=r'$\mathrm{Without~MetaD}$')
+    plot_s_int('../coulomb170614/anisotropy1-38/triplet/beta0-67/',5,1,'log')
+    #plt.ylim([-0.1,0.1])
+    #plot_gauss_data('../coulomb170614/anisotropy1-38/triplet/beta0-67/',2,1,opt='Wt')
+        
+    if 0:
+        #plot_cv('../sign_cv/woMetaD/',0,100000,'')
+        #plot_cv('../test3/',1,100000,'onlyperm')
+        #plot_energies_vs_t(f1,0,n=100000)
+        #plot_gauss_data('../test3/',2,1,'st',name='test3')
+        #plot_gauss_data('../ideal/boson/2D/beta1/MetaD/disconnected/',9,1,'Ws',name='test3fast')
+        """plot_s_int(fi2,2,1,'')
+        #plt.ylim([-5,5])
+        #plt.xlim([-1.1,1.1])
+        plt.title('sing')
+        plot_s_int(fi3,3,1,'')
+        #plt.ylim([-5,5])
+        #plt.xlim([-1.1,1.1])
+        plt.title('trip')"""
+        plt.figure(4)
+        fig = plt.gcf()
+        s1,p1 = plot_s_int('../coulomb170614/anisotropy1-38/triplet/beta0-34/',4,1,'Whist',color='b',label=r'$\mathrm{Without~MetaD}$')
+        s2,p2 = plot_s_int('../ideal/boson/1D/beta1/MetaD_longer/disconnected/',4,0,'Whist',color='r',label=r'$\mathrm{With~MetaD}$')
+        #plt.ylim([-1,1])
+        plt.legend(loc='upper left',fontsize=22)
+        plt.xlim([-35,25])
+        plt.ylim([0,1.1])
+        plt.xlabel(r'$s=\beta\Delta U$')
+        plt.ylabel(r'$(1-\mathrm{e}^{-s}) p(s)$')        
+        plt.title('Boson')
+        """plot_s_int('../ideal/boson/1D/beta1/MetaD/disconnected/',5,1,'')
+        #plt.ylim([-1,1])
+        plt.xlim([-40,40])
+        plt.title('boson')"""
+        """plot_s_int('../test4/',6,1,'')
+        plt.xlim([-40,40])
+        plt.title('gaussians for force')"""
+        #Ws,pW = plot_cont(fi2 ,4,-1,100000,cv='G')
+        #Ws2,pW2 = plot_cont(fi2m,5,-1,100000,cv='G')
+        """plt.figure(6)
+        plt.clf()
+        plt.plot(Ws,pW,'b',label='Without Metadynamics',linewidth=1.5)
+        plt.plot(Ws2,pW2,'r',label='With Metadynamics')
+        plt.legend(loc='upper left',fontsize=22)
+        plt.title('Fermion')
+        plt.xlabel('$W$')
+        plt.ylabel(r'$\log\,p(W)$')"""
+        if 0:        
+            #axins = fig.add_axes([0.33,0.61,0.24,0.24])
+            axins = fig.add_axes([0.3,0.35,0.24,0.24])            
+            sins = s1[870:960]
+            pins = p1[870:960]
+            pins2 = p2[870:960]
+            axins.plot(sins,pins,color='b',linestyle='-')        
+            axins.plot(sins,pins2,color='r')
+            axins.set_ylim([-0.005,0.05])
+            #axins.errorbar(rins,pd[1:30:5],pderr[1:30:5],marker='s',color='r',linestyle='')
+            #axins.plot(r[1:22],pbth[1:22],'b')
+            #axins.plot(r[1:30],pdth[1:30],'r')
+            #axins.imshow(inset, extent=extent, interpolation="nearest",origin="lower")
+            #x1,x2,y1,y2 = 3,10,0.15,0.25
+            #axins.set_xlim(x1,x2)
+            #axins.set_ylim(y1,y2)
+            plt.xticks(np.array([-12,-8,-4]))        
+            plt.yticks(np.array([0,0.02,0.04]))
 
+
+    if 0:
+        plot_energies(fi6,1,1,'beta',label=r'$\mathrm{Boson}$',marker='D',color='b')
+        plot_energies(fi7,1,0,'beta',label=r'$\mathrm{Fermion}$',marker='s',color='g')
+        plot_energies(fi5,1,0,'beta',label=r'$\mathrm{Distinguishable}$',marker='o',color='r')
+        #plt.plot([0,10],[2,2],'k--',label=r'$\mathrm{Theoretical~value}$')
+        #plt.legend(loc='upper left',fontsize=22)
+
+
+    if 0:
+        plot_energies(fbennett,1,1,'beta',col=1,ediff=False,label=r'$\mathrm{Boson}$',marker='D')        
+        plot_energies(fbennett,1,0,'beta',col=1,bennett=False,label=r'$\mathrm{Fermion,direct~method}$',marker='s',color='green')
+        plot_energies(fbennett,1,0,'beta',col=1,ediff=True,label=r'$\mathrm{Fermion,Bennetts~method}$',marker='o',color='darkorange')
+
+    if 0:
+        plot_theoretical_energies(1,1,1,3.0,'k')#,r'$\mathrm{Theory}$')
+        #plot_theoretical_energies(1,False,2,3.0,'k',r'$\hbar\omega_0=15\,\mathrm{meV}$')    
+        #plot_theoretical_energies(1,False,2,3.0,'k',r'$\hbar\omega_0=30\,\mathrm{meV}$')    
+        #plt.legend(loc='upper left',fontsize=22)
+        #plt.xlim([0,25])
+        #plt.ylim([1.8,4.1])
+        plt.xlabel(r'$T\,(\mathrm{K})$')
+        plt.ylabel(r'$E/\hbar\omega_0$')
+        plt.title(r'$\mathrm{2D,~without~Metadynamics}$')
+
+    if 0:
+        plot_energies(fi8,2,1,'tau',beta=1,label=r'$\beta=1~\mathrm{meV}^{-1}$',linestyle='-',marker='v')
+        plot_energies(fi9,2,0,'tau',beta=2,label=r'$\beta=2~\mathrm{meV}^{-1}$',linestyle='-',marker='o',color='g')
+        plt.plot([0,20],[1,1],'k--')#label=r'$\mathrm{Theoretical~value}$')
+        plt.legend(loc='lower right',fontsize=26)
+        #plt.title('Three particles')
+        
 
     for i in plt.get_fignums():
         fig = plt.figure(i)
