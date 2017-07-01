@@ -371,7 +371,7 @@ Force Bias::calc_force(const std::vector<Polymer>& pols, int bead, int part) con
 	//double tmp = vder_spline.eval_spline(cv);
 	//std::cout << "after eval" << std::endl;
 	//return calc_bias_der(cv)*cv_grad(pols,bead,part);
-	return vder_spline.eval_spline(cv)*cv_grad(pols,bead,part);
+	return (vder_spline.eval_spline(cv)+wall_force_magn(cv))*cv_grad(pols,bead,part);
 }
 
 double Bias::scalar_product(const std::vector<Polymer>& pols, int bead) const
@@ -519,7 +519,7 @@ void Bias::update_cv_rew(const std::vector<Polymer>& pols, double beta)
 	cv = coll_var(pols);
 	if(metad_on)
 	{
-		rew_factor = std::exp(beta*v_spline.eval_spline(cv)-transient);
+		rew_factor = std::exp(beta*(v_spline.eval_spline(cv)+wall_potential(cv))-transient);
 		/*rew_factor *= std::exp(beta*wall_potential(cv));
 		if(std::exp(beta*wall_potential(cv))>1.1)
 			std::cout << rew_factor << "\t" << std::exp(beta*wall_potential(cv)) << std::endl;*/

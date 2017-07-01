@@ -24,7 +24,7 @@ rcParams.update({'font.size': 28})
 kB = 1/11.6045
 hw = 3.0 #4.828
 #hw=1.21
-en_scale = hw
+en_scale = 1#hw
 offset = 2*hw*0
 
 
@@ -78,9 +78,10 @@ def plot_gauss_data(f,fig_nr,clear=True,opt='Ws',xlim=None,name=None):
     if(clear):
         plt.clf()
     if(opt=='Ws'):
-        plt.plot(c,W,'x')
+        plt.plot(c,W,'xr')
         plt.xlabel('$s_k$')
-        plt.ylabel('$W_k~(k_\mathrm{B}T)$')
+        #plt.ylabel('$W_k~(k_\mathrm{B}T)$')
+        plt.ylabel(r'$H_k~(\mathrm{meV})$')
     if(opt=='st'):
         plt.plot(t,c,'x')
         plt.xlabel('$t\,(ns)$')
@@ -88,7 +89,7 @@ def plot_gauss_data(f,fig_nr,clear=True,opt='Ws',xlim=None,name=None):
     if(opt=='Wt'):
         plt.plot(t,W,'x')
         plt.xlabel(r'$t\,(\mathrm{ns})$')
-        plt.ylabel('$W_k$')
+        plt.ylabel(r'$H_k~(\mathrm{meV})$')
     if(opt=='Wst'):
         plt.plot(t,c,'x',label='$s_k$')
         plt.plot(t,100*W,'x',label='$100W_k$')
@@ -166,7 +167,7 @@ def bin_hist(x,y):
     y = 0.5*(y[:-1:2]+y[1::2])
     return x,y
         
-def plot_s_int(f, fig_nr, clear=1, opt='',color='b',label=''):
+def plot_s_int(f, fig_nr, clear=1, opt='',color='b',labels='',with_wall=False,linestyle='-'):
     data = np.loadtxt(f+'CV_distributions.dat')
     s = data[:,0]
     shist = data[:,1]
@@ -178,15 +179,26 @@ def plot_s_int(f, fig_nr, clear=1, opt='',color='b',label=''):
     #for i in range(2):
     #    s,hist=bin_hist(s,shist)
     if(opt=='log'):
-        plt.plot(s,-np.log(shist),label='F(s)')
+        linewidth=1
+        if not with_wall:
+            linewidth=1.5
+        plt.plot(s,-np.log(shist),label=labels[0],linestyle=linestyle,linewidth=linewidth)
         if data.shape[1]>4:        
             bias = data[:,4]
-            plt.plot(s,-bias+np.max(bias),label='-V(s)')
-            plt.plot(s,-np.log(shist)+bias-np.max(bias),label='F(s)+V(s)')
-            if data.shape[1]>5:
+            if with_wall:
+                wall = np.zeros(len(s))
+                for i,S in enumerate(s):
+                    if S>30:
+                        wall[i] = 0.2/2*(S-30)**2
+            V = -bias+np.max(bias)
+            #plt.plot(s,V,label='-V(s)')
+            if with_wall:
+                plt.plot(s,-np.log(shist)+wall,label=labels[1],linestyle='--')
+            #plt.plot(s,-np.log(shist)+bias-np.max(bias),label='F(s)+V(s)')
+            if data.shape[1]>5 and 0:
                 bias_der = data[:,5]
                 plt.plot(s,bias_der,label='grad V')
-            plt.legend(loc='upper right',fontsize=20)
+            plt.legend(loc='upper center',fontsize=20)
     elif(opt=='shist'):
         plt.plot(s,shist,color=color,label=label)
     elif(opt=='Whist'):
@@ -196,6 +208,7 @@ def plot_s_int(f, fig_nr, clear=1, opt='',color='b',label=''):
         plt.plot(s,shist)
         plt.plot(s,Whist)
         plt.plot(s,Ehist)
+    plt.xlim([-50,50])
     
         
     
@@ -402,8 +415,8 @@ def plot_energies(f,fig_nr,clear=1,var='beta',beta=1,linestyle='',marker='v',lab
             plt.errorbar(x,ekin,ekin_e,marker='o',color='r',linestyle=linestyle)
             plt.errorbar(x,evir,evir_e,marker='v',color='g',linestyle=linestyle)   
 
-        plt.ylabel(r'$\mathrm{Energy}~(\hbar\omega_0)$')
-        #plt.ylabel(r'$\mathrm{Singlet~energy}~(\mathrm{meV})$')
+        #plt.ylabel(r'$\mathrm{Energy}~(\hbar\omega_0)$')
+        plt.ylabel(r'$\mathrm{Energy}~(\mathrm{meV})$')
         #plt.ylim([0.7, 2.6])
         #plt.title('Energy difference-CV, $k_\mathrm{B}T=1\,\mathrm{meV}$')
         #plt.title('Distance-corrected CV, $k_\mathrm{B}T=1\,\mathrm{meV}$')
@@ -518,13 +531,13 @@ def plot_rAB(f,fig_nr,clear=True,d=2,color='blue',marker='x',name=None,linestyle
     plt.plot(r,p2,color=color,linestyle=linestyle)
     if(show_errors):
         n = show_errors
-        plt.errorbar(r[1::n],p2[1::n],perr2[1::n],linestyle='None',label=name,marker=marker,color=color)
+        plt.errorbar(r[1::n],p2[1::n]*100,perr2[1::n]*100,linestyle='None',label=name,marker=marker,color=color)
     #if(show_errors>1):
     #    n=show_errors
     #    plt.errorbar(r[::3],p[::3],p_err[::3],linestyle='None',label=name,marker=marker,color=color)
     plt.xlabel('$r~(\mathrm{nm})$')
-    plt.ylabel(r'$g(r)$')
-    plt.ylim([-0.1,0.7])
+    plt.ylabel(r'$g(r)~(10^{-2}\,\mathrm{nm}^{-1})$')
+    #plt.ylim([-0.1,0.7])
     return r,p2,perr2
     
 def plot_rAB_th(fig_nr,r,d,sym):
@@ -678,25 +691,30 @@ def plot_2d_dist_temps(f,fig_nr,num_smooths=0):
     titles = [r'$T=34\,\mathrm{K}$',r'$T=17\,\mathrm{K}$',r'$T=12\,\mathrm{K}$']
     for i in range(3):
         woM = ''
-        if i==0:
-            woM = ''#woMetaD/'
-        data_s = np.loadtxt(f+'singlet/'+betas[i]+'disconnected/Prob_dist2d.dat')
-        data_t = np.loadtxt(f+'triplet/'+betas[i]+woM+'Prob_dist2d.dat')
+        bu = ''
+        if i==2:
+            woM = 'MetaD/'
+            bu = 'backup/'
+        data_s = np.loadtxt(f+'singlet/'+bu+betas[i]+woM+'disconnected/Prob_dist2d.dat')
+        data_t = np.loadtxt(f+'triplet/'+bu+betas[i]+woM+'Prob_dist2d.dat')
         r1 = data_s[1:,0]
         r2 = data_s[0,1:]
         dr1 = r1[1]-r1[0]
         dr2 = r2[1]-r2[0]
+        num_smooths=0
         hist_s = smooth(data_s[1:,1:],num_smooths)
         hist_t = smooth(data_t[1:,1:],num_smooths)
-        for k in range(0,hist_t.shape[0]-1):
+        """for k in range(0,hist_t.shape[0]-1):
             for l in range(0,hist_t.shape[1]-1):
                 if hist_t[k,l]<0:
-                    hist_t[k,l]=0
+                    hist_t[k,l]=0"""
         norm_s = sum(sum(hist_s))*dr1*dr2
         norm_t = sum(sum(hist_t))*dr1*dr2
         hist_s = hist_s/norm_s*10000
         hist_t = hist_t/norm_t*10000
         X,Y = np.meshgrid(r1,r2)
+        if(i==2 and 0):
+            hist_t = ndimage.interpolation.zoom(hist_t,2)
         Z_s = hist_s.reshape(X.shape)
         Z_t = hist_t.reshape(X.shape)
         if i==1:
@@ -704,8 +722,8 @@ def plot_2d_dist_temps(f,fig_nr,num_smooths=0):
         if i==2:
             Z_s = Z_s.transpose()
             Z_t = Z_t.transpose()
-        Z = Z_t - Z_s*0.5
-        if 0:
+        Z = Z_s #- Z_s*0.5
+        if 1:
             #Z = ndimage.interpolation.zoom(Z,2)
             #Z = misc.imresize(Z,5.0,interp='bilinear')
             Z = ndimage.gaussian_filter(Z,4)
@@ -715,24 +733,28 @@ def plot_2d_dist_temps(f,fig_nr,num_smooths=0):
             ax0 = fig.add_subplot(gs[0])
             plt.ylabel(r'$y~(\mathrm{nm})$')
             ax0.set_title(titles[i],fontsize=28)
-            Z *= 1.5
+            Z *= 1.2
         if i==1:
             ax1 = fig.add_subplot(gs[1],sharey=ax0)
             plt.setp(ax1.get_yticklabels(),visible=False)
             ax1.set_title(titles[i],fontsize=28)
-            Z *= 1.2
+            Z *= 1
             
         if i==2:
             ax2 = fig.add_subplot(gs[2],sharey=ax0)
             plt.setp(ax2.get_yticklabels(),visible=False)
             ax2.set_title(titles[i],fontsize=28)
         im = plt.imshow(Z,interpolation='bilinear',extent=[r1[0],r1[-1],r2[0],r2[-1]],
-                        cmap='hot',vmin=0,vmax=4.5)
-
+                        cmap='jet',vmin=0,vmax=9)
+        plt.ylim([-40,40])
         plt.xlabel(r'$x~(\mathrm{nm})$')
+    if 1:
+        ax0.set_xticks([-30,-15,0,15,30])
+        ax1.set_xticks([-30,-15,0,15,30])
+        ax2.set_xticks([-30,-15,0,15,30])
     cax = fig.add_axes([0.905,0.16,0.03,0.69])
     fig.colorbar(im,cax=cax,orientation='vertical',ticks=None)
-    plt.suptitle(r'$\mathrm{Singlet~at~ellipticity}~\omega_y/\omega_x=1.38$',x=0.53,y=0.995,fontsize=32)
+    #plt.suptitle(r'$\mathrm{Singlet~at~ellipticity}~\omega_y/\omega_x=1.38$',x=0.53,y=0.995,fontsize=32)
 
         
 def plot_2d_dist(folders,fig_nr,titles,suptitle='', stride=1,use_contour=True,
@@ -757,25 +779,34 @@ def plot_2d_dist(folders,fig_nr,titles,suptitle='', stride=1,use_contour=True,
             for l in range(0,histpre.shape[1]-1):
                 if histpre[k,l]<0:
                     histpre[k,l]=0
+        num_smooths=0
         hist = smooth(histpre,num_smooths)
         norm = sum(sum(hist))*dr1*dr2
-        hist = hist/norm*1000
+        scale = 10000
+        hist = hist/norm*scale
         X,Y = np.meshgrid(r1,r2)
         use_filter = False
-        Z = hist.reshape(X.shape)#.transpose()
+        Z = hist.reshape(X.shape)
         if 0:
-            Z = misc.imresize(Z,5.0,interp='bilinear')
+            if i==0:
+                Z = Z.transpose()
+            if i>=1:
+                Z = ndimage.interpolation.zoom(Z,2.0)
+        if 1:
+            #Z = ndimage.interpolation.zoom(Z,3.0)
+            #Z = misc.imresize(Z,5.0,interp='bilinear')
             Z = ndimage.gaussian_filter(Z,3)
-            Z = misc.imresize(Z,0.2,interp='bilinear')
+            #Z = misc.imresize(Z,0.2,interp='bilinear')
+            #Z = ndimage.interpolation.zoom(Z,0.25)
         if i==0:
             ax0 = fig.add_subplot(gs[0])
             #Z = ndimage.interpolation.zoom(Z,5.0)
             #Z = misc.imresize(Z,5.0,interp='bilinear')
             Z0 = copy.deepcopy(Z)
-            Z = Z*0.6
+            Z = Z*0.8
         if i==1:
             ax1 = fig.add_subplot(gs[1],sharey=ax0)
-            if(use_filter):
+            if(use_filter and 0):
                 Z = ndimage.gaussian_filter(Z,3)
                 #Z = misc.imresize(Z,0.2,interp='bilinear')
             if use_contour:
@@ -787,7 +818,7 @@ def plot_2d_dist(folders,fig_nr,titles,suptitle='', stride=1,use_contour=True,
             #Z = misc.imresize(Z,0.2,interp='bilinear')
             Z = Z-0.5*Z0
             plt.setp(ax2.get_yticklabels(),visible=False)
-            Z *= 2.5
+            Z *= 2.0
         if use_contour:
                 #xticks[0].label1.set_visible(False)
             #levels=np.arange(2,11,2)
@@ -806,7 +837,7 @@ def plot_2d_dist(folders,fig_nr,titles,suptitle='', stride=1,use_contour=True,
             if i==2:
                 ax2.set_title(titles[2],fontsize=28)
             plt.ylim([-15,15])
-            #plt.ylim([-40,40])
+            plt.ylim([-40,40])
 
         else:
             ax = fig.add_subplot(111,projection='3d')
@@ -819,8 +850,8 @@ def plot_2d_dist(folders,fig_nr,titles,suptitle='', stride=1,use_contour=True,
     cax = fig.add_axes([0.905,0.16,0.03,0.69])
     fig.colorbar(im,cax=cax,orientation='vertical',ticks=None)
     plt.subplots_adjust(wspace=None)
-    plt.suptitle(suptitle,x=0.53,y=0.995,fontsize=32)
-    if 0:
+    plt.suptitle(suptitle,x=0.53,y=0.99,fontsize=32)
+    if 1:
         #xticksc = ax2.get_xticks()
         #print(xticksc)
         ax0.set_xticks([-30,-15,0,15,30])
@@ -842,21 +873,31 @@ def plot_2dpaircorr(folders,fig_nr,titles,suptitle,num_smooths=0):
         data = np.loadtxt(f+'Pair_corr2d.dat')
         r1 = data[:,0]
         r2 = data[:,1]
-        p = data[:,2]/5000
         n = np.sqrt(np.size(r1))
+        dr1 = r1[n]-r1[0]
+        dr2 = r2[1]-r2[0]
+        p = data[:,2]
         #X = r1.reshape((n,n))
         Zpre = p.reshape((n,n))
         Z = smooth(Zpre,num_smooths) 
+        norm = sum(sum(Z))*dr1*dr2
+        print(norm)
+        Z = Z/norm
+        Z = Z*10000
+        if 1:
+            Z = Z.transpose()
         if i==0:
             ax0 = fig.add_subplot(gs[0])
             plt.ylabel(r'$y~(\mathrm{nm})$')
             Z0 = Z
+            Zx0,Zy0 = twoDto1Dproj(Z,dr1)       
         if i==1:
             ax1 = fig.add_subplot(gs[1],sharey=ax0)
             plt.setp(ax1.get_yticklabels(),visible=False)
+            Zx1,Zy1 = twoDto1Dproj(Z,dr1)
         im = plt.imshow(Z,interpolation='gaussian',extent=[r1[0],r1[-1],r2[0],r2[-1]],
-                    )
-        plt.ylim([-20,20])
+                    cmap='hot')
+        plt.ylim([-60,60])
         plt.xlabel(r'$x~(\mathrm{nm})$')
         if i==0:
             ax0.set_title(titles[0],fontsize=28)
@@ -868,13 +909,37 @@ def plot_2dpaircorr(folders,fig_nr,titles,suptitle,num_smooths=0):
             fig.colorbar(im,cax=cax,orientation='vertical',ticks=None)
             #cax.yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
     #plt.subplots_adjust(wspace=None)
-    if 1:
-        ax0.set_xticks([-15,0,15])
-        ax1.set_xticks([-15,0,15])
+    if 0:
+        ax0.set_xticks([-75,-50,-25,0,25,50,75])
+        ax1.set_xticks([-75,-50,-25,0,25,50,75])
     plt.suptitle(suptitle,x=0.53,y=0.985,fontsize=32)
     ax0.set_aspect('equal')
     ax1.set_aspect('equal')
+    plt.figure(fig_nr+1)
+    plt.clf()
+    r1half = r1[n*n/2:n*n:n]
+    plt.plot(r1half,Zx0,'sb',label='Singlet x')
+    plt.plot(r1half,Zx1,'Dg',label='Triplet x')
+    plt.plot(r1half,Zy0,'dr',label='Singlet y')
+    plt.plot(r1half,Zy1,'o',color='darkorange',label='Triplet y')
+    plt.xlim([0,95])
+    plt.ylim([0,2.8])
+    plt.xlabel(r'$r_i~(\mathrm{nm})$')
+    plt.ylabel(r'$g(r_i)~(10^{-2}\,\mathrm{nm}^{-1})$')
+    plt.legend(loc='upper right',fontsize=22)
+    plt.title(r'$\mathrm{Pair~correlation},~\omega_y/\omega_x=3.0$')
+    fig = plt.gcf()
+    fig.tight_layout()
     
+    
+def twoDto1Dproj(Z,dr):
+    Zx = np.sum(Z,axis=0)
+    Zy = np.sum(Z,axis=1)
+    n = len(Zx)
+    m = len(Zy)
+    Zxmirr = (Zx[0:n/2:1][::-1]+Zx[n/2:n])/2
+    Zymirr = (Zy[0:m/2:1][::-1]+Zy[m/2:n])/2
+    return Zxmirr*dr/100,Zymirr*dr/100
             
 def free_energy_diff(f1,f2,fig_nr,beta=1.0,P=10,opt='FB',deg=1):
     c_hist_unconn = np.loadtxt(f1+'fsum_N2_P'+str(P)+'.dat')[:,1:]
@@ -1102,13 +1167,17 @@ if __name__=="__main__":
     
     
     fi1 ='../ideal/boson/2D/beta1/MetaD/disconnected/'
-    fi2 ='../coulomb/anisotropy1-1/singlet/disconnected/'
-    fi3 = '../coulomb/anisotropy1-1/triplet/'
+    fi2 ='../coulomb/circular/RW1-4/singlet/beta1/disconnected/'
+    fi3 = '../coulomb/circular/RW1-4/triplet/beta1/'
+    fi2b ='../coulomb/circular/RW2/singlet/disconnected/'
+    fi3b = '../coulomb/circular/RW2/triplet/'
     fi4 ='../ideal/fermion/2D/beta1/MetaD/'
-    fiucon = '../ideal/boson/1D/beta1/MetaD_longer/disconnected/'
-    ficonn = '../ideal/boson/1D/beta1/MetaD_longer/connected/'
-    fi5 ='../ideal/distinguish/2D/Energy_vs_T/'
-    fi6 ='../ideal/boson/2D/Energy_vs_T/'
+    fiucon = '../coulomb/anisotropy1-38/singlet/Energy_vs_T/disconnected/'
+    ficonn = '../coulomb/anisotropy1-38/singlet/Energy_vs_T/connected/'
+    fi5 ='../coulomb/anisotropy1-38/singlet/beta1/MetaD/disconnected/'
+    fi6 ='../coulomb/anisotropy1-38/triplet/beta1/MetaD/'
+    fi5b ='../coulomb/anisotropy3/singlet/beta1/disconnected/'
+    fi6b ='../coulomb/anisotropy3/triplet/beta1/'
     fi7 ='../ideal/fermion/2D/Energy_vs_T/'
     fi8 ='../ideal/distinguish/1D/beta1/Energy_vs_P/'
     fi9 ='../ideal/distinguish/1D/beta2/Energy_vs_P/'
@@ -1116,6 +1185,7 @@ if __name__=="__main__":
     fid ='../ideal/distinguish/2D/beta1/'
     
     fbennett = '../ideal/fermion/2D/Energy_vs_T/FreeEnergyDiff/'
+    fbennett2 = '../coulomb/anisotropy1-38/triplet/Energy_vs_T/FreeEnergyDiff/'
 
     fr2sing = '../coulomb170614/circular/RW4/singlet/'
     fr2trip = '../coulomb170614/circular/RW1-4/triplet/beta1/'
@@ -1134,21 +1204,32 @@ if __name__=="__main__":
         plot_s_int(fi8,4,1,'')
         
     if 0:
-        plot_2d_dist([fi2,fi3],1,[r'$\mathrm{Singlet}$',r'$\mathrm{Triplet}$',r'$\mathrm{Partial}$'],
-                     r'$\mathrm{Ellipticity~}\omega_y/\omega_x=1.1$',use_contour=True,stride=5,num_smooths=1)
+        plot_2d_dist([fi5,fi6],1,[r'$\mathrm{Singlet}$',r'$\mathrm{Triplet}$',r'$\mathrm{Partial}$'],
+                     '',use_contour=True,stride=5,num_smooths=0)
+    #r'$\mathrm{Anisotropy~}\omega_y/\omega_x = 3.0$'
 
     if 0:
         plot_2d_dist([fi1,fi4],1,[r'$\mathrm{Boson}$',r'$\mathrm{Fermion}$',r'$\mathrm{Partial}$'],
                      r'$\mathrm{With~Metadynamics}$',use_contour=True,stride=5,num_smooths=3)
    
-    if 1:
-        plot_2d_dist_temps('../coulomb170614/anisotropy1-38/',3,0)
-
     if 0:
-        plot_2dpaircorr([fi1,fi4],0,[r'$\mathrm{Boson}$',r'$\mathrm{Fermion}$'],
-                        r'$\mathrm{2D~Pair~correlation}$',num_smooths=15)
-                        
+        plot_2d_dist_temps('../coulomb/anisotropy1-38/',9,0)
+
     if 1:
+        plot_2dpaircorr([fi5b,fi6b],2,[r'$\mathrm{Singlet}$',r'$\mathrm{Triplet}$'],
+                        r'$\mathrm{Pair~correlation,~}\omega_y/\omega_x = 1.38$',num_smooths=15)
+        
+    if 0:
+        plot_rAB(fi2,0,True,2,'b',marker='s',name=r'$R_\mathrm{W}=1.4,~\mathrm{Singlet}$',linestyle='',show_errors=1)
+        plot_rAB(fi3,0,False,2,'g',marker='D',name=r'$R_\mathrm{W}=1.4,~\mathrm{Triplet}$',linestyle='',show_errors=1)
+        plot_rAB(fi2b,0,False,2,'r',marker='d',name=r'$R_\mathrm{W}=2.0,~\mathrm{Singlet}$',linestyle='',show_errors=1)
+        plot_rAB(fi3b,0,False,2,'darkorange',marker='o',name=r'$R_\mathrm{W}=2.0,~\mathrm{Triplet}$',linestyle='',show_errors=1)
+        plt.legend(loc='upper right',fontsize=22)
+        plt.ylim([0,3.3])
+        plt.xlim([0,85])
+        plt.title(r'$\mathrm{Radial~pair~correlation,~circular}$')
+                
+    if 0:
         r,_,_ = plot_rAB(fi1,0,True,2,'b',marker='o',name=r'Boson',linestyle='',show_errors=4)
         r2,_,_ = plot_rAB(fi4,0,False,2,'g',marker='D',name=r'Fermion',linestyle='',show_errors=4)
         r3,_,_ = plot_rAB(fid,0,False,2,'r',marker='s',name=r'Distinguishable',linestyle='',show_errors=8)
@@ -1164,8 +1245,12 @@ if __name__=="__main__":
     #plot_rAB(fr2sing,1,1)
     #plot_rAB(fr2trip,1,0,color='red')
         
-    #free_energy_diff(fiucon,ficonn,5,beta=1,P=10)       
+    #free_energy_diff(fiucon,ficonn,5,beta=0.134,P=2)       
     #plt.title('1D')
+        
+    #plot_s_int(fi2,3,1,'')
+    #plot_s_int(fi3,4,1,'')
+        
     if 0:
         fig_nr = 2
         d = 1
@@ -1212,12 +1297,20 @@ if __name__=="__main__":
         #plot_1d_dist(fi4,0,0)
         plot_1d_dist_th(0,r,d=1,hw=3.0)
     
-        
-    plot_s_int('../coulomb170614/anisotropy1-38/triplet/beta1/',4,1,'log',color='b',label=r'$\mathrm{Without~MetaD}$')
-    plot_s_int('../coulomb170614/anisotropy1-38/triplet/beta0-67/',5,1,'log')
-    #plt.ylim([-0.1,0.1])
-    #plot_gauss_data('../coulomb170614/anisotropy1-38/triplet/beta0-67/',2,1,opt='Wt')
-        
+    if 0:        
+        plot_s_int('../test/',4,1,'log',color='b',labels=['Without wall',''],linestyle='-.')
+        plot_s_int('../test2/',4,0,'log',labels=['With wall, rew.','With wall, part. rew.'],with_wall=True,linestyle='-')
+        plt.ylim([0,40])
+        plt.xlim([-35,60])
+        #plt.title('Free energy surface')
+        plt.xlabel(r'$s=\beta\Delta U$')
+        plt.ylabel(r'$F(s)~(\mathrm{meV})$')
+        plot_gauss_data('../test/',6,1,opt='Ws')
+        plt.title('Without wall')
+        plt.xlim([-30,50])
+        plot_gauss_data('../test2/',7,1,opt='Ws')
+        plt.title('With wall')
+            
     if 0:
         #plot_cv('../sign_cv/woMetaD/',0,100000,'')
         #plot_cv('../test3/',1,100000,'onlyperm')
@@ -1289,9 +1382,15 @@ if __name__=="__main__":
 
 
     if 0:
-        plot_energies(fbennett,1,1,'beta',col=1,ediff=False,label=r'$\mathrm{Boson}$',marker='D')        
-        plot_energies(fbennett,1,0,'beta',col=1,bennett=False,label=r'$\mathrm{Fermion,direct~method}$',marker='s',color='green')
-        plot_energies(fbennett,1,0,'beta',col=1,ediff=True,label=r'$\mathrm{Fermion,Bennetts~method}$',marker='o',color='darkorange')
+        plot_energies(fbennett2,1,1,'beta',col=1,ediff=False,label=r'$\mathrm{Singlet}$',marker='D')        
+        plot_energies(fbennett2,1,0,'beta',col=1,bennett=False,label=r'$\mathrm{Triplet,direct~method}$',marker='s',color='green')
+        #plot_energies(fbennett2,1,0,'beta',col=1,ediff=True,label=r"$\mathrm{Triplet,Bennett's~method}$",marker='o',color='darkorange')
+        #plt.legend(loc='upper left',fontsize=22)        
+        plt.plot([0.5,0.5],[16.35,16.35],'ko',label=r'$\mathrm{Literature~value}$')
+        plt.plot([0.5,0.5],[18.05,18.05],'ko')
+        plt.legend(loc=[0.,0.67],fontsize=24)
+        #plt.ylim([15.5,21.5])
+        #plt.xlim([5,18])
 
     if 0:
         plot_theoretical_energies(1,1,1,3.0,'k')#,r'$\mathrm{Theory}$')

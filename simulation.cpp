@@ -785,19 +785,19 @@ void Simulation::print_config()
 	outfile.precision(10);
 	outfile << "iteration_nbr\t" << iteration_nbr << std::endl;
 	outfile << "times\t" << non_sampling_time << "\t" << time_sampled << std::endl;
-	outfile << "gamma\t" << exc_avg << "\t" << exc_avg_sq << "\t" << exc_sq_avg << std::endl;
+	outfile << "weight\t" << exc_avg << "\t" << exc_avg_sq << "\t" << exc_sq_avg << std::endl;
 	outfile << "bias_reweight\t" << bias.get_rew_factor_avg() << "\t" << bias.get_count() << std::endl;
 	for(auto& pair : obs)
 		outfile << "obs\t" << pair.second.get_id() << "\t" << pair.second.get_avg()
 				<< "\t" << pair.second.get_avg_sq() << "\t" << pair.second.get_weighted_avg()
 				<< "\t" << pair.second.get_weighted_avg_sq() << std::endl;
-	std::vector<double> heights = bias.get_heights();
+	/*std::vector<double> heights = bias.get_heights();
 	std::vector<double> centers = bias.get_centers();
 	for(int i=0; i<heights.size(); ++i)
-		outfile << "gaussian\t" << heights[i] << "\t" << centers[i] << std::endl;
-	for(int bin=0; bin<num_bins; ++bin)
+		outfile << "gaussian\t" << heights[i] << "\t" << centers[i] << std::endl;*/
+	/*for(int bin=0; bin<num_bins; ++bin)
 		outfile << "prob_dist\t" << bin << "\t" << histogram_avg[bin] 
-				<< "\t" << histogram_sq_avg[bin] << std::endl;
+				<< "\t" << histogram_sq_avg[bin] << std::endl;*/
 }
 
 void Simulation::print_vmd()
