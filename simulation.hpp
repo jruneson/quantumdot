@@ -64,6 +64,7 @@ private:
 	bool printed_warning;
 	const bool allow_perm_switch;
 	const double wigner_parameter;
+	const bool mass_reversed;
 	
 	const double beta;
 	const double tau;
@@ -75,16 +76,18 @@ private:
 	double pos_weight;
 	double neg_weight;
 	double exc_sum;
+	double exc_last_block;
 	double exc_avg;
 	double exc_avg_sq;
-	double exc_sq; // <Gamma^2> within a block
-	double exc_sq_avg; // <Gamma^2> over all blocks, for standard deviation calculation
+	double exc_sq; // <W^2> within a block
+	double exc_sq_avg; // <W^2> over all blocks, for standard deviation calculation
 	double e_s;
 	double e_s_sum;
 	double e_s_avg; //<exp(-s)>
 	double e_s_avg_sq;
 	double sgn;
 	double sgn_sum;
+	double sgn_last_block;
 	double sgn_avg;
 	double sgn_avg_sq;
 	
@@ -111,14 +114,21 @@ private:
 	std::vector<double> cv_hist;
 	std::vector<double> exc_fac_hist;
 	std::vector<double> weight_en_hist;
+	std::vector<double> mdiff_hist;
 	//std::vector<double> cv_hist;
-	double cv_hist_min = -100;
-	double cv_hist_max = 100;
+	const double cv_hist_min;
+	const double cv_hist_max;
 	double cv_hist_width;
-	double cv_hist_res = 0.1; //resolution, i.e. bin size
+	const double cv_hist_res; //resolution, i.e. bin size
 	int cv_hist_num_bins;
+	const double mdiff_hist_min;
+	const double mdiff_hist_max;
+	double mdiff_hist_width;
+	const double mdiff_hist_res;
+	int mdiff_hist_num_bins;
 	std::vector<double> histogram_delta_e;
 	std::vector<double> hist_c;
+	std::vector<double> hist_c_mass;
 	const double hist_1d_min;
 	const double hist_size_1d;
 	/*double hist_de_resolution=0.05;
@@ -146,6 +156,7 @@ private:
 	std::ofstream vmd_file;
 	std::ofstream vmd_file2;
 	std::ofstream file_fsum;
+	std::ofstream file_fsum2;
 	
 	std::random_device rd;
 	std::mt19937 mt;

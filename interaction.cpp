@@ -1,6 +1,6 @@
 #include "interaction.hpp"
 
-Interaction::Interaction(Parameters params) 
+Interaction::Interaction(Parameters params, std::vector<Graph> graphs) 
 	: electrost_factor(params.electrost_factor),
 	  curvature(params.dim), curvature_x(params.curvature_x),
 	  curvature_y(params.curvature_y),
@@ -12,7 +12,8 @@ Interaction::Interaction(Parameters params)
 	  lj_length_sq(params.lj_length*params.lj_length),
 	  rcut2(2.5*2.5*params.lj_length*params.lj_length),
 	  interaction_id(params.interaction_id),
-	  dt_fast(params.dt_md), dt_slow(params.dt_md_slow)
+	  dt_fast(params.dt_md), dt_slow(params.dt_md_slow),
+	  num_beads(params.num_beads)
 {
 	time_since_slow_update = 0;
 	curvature[0] = curvature_x;
@@ -24,6 +25,10 @@ Interaction::Interaction(Parameters params)
 	
 	double tmp = std::pow(lj_length_sq/rcut2,3);
 	vcut = lj_energy4 * tmp*(tmp-1);
+	if(params.connected)
+		exchange_pairs = graphs[params.biased_graph].get_exchange_pairs();
+	else
+		exchange_pairs = graphs[params.reference_graph].get_exchange_pairs();	
 }
 
 
@@ -76,11 +81,10 @@ Force Interaction::two_particle_force(const Point& p1, const Point& p2) const
 	{
 		case 1: //Lennard-Jones
 		{
-			double sqdist = p1.sqdist(p2);
+			double sqdist = p1.sqdist(p2); // r^2
 			if(sqdist>rcut2)
 				return Point(p1.size());
 			double tmp = std::pow(lj_length_sq/sqdist,6); // (sigma/r)^12
-			//std::cout << ((p1-p2)*(lj_energy48*tmp/sqdist)).dist0() << std::endl;
 			return (p1-p2)*(lj_energy48*tmp/sqdist); //(p1-p2)*(lj_energy24*(2*tmp*tmp-tmp)/sqdist);
 		}
 		case 2: //Electrostatic interaction
@@ -93,8 +97,6 @@ Force Interaction::two_particle_force(const Point& p1, const Point& p2) const
 }
 
 
-//Force int_force(Point p);
-
 void Interaction::update_forces(std::vector<Polymer>& polymers, const Bias& bias)
 {
 	/*update_fast_forces(polymers);
@@ -104,31 +106,45 @@ void Interaction::update_forces(std::vector<Polymer>& polymers, const Bias& bias
 	for(int n=0; n<polymers.size(); ++n)
 	{
 		Polymer& pol = polymers[n];
-		for(int bead=0; bead<pol.num_beads; ++bead)
+		for(int bead=0; bead<num_beads; ++bead)
 		{
 			for(int m=0; m<n; ++m)
 			{
-				Force f = two_particle_force(pol[bead],polymers[m][bead])/polymers[0].num_beads;
+				Force f = two_particle_force(pol[bead],polymers[m][bead])/num_beads;
 				pol.twopart_forces[bead] = f;
 				polymers[m].twopart_forces[bead] = (-1) * f;
 			}
-			pol.ext_forces[bead] = ext_force(pol[bead])/pol.num_beads;
+			pol.ext_forces[bead] = ext_force(pol[bead])/num_beads;
 			pol.spring_forces[bead] = spring_force(pol[bead-1],pol[bead],pol[bead+1]);
 			pol.bias_forces[bead] = bias.calc_force(polymers,bead,n);
 		}
 
 			
-		if(polymers[0].connected && polymers.size()==2)
+		if(polymers[0].connected) 
 		{
-			int num_beads = pol.num_beads;
-			const Polymer& other_pol = polymers[polymers.size()-1-n];
-			pol.spring_forces[0] = spring_force(other_pol[num_beads-1],pol[0],pol[1]);
-			pol.spring_forces[num_beads-1] = spring_force(pol[num_beads-2],pol[num_beads-1],other_pol[0]);
-			
+			//if(polymers.size()==2)
+			//{
+				const Polymer& prev_pol = polymers[std::get<0>(exchange_pairs[n])];
+				const Polymer& next_pol = polymers[std::get<1>(exchange_pairs[n])];
+				/*if(polymers.size()==2)
+				{
+					prev_pol = polymers[1-n];
+					next_pol = polymers[1-n];
+				}
+				else
+				{
+					prev_pol = polymers[std::get<0>(exchange_pairs[n])];
+					next_pol = polymers[std::get<1>(exchange_pairs[n])];
+				}*/
+				pol.spring_forces[0] = spring_force(prev_pol[num_beads-1],pol[0],pol[1]);
+				pol.spring_forces[num_beads-1] = spring_force(pol[num_beads-2],pol[num_beads-1],next_pol[0]);
+				
 			//pol.forces[0] += spring_force(other_pol[num_beads-1],pol[0],pol[1]);
 			//pol.forces[num_beads-1] += spring_force(pol[num_beads-2],pol[num_beads-1],other_pol[0]);
 			//std::cout << spring_force(other_pol[num_beads-1],pol[0],pol[1]).dist0() << "\t"
 			//		  << spring_force(pol[num_beads-1],pol[0],pol[1]).dist0() << std::endl;
+			//}
+			
 		}
 		/*else
 		{
@@ -164,3 +180,9 @@ double Interaction::get_spring_const() const
 {
 	return spring_const;
 }
+
+void Interaction::set_exchange_pairs(std::vector<std::pair<int,int>> new_pairs)
+{
+	exchange_pairs = new_pairs;
+}
+

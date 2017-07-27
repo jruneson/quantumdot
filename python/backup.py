@@ -342,3 +342,11 @@ def plot_rABs(fs):
     for i,beta in enumerate(betas):
         es[i] = half_energy(0.1,2,beta,3.0,'fer')
     plt.plot(1.0/(kB*betas),es,'o-')"""
+    
+      
+    
+def read_data(f):
+    cv_data = np.loadtxt(f+'cv.dat')
+    rf_data = np.loadtxt(f+'rew_factor.dat')
+    exc_data = np.loadtxt(f+'exc_factor.dat')
+    return cv_data[:,0], cv_data[:,2], rf_data[:,1], exc_data[:,1]

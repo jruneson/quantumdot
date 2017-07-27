@@ -21,11 +21,12 @@ void Observable::set_zero()
 	value = 0;
 }
 
-void Observable::update_avg(int num_samples, double exc_avg)
+void Observable::update_avg(int num_samples, double exc_avg)//exc_avg should be the average of exchange factor within the last block
 {
 	double tmp = value/num_samples;
-	avg = (avg*blocks + tmp)/(blocks+1.0);
-	avg_sq = (avg_sq*blocks + tmp*tmp)/(blocks+1.0);
+	last_block = tmp/exc_avg;
+	//avg = (avg*blocks + tmp)/(blocks+1.0);
+	//avg_sq = (avg_sq*blocks + tmp*tmp)/(blocks+1.0);
 	weighted_avg = (weighted_avg*blocks + tmp/exc_avg)/(blocks+1.0);
 	weighted_avg_sq = (weighted_avg_sq*blocks + std::pow(tmp/exc_avg,2))/(blocks+1.0);
 	++blocks;
@@ -56,6 +57,11 @@ double Observable::get_weighted_avg_sq() const
 {
 	return weighted_avg_sq;
 	//return avg_sq/(exc_avg*exc_avg);
+}
+
+double Observable::get_last_block() const
+{
+	return last_block;
 }
 
 void Observable::set_avgs(double avg_, double avg_sq_, double w_avg_, double w_avg_sq_, double blocks_)
@@ -382,7 +388,7 @@ double Observable::virial_terms(const std::vector<Polymer>& pols,const std::vect
 		for(const auto& chain : chains)
 		{
 			tmp_graph += calc_centroid(pols,chain)*calc_total_force(pols,chain)/2;
-			//minus sign is included in the force, num_beads in force
+			//minus sign is included in the force, division by num_beads is already done in the force
 		}
 		tmp += tmp_graph * graph.get_weight_signed(pols,graphs[current_graph_id]);
 	}

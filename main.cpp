@@ -7,6 +7,19 @@
 #include "parameters.hpp"
 #include "graph.hpp"
 
+std::vector<Graph> generate_graphs(const Parameters& params)
+{
+	std::vector<Graph> graphs;
+	if(params.sign==0)
+		graphs.push_back(Graph(params,0));
+	else
+	{
+		int num_graphs = params.num_parts; //Needs to be modified for N>3
+		for(int id=0; id<num_graphs; ++id)
+			graphs.push_back(Graph(params,id));
+	}
+	return graphs;
+}
 
 
 int main(int argc, char* argv[])
@@ -52,22 +65,16 @@ int main(int argc, char* argv[])
 	results_file.precision(10);
 
 	std::vector<Graph> graphs;
-	if(params.sign==0)
-		graphs.push_back(Graph(params,0));
-	else
-	{
-		int num_graphs = params.num_parts; //Needs to be modified for N>3
-		for(int id=0; id<num_graphs; ++id)
-			graphs.push_back(Graph(params,id));
-	}
 	
 	if(0)
 	{
-		std::vector<double> betas = {0.15,0.3,0.5,1.0,2.0,3.0,4.0};
+		std::vector<double> betas = {0.2,0.3,0.5,1.0,2.0,3.0,4.0};
 		for(auto beta : betas)
 		{
 			params.beta = beta;
 			params.calculate_dependencies();
+			graphs = generate_graphs(params);
+			std::cout << beta << ",,\t" << params.beta << std::endl;
 			Simulation sim(params, results_file, continue_sim, graphs);
 			sim.run();
 		}
@@ -79,12 +86,14 @@ int main(int argc, char* argv[])
 		{
 			params.tau = tau;
 			params.calculate_dependencies();
+			graphs = generate_graphs(params);
 			Simulation sim(params, results_file, continue_sim, graphs);
 			sim.run();
 		}
 	}
 	if(1)
 	{
+		graphs = generate_graphs(params);
 		Simulation sim(params, results_file, continue_sim, graphs);
 		sim.run();
 	}
@@ -92,6 +101,8 @@ int main(int argc, char* argv[])
 	results_file.close();
 	return 0;
 }
+
+
 
 /*
  x Point 

@@ -26,6 +26,7 @@ public:
 	void update_avg(int,double);
 	int get_id() const;
 	double get_last_value() const;
+	double get_last_block() const;
 	double get_value() const;
 	double get_avg() const;
 	double get_avg_sq() const;
@@ -41,6 +42,7 @@ public:
 private:
 	double last_value;
 	double value;
+	double last_block;
 	double avg;
 	double avg_sq;
 	double weighted_avg;

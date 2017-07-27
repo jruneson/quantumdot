@@ -12,6 +12,7 @@ void Parameters::read_file(std::string filename)
 	int to_bool; int tmp;
 	double tmp2;
 	dt_md_slow = 0;
+	double m_e = 9.10938356e-31;
 	while(std::getline(file, line))
 	{
 		std::istringstream iss(line);
@@ -60,8 +61,8 @@ void Parameters::read_file(std::string filename)
 			{
 				iss >> spin;
 				if( (num_parts % 2) != (spin % 2)) //If num_parts and spin are not both even or both odd
-				//if(((num_parts % 2) && (!(total_spin % 2))) || ((!(num_parts % 2)) && (total_spin%2))) //If number of particles is odd and spin is even
-					throw std::runtime_error("Invalid total spin!");
+					if(spin != 0) //Spinless particles are ok
+						throw std::runtime_error("Invalid total spin!");
 				if(spin > num_parts)
 					throw std::runtime_error("Total spin is too high!");
 			}
@@ -72,6 +73,8 @@ void Parameters::read_file(std::string filename)
 			}
 			else if(name=="biased_graph")
 				iss >> biased_graph;
+			else if(name=="reference_graph")
+				iss >> reference_graph;
 			else if(name=="with_thermostat")
 			{
 				iss >> to_bool;
@@ -111,7 +114,22 @@ void Parameters::read_file(std::string filename)
 			{	
 				iss >> mass;	
 				m_hbar2 *= mass;
-				mass *= 9.10938356e-31;
+				mass *= m_e;
+			}
+			else if(name=="first_mass")
+			{
+				iss >> first_mass;
+				first_mass *= m_e;
+			}
+			else if(name=="second_mass")
+			{
+				iss >> second_mass;
+				second_mass *= m_e;
+			}
+			else if(name=="mass_reversed")
+			{
+				iss >> to_bool;
+				mass_reversed = (to_bool != 0);
 			}
 			else if(name=="charge_in_e")
 				iss >> charge;
@@ -145,6 +163,12 @@ void Parameters::read_file(std::string filename)
 				iss >> wall_pos;
 			else if(name=="wall_energy")
 				iss >> wall_energy;
+			else if(name=="cv_hist_max")
+				iss >> cv_hist_max;
+			else if(name=="cv_hist_min")
+				iss >> cv_hist_min;
+			else if(name=="cv_hist_res")
+				iss >> cv_hist_res;
 			else
 				std::cout << name << " is not an allowed parameter" << std::endl;
 		}
@@ -178,9 +202,12 @@ void Parameters::calculate_dependencies()
 	first_height = first_height_in_kBT/beta;
 	//num_steps = (int) sampl_time / (dt_md * num_blocks); //per block
 	//num_samples = (int) num_steps / steps_per_sample; //per block
-	spring_const = num_beads*m_hbar2/(beta*beta);
-	exc_const = num_beads*m_hbar2/(beta);
-	exc_der_const = sign * num_beads*m_hbar2/(beta*beta);
+	double mass_conversion = first_mass/mass;
+	if(mass_reversed)
+		mass_conversion = second_mass/mass;
+	spring_const = num_beads*m_hbar2/(beta*beta) * mass_conversion;
+	exc_const = num_beads*m_hbar2/(beta) * mass_conversion;
+	exc_der_const = sign * num_beads*m_hbar2/(beta*beta) * mass_conversion;
 	kin_offset = num_parts*num_beads*dim/(2.0*beta);
 	//if(connected)
 	virial_offset = dim/(2.0*beta);
@@ -190,6 +217,9 @@ void Parameters::calculate_dependencies()
 	hist_size = length_scale*hist_size_in_r_star;	
 	spline_step = gauss_width/20.0;
 	
+	mass_factor = second_mass/first_mass - 1;
+	//std::cout << mass_factor << "\t" << first_mass/mass << "\t" << mass << "\t" << first_mass << "\t" << second_mass << std::endl;
+	//std::cout << beta << ",\t" << exc_const << std::endl;
 	//std::cout << hwx << "\t" << hwy << "\t" << wigner_parameter << "\t" << virial_offset << std::endl;
 }
 

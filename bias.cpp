@@ -12,7 +12,8 @@ Bias::Bias(const Parameters& params, bool cont_sim, const std::vector<Graph>& gr
 			metad_on(params.metad_on),spline_step(params.spline_step),
 			v_spline(Spline(params.spline_step,0)),vder_spline(Spline(params.spline_step,0)),
 			wall_id(params.wall_id),wall_energy(params.wall_energy),
-			wall_pos(params.wall_pos),biased_graph(params.biased_graph),
+			wall_pos(params.wall_pos), biased_graph(params.biased_graph),
+			reference_graph(params.reference_graph),
 			border_region(8*params.gauss_width)
 {
 	if(cont_sim)
@@ -33,7 +34,18 @@ Bias::Bias(const Parameters& params, bool cont_sim, const std::vector<Graph>& gr
 	transient=0;
 	count = 0;
 	regularization = 1e-4;
-	std::cout << border_region << std::endl;
+	//std::cout << "bias constructor ready" << std::endl;
+	
+	/*if(!params.connected)
+	{
+		biased_graph = params.biased_graph;
+		reference_graph = params.reference_graph;
+	}
+	else
+	{	
+		biased_graph = params.reference_graph;
+		reference_graph = params.biased_graph;
+	}*/
 }
 
 double Bias::energy_diff(const std::vector<Polymer>& pols) const
@@ -51,7 +63,13 @@ double Bias::energy_diff(const std::vector<Polymer>& pols) const
 	/*if(pols[0].connected)
 		return exc_const*scalar_product(pols,pols[0].num_beads);
 	else*/
-		return exc_const*scalar_product(pols,pols[0].num_beads-1);
+	//std::cout << graphs[biased_graph].energy_diff(pols,graphs[reference_graph]) << "\t"
+	//		  << exc_const*scalar_product(pols,pols[0].num_beads-1) << std::endl;
+	//if(pols[0].connected)
+	return graphs[biased_graph].energy_diff(pols,graphs[reference_graph]);
+	//else
+	//	return graphs[reference_graph].energy_diff(pols,graphs[biased_graph]);
+	//return exc_const*scalar_product(pols,pols[0].num_beads-1);
 }
 	
 double Bias::coll_var(const std::vector<Polymer>& pols) const
@@ -85,6 +103,8 @@ double Bias::coll_var(const std::vector<Polymer>& pols) const
 				//std::cout << std::log(std::abs(exc_factor-1)) << std::endl; 
 			//}
 			//return energy_diff(pols);
+		case 2:
+			return std::log(pos_weight + neg_weight);
 		case 3: //distance-corrected cv
 			tmp = sum_exp_distcorr(pols);
 			return -std::log(tmp/pols[0].num_beads);
@@ -96,7 +116,7 @@ double Bias::coll_var(const std::vector<Polymer>& pols) const
 				pos_weight += graph.get_weight(pols,true);
 				neg_weight += graph.get_weight(pols,false);
 			}*/
-			return -std::log(std::exp(-graphs[0].energy_absolute(pols))
+			return std::log(std::exp(-graphs[0].energy_absolute(pols))
 							+std::exp(-graphs[0].energy_absolute(pols)));
 			/*if(pols[0].connected)
 				return -std::log(std::abs(e_s+sign));
@@ -114,13 +134,13 @@ double Bias::coll_var(const std::vector<Polymer>& pols) const
 				pos_weight += graph.get_weight(pols,true);
 				neg_weight += graph.get_weight(pols,false);
 			}*/
-			if(neg_weight==0 && pols.size()==2)
+			/*if(neg_weight==0 && pols.size()==2)
 			{
 				if(pols[0].connected)
 					return std::log(pos_weight-1);
 				else
 					return -std::log(pos_weight-1);
-			}
+			}*/
 			//std::cout << neg_weight << "\t" << pos_weight << std::endl;
 			return -std::log(neg_weight/pos_weight);
 			/*s = energy_diff(pols);
@@ -140,6 +160,8 @@ double Bias::coll_var(const std::vector<Polymer>& pols) const
 			//return (pos_weight-neg_weight)/(pos_weight+neg_weight);
 			/*s = energy_diff(pols);
 			return 0.5*(1.1*s+20-(0.9*s-20)*std::tanh(0.2*(s-20)));*/
+		case 8:
+			return graphs[biased_graph].energy_diff(pols,graphs[reference_graph]);
 		default:
 			std::cout << "Not a valid CV option" << std::endl;
 			return pols[0][0][0];
@@ -276,6 +298,13 @@ Force Bias::cv_grad(const std::vector<Polymer>& pols, int bead, int part) const
 				tmp *= 0.5*(1.1-0.9*t-0.2*(0.9*cv-20)*(1-t*t));
 			}
 			return tmp * (exc_const * std::pow(-1,part));*/
+		case 2:
+			for(const Graph& graph : graphs)
+			{
+				tmp += graph.get_grad_weight(pols,graphs[0], true,bead,part); //grad W+
+				tmp2 += graph.get_grad_weight(pols,graphs[0], false,bead,part); //grad W-
+			}
+			return (tmp + tmp2)/(pos_weight+neg_weight);
 		case 3:
 			tmp2 = pols[0][bead]-pols[1][bead]-(pols[0][bead+1]-pols[1][bead+1]);
 			tmp = tmp2*std::exp(0.5*exc_const*tmp2.sqdist0());
@@ -285,12 +314,11 @@ Force Bias::cv_grad(const std::vector<Polymer>& pols, int bead, int part) const
 		case 4:
 			for(const Graph& graph : graphs)
 			{
-				//pos_weight += graph.get_weight(pols,true);
-				//neg_weight += graph.get_weight(pols,false);
 				tmp += graph.get_grad_weight(pols,graphs[current_graph_id], true,bead,part); //grad W+
 				tmp2 += graph.get_grad_weight(pols,graphs[current_graph_id], false,bead,part); //grad W-
 			}
-			return (tmp + tmp2)/(pos_weight+neg_weight);
+			return (tmp + tmp2)/(pos_weight+neg_weight);			
+			
 		/*	tmp = two_terms(pols,bead,part);
 			tmp3 = std::pow(-1,part)*exc_const/num_beads;
 			if(pols[0].connected)
@@ -320,15 +348,12 @@ Force Bias::cv_grad(const std::vector<Polymer>& pols, int bead, int part) const
 			}
 			//if((tmp/pos_weight - tmp2/neg_weight).dist0()!=(tmp/pos_weight - tmp2/neg_weight).dist0())
 			//	std::cout << tmp.dist0() << "\t" << tmp2.dist0() << "\t" << pos_weight << std::endl;
-			if(neg_weight==0)
-				return tmp/pos_weight;
+			/*if(neg_weight==0)
+				return tmp/pos_weight;*/
 			return tmp/pos_weight - tmp2/neg_weight;
 		case 6:
 			return graphs[1].energy_diff_grad(pols,graphs[0],bead,part);
 		case 7:
-			//replace with method which does not have to recalc weights
-			//pos_weight = 0;
-			//neg_weight = 0;
 			for(const Graph& graph : graphs)
 			{
 				//pos_weight += graph.get_weight(pols,true);
@@ -337,6 +362,8 @@ Force Bias::cv_grad(const std::vector<Polymer>& pols, int bead, int part) const
 				tmp2 += graph.get_grad_weight(pols,graphs[current_graph_id],false,bead,part);
 			}
 			return (tmp*neg_weight - tmp2*pos_weight)/std::pow(pos_weight+neg_weight,2);
+		case 8:
+			return graphs[biased_graph].energy_diff_grad(pols,graphs[reference_graph],bead,part);
 		default:
 			std::cout << "No gradCV is implemented!" << std::endl;
 			return tmp;

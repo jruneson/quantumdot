@@ -1,11 +1,10 @@
 num_parts 2
 spin_times_two 2
 use_projection 0
-dim 1
-tau 0.1
-beta 0.5
+dim 2
+tau 0.067
+beta 1.0
 biased_graph 1
-reference_graph 0
 sign 1
 connected 0
 to_measure 0 2 3
@@ -20,25 +19,26 @@ dt_md 0.005
 dt_sample 0.005
 with_thermostat 1
 thermalization_time 100
-non_sampling_time 0000
-sampling_time 2000
+non_sampling_time 100000
+sampling_time 100000
 
-metad_on 0
-cv_id 8
+metad_on 1
+cv_id 6
 gauss_width 10.0
 bias_factor 4.0
 first_height_in_kBT 0.5
 bias_update_time 5.0
 
+cv_hist_max 50
+cv_hist_min -100
+cv_hist_res 0.1
+
 allow_permutation_switch 0
 permutation_trial_time 1.0
 
-hwx 3.0
-hwy 3.0
-mass_in_m_e 1.0
-first_mass 1.0
-second_mass 2.0
-mass_reversed 1
+hwx 4.23
+hwy 5.84
+mass_in_m_e 0.07
 
 interaction_id 0
 charge_in_e 1.0

@@ -42,7 +42,8 @@ public:
 	double first_height_in_kBT;
 	double first_height;
 	double bias_update_time;
-	int biased_graph;
+	int biased_graph; //connected graph if N=2
+	int reference_graph; //disconnected graph if N=2
 	double permutation_trial_time;
 	bool allow_perm_switch;
 	
@@ -53,6 +54,9 @@ public:
 	double m_hbar2 = 0.013234213;//3.674932248e-5; //m/hbar^2 in  nm^{-2} meV^{-1}
 	double hbar = 0.65821195; //in meV ps
 	double mass; //in kg
+	double first_mass; //The mass for the springs being simulated
+	double second_mass; //The other mass in a Bennett calculation with different masses
+	bool mass_reversed;
 	double charge; //in e
 	double diel_const; // 4\pi\eps0\eps_r in meV^{-1} e^2 a0^{-1}
 	double screening_factor;
@@ -65,6 +69,10 @@ public:
 	int wall_id; //0=no wall, 1=upper, 2=lower
 	double wall_pos;
 	double wall_energy;
+	
+	double cv_hist_max;
+	double cv_hist_min;
+	double cv_hist_res;
 	
 	//dependent parameters
 	int num_beads;
@@ -79,6 +87,7 @@ public:
 	int num_steps; //per block
 	double spring_const; 
 	double exc_const;
+	double mass_factor;
 	double exc_der_const;
 	double kin_offset;
 	double virial_offset;

@@ -18,6 +18,7 @@ ideal/
 three/
 to_send/
 presentation/
+perm_switch/
 .csync*
 .owncloud*
 *.zip

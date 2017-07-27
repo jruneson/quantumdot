@@ -4,7 +4,7 @@
 
 Graph::Graph(const Parameters& params, int graph_id) //Chain lengths given as number of chains with length 1, followed by 2, 3 etc.
  : exc_const(params.exc_const), id(graph_id), spin_proj(params.spin_proj),
-	num_parts(params.num_parts)
+	num_parts(params.num_parts), mass_factor(params.mass_factor)
 {
 	int spin = params.spin;
 	exc_bead = params.num_beads-1;
@@ -82,6 +82,14 @@ Graph::Graph(const Parameters& params, int graph_id) //Chain lengths given as nu
 				mult = 3;
 				positive = false;
 			}
+			if(spin==0)
+			{
+				mult = 3;
+				if(params.sign==1)
+					positive = true;
+				else if(params.sign==-1)
+					positive = false;
+			}
 		}
 		if(graph_id==2) //{0,0,1}
 		{
@@ -103,7 +111,7 @@ Graph::Graph(const Parameters& params, int graph_id) //Chain lengths given as nu
 					positive = false;
 				}
 			}
-			if(spin==3)
+			if(spin==3 || spin==0)
 			{
 				mult = 2; //for both with and without spin_proj
 			}
@@ -149,6 +157,7 @@ double Graph::calc_exponent(const std::vector<Polymer>& pols,const Graph& curren
 		tmp -= single_spring(pols,n,std::get<1>(current_graph.exchange_pairs[n]));
 		tmp -= single_spring(pols,std::get<0>(current_graph.exchange_pairs[n]),n);
 	}
+	//std::cout << 0.25*exc_const*tmp << std::endl;
 	return 0.25*exc_const*tmp; //extra 0.5 to avoid double counting
 }
 
@@ -223,6 +232,10 @@ Force Graph::energy_diff_grad(const std::vector<Polymer>& pols, const Graph& gra
 	return grad_exponent(pols,graph,bead,part);
 }
 
+double Graph::energy_diff_masses(const std::vector<Polymer>& pols) const
+{
+	return energy_absolute(pols)*mass_factor;
+}
 
 /*Force Graph::grad_exponent(const std::vector<Polymer>& pols, const Graph& current_graph, 
 						   int bead, int part) const
@@ -294,4 +307,9 @@ int Graph::get_sign() const
 std::vector<std::vector<int>> Graph::get_chains() const
 {
 	return chains;
+}
+
+std::vector<std::pair<int,int>> Graph::get_exchange_pairs() const
+{
+	return exchange_pairs;
 }
