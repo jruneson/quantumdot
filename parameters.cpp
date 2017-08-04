@@ -11,6 +11,8 @@ void Parameters::read_file(std::string filename)
 	std::string line;
 	int to_bool; int tmp;
 	double tmp2;
+	dt_md_slow = 0;
+	double m_e = 9.10938356e-31;
 	while(std::getline(file, line))
 	{
 		std::istringstream iss(line);
@@ -26,6 +28,13 @@ void Parameters::read_file(std::string filename)
 				iss >> beta;
 			else if(name=="num_blocks")
 				iss >> num_blocks;
+			else if(name=="connected")
+			{
+				iss >> to_bool;
+				connected = (to_bool != 0);
+				//if(connected)
+				//	throw std::runtime_error("It's not safe to set connected=1 at the moment");
+			}
 			else if(name=="sampling_time")
 				iss >> sampling_time;
 			else if(name=="dt_md")
@@ -38,13 +47,34 @@ void Parameters::read_file(std::string filename)
 				iss >> non_sampling_time; 
 			else if(name=="thermalization_time")
 			{
-				iss >> tmp2;
-				thermalization_steps = tmp2/dt_md;
+				iss >> thermalization_time;
 			}
 			else if(name=="num_bins")
 				iss >> num_bins;
+			else if(name=="num_bins_2d")
+				iss >> num_bins_2d;
+			else if(name=="hist_size_in_r_star")
+				iss >> hist_size_in_r_star;
 			else if(name=="sign")
 				iss >> sign;
+			else if(name=="spin_times_two")
+			{
+				iss >> spin;
+				if( (num_parts % 2) != (spin % 2)) //If num_parts and spin are not both even or both odd
+					if(spin != 0) //Spinless particles are ok
+						throw std::runtime_error("Invalid total spin!");
+				if(spin > num_parts)
+					throw std::runtime_error("Total spin is too high!");
+			}
+			else if(name=="use_projection")
+			{
+				iss >> to_bool;
+				spin_proj = (to_bool != 0);
+			}
+			else if(name=="biased_graph")
+				iss >> biased_graph;
+			else if(name=="reference_graph")
+				iss >> reference_graph;
 			else if(name=="with_thermostat")
 			{
 				iss >> to_bool;
@@ -67,6 +97,13 @@ void Parameters::read_file(std::string filename)
 				iss >> first_height_in_kBT;
 			else if(name=="bias_update_time")
 				iss >> bias_update_time;
+			else if(name=="permutation_trial_time")
+				iss >> permutation_trial_time;
+			else if(name=="allow_permutation_switch")
+			{	
+				iss >> to_bool;
+				allow_perm_switch = (to_bool != 0);
+			}
 			else if(name=="wigner_parameter")
 				iss >> wigner_parameter;
 			else if(name=="hwx")
@@ -77,7 +114,7 @@ void Parameters::read_file(std::string filename)
 			{	
 				iss >> mass;	
 				m_hbar2 *= mass;
-				mass *= 9.10938356e-31;
+				mass *= m_e;
 			}
 			else if(name=="charge_in_e")
 				iss >> charge;
@@ -94,6 +131,11 @@ void Parameters::read_file(std::string filename)
 			else if(name=="to_print_every_sample")
 				while(iss >> tmp)
 					to_print_every_sample.push_back(tmp);
+			else if(name=="more_output")
+			{	
+				iss >> to_bool;
+				more_output = (to_bool != 0);
+			}
 			else if(name=="lj_length")
 				iss >> lj_length;
 			else if(name=="lj_energy")
@@ -106,15 +148,20 @@ void Parameters::read_file(std::string filename)
 				iss >> wall_pos;
 			else if(name=="wall_energy")
 				iss >> wall_energy;
+			else if(name=="cv_hist_max")
+				iss >> cv_hist_max;
+			else if(name=="cv_hist_min")
+				iss >> cv_hist_min;
+			else if(name=="cv_hist_res")
+				iss >> cv_hist_res;
 			else
 				std::cout << name << " is not an allowed parameter" << std::endl;
 		}
 	}
 	if(dt_md_slow==0)
-		dt_md_slow = dt_md;
-					
-				
+		dt_md_slow = dt_md;			
 }
+
 
 void Parameters::calculate_dependencies()
 {
@@ -122,33 +169,22 @@ void Parameters::calculate_dependencies()
 	if(num_beads<1)
 		num_beads=1;
 	electrost_factor = screening_factor*charge*charge/diel_const;
-	//hw = electrost_factor*electrost_factor*m_hbar2/(wigner_parameter*wigner_parameter);
 	hw = std::sqrt((hwx*hwx+hwy*hwy)/2);
 	wigner_parameter = electrost_factor*std::sqrt(m_hbar2/hw);
-	//electrost_factor = 0;
-	//hwx = 5.1;//4.23;
-	//hwy = 5.1;//5.84;
-	//electrost_factor *= screening_factor;
 	curvature_x = m_hbar2 * hwx*hwx;
 	curvature_y = m_hbar2 * hwy*hwy;
-	//dt_md = 2*M_PI * std::pow(1 + 4.0*num_beads/(hw*hw*beta*beta),-0.5) * hbar/hw
-	//		* 1.0/steps_in_highest_mode; //at least 10dt within the highest freq mode
-	//dt_md = 0.005;
-	//steps_per_sample = round(dt_sample/dt_md);
 	dt_2m = dt_md / (2.0*mass) * 1.60217662e-28;//5.7214765779e-26; //containing conversion factor from meV/nm to kg nm ps^{-2}
 	temperature = 1.0/beta * 11.60452205;
 	first_height = first_height_in_kBT/beta;
-	//num_steps = (int) sampl_time / (dt_md * num_blocks); //per block
-	//num_samples = (int) num_steps / steps_per_sample; //per block
 	spring_const = num_beads*m_hbar2/(beta*beta);
-	exc_const = num_beads*m_hbar2/beta;
-	exc_der_const = -sign * m_hbar2/(beta*beta);
+	exc_const = num_beads*m_hbar2/(beta);
+	exc_der_const = sign * num_beads*m_hbar2/(beta*beta);
 	kin_offset = num_parts*num_beads*dim/(2.0*beta);
-	virial_offset = num_parts*dim/(2.0*beta); //not sure about the dim factor
+	virial_offset = dim/(2.0*beta);
 	length_scale = std::sqrt(1.0/(m_hbar2*hw));
-	hist_size = length_scale * 4;	
+	hist_size = length_scale*hist_size_in_r_star;	
+	spline_step = gauss_width/20.0;
 	
-	std::cout << hwx << "\t" << hwy << "\t" << wigner_parameter << std::endl;
 }
 
 

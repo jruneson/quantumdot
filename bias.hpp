@@ -4,7 +4,7 @@
 #include "polymer.hpp"
 #include "parameters.hpp"
 #include "spline.hpp"
-
+#include "graph.hpp"
 
 #ifndef BIAS_HPP
 #define BIAS_HPP
@@ -12,11 +12,12 @@
 
 class Bias{
 public:
-	Bias(const Parameters&, bool);
+	Bias(const Parameters&, bool, const std::vector<Graph>&);
 		
 	void update_cv(const std::vector<Polymer>&);
-	void update_cv_rew(const std::vector<Polymer>&, const double);
+	void update_cv_rew(const std::vector<Polymer>&, double);
 	double get_cv() const;
+	void set_weights(double,double);
 
 	void update_bias(const std::vector<Polymer>&,double,double);
 	void restore_splines_transient(double);
@@ -25,6 +26,9 @@ public:
 	Force calc_force(const std::vector<Polymer>&, int, int) const;
 	double get_rew_factor() const;
 	double get_rew_factor_avg() const;
+	void set_new_block();
+	void update_rew_factor_avg(int);
+	double get_rew_factor_block() const;
 	void set_rew_factor_avg(double,double);
 	const double get_gauss_width() const;
 	double get_count() const;
@@ -33,34 +37,54 @@ public:
 	std::vector<double> get_heights() const;
 	std::vector<double> get_centers() const;
 	
+	double calc_bias(double) const; //calculate bias using all gaussians 
+	double calc_bias2(double) const; //version using spline plus last gaussian
+	double calc_bias_der(double) const;
+	double calc_bias_der2(double) const;
+	
+	void set_current_graph(int);
+	
 private:
 	double cv;
 	double transient; //c(t)
 	double rew_factor; // exp(beta(V(s)-c(t)))
-	double rew_factor_avg;
+	double rew_factor_avg; //total instantaneous average of all previous values
+	double rew_factor_block; //sum in current block
 	double count; //counts #measurements of rew_factor
 	const int id;
 	const double bias_factor;
 	const double gauss_width;
 	const double first_height;
+	const double border_region;
+	const double gauss2; //gauss_width^2
+	const int biased_graph;
+	const int reference_graph;
 	const int sign;
 	const double exc_const;
 	const double exponent_factor;
 	std::vector<double> heights;
 	std::vector<double> cv_centers;
+	double regularization;
+	
+	double latest_height;
+	double latest_cv_center;
+	
+	const std::vector<Graph>& graphs;
+	int current_graph_id;
+	double pos_weight;
+	double neg_weight;
 	
 	Spline v_spline;
 	Spline vder_spline;
 	const double spline_step;
 	
-	double calc_bias(double) const; //calculate bias explicitly (only used when creating spline)
-	double calc_bias_der(double) const;
 	double coll_var(const std::vector<Polymer>&) const;
 	double coll_var_der(const std::vector<Polymer>&) const;
 	double scalar_product(const std::vector<Polymer>&, int) const;
+	double scalar_product_conn(const std::vector<Polymer>&, int, int) const;
 	double gaussian(double, double, double) const;
 	Force cv_grad(const std::vector<Polymer>&, int, int) const;
-	double sum_exp(const std::vector<Polymer>&) const;
+	double sum_exp(const std::vector<Polymer>&, int) const;
 	double sum_exp_distcorr(const std::vector<Polymer>&) const;
 	Force two_terms(const std::vector<Polymer>&, int, int) const;
 	double sq_distAB(const std::vector<Polymer>&) const;
@@ -69,7 +93,6 @@ private:
 	double wall_force_magn(double) const;
 	double wall_potential(double) const;
 	
-	std::ofstream heights_file;
 	std::ofstream cv_centers_file;
 	
 	const double wall_id;

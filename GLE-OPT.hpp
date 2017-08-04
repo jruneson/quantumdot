@@ -15,6 +15,7 @@ class GLE
 		GLE(double* pvec, double _dt, double _T, double _mass, int _dim=1);
 		GLE(std::vector<Polymer>&, const double&, const double&, const double&, 
 			const int&, const int&, const int&, const bool);
+		~GLE();
 		
 		void run();
 		

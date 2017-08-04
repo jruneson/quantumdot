@@ -11,8 +11,8 @@
 
 class Point{ //storing components of coordinates, velocities, etc
 public:
-	Point(const Parameters&);
-	Point(int);
+	explicit Point(const Parameters&);
+	explicit Point(int);
 
 	//int dim;
 	std::vector<double> point_coords;
@@ -22,10 +22,12 @@ public:
 	double dist0() const;
 	double sqdist0() const; //squared distance to origin
 	int size() const;
+	void set_zero();
 
 	double& operator[](int);
 	const double& operator[](int) const;
 	void operator+=(const Point&);
+	void operator-=(const Point&);
 	void operator*=(double);
 	void operator/=(double);
 };

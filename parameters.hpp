@@ -17,6 +17,7 @@ public:
 	int dim;
 	double tau; //in Ha^{-1}
 	double beta; //in Ha^{-1}
+	bool connected;
 	
 	int num_blocks;
 	double sampling_time;
@@ -24,14 +25,16 @@ public:
 	double dt_md_slow;
 	double dt_sample;
 	double non_sampling_time; //is set to zero in simulation.cpp if simulation is continuing a previous one
-	int thermalization_steps;
+	int thermalization_time;
 	int num_bins;
+	int num_bins_2d;
+	double hist_size_in_r_star;
 	int sign;
-	//double tolerance;
-	//int steps_in_highest_mode;
+	int spin; //In halves 
+	bool spin_proj; //Tells if "spin" means z projection or total spin
 	bool with_thermostat;
-	//bool using_input_file;
 	bool metad_on;
+	bool more_output;
 	
 	int cv_id;
 	double gauss_width;
@@ -39,6 +42,10 @@ public:
 	double first_height_in_kBT;
 	double first_height;
 	double bias_update_time;
+	int biased_graph; //connected graph if N=2
+	int reference_graph; //disconnected graph if N=2
+	double permutation_trial_time;
+	bool allow_perm_switch;
 	
 	double wigner_parameter; //electrostatic energy scale / hw
 	double hw; //in meV
@@ -60,6 +67,10 @@ public:
 	double wall_pos;
 	double wall_energy;
 	
+	double cv_hist_max;
+	double cv_hist_min;
+	double cv_hist_res;
+	
 	//dependent parameters
 	int num_beads;
 	double curvature; //in Ha a_0^{-2}
@@ -73,12 +84,14 @@ public:
 	int num_steps; //per block
 	double spring_const; 
 	double exc_const;
+	double mass_factor;
 	double exc_der_const;
 	double kin_offset;
 	double virial_offset;
-	double length_scale; //in a_0
+	double length_scale; //r_star in nm
 	double hist_size;
-	
+	double spline_step;
+
 	
 	
 	//observables to measure

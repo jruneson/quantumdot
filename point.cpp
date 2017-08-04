@@ -40,6 +40,12 @@ double Point::sqdist0() const
 	return tmp;
 }
 
+void Point::set_zero()
+{
+	for(int d=0; d<point_coords.size(); ++d)
+		point_coords[d] = 0;
+}
+
 double& Point::operator[](int index) 
 {
 	return point_coords[index];
@@ -55,6 +61,12 @@ void Point::operator+=(const Point& p)
 {
 	for(int d=0; d<point_coords.size(); ++d)
 		point_coords[d] += p.point_coords[d];
+}
+
+void Point::operator-=(const Point& p)
+{
+	for(int d=0; d<point_coords.size(); ++d)
+		point_coords[d] -= p.point_coords[d];
 }
 
 void Point::operator*=(double c)

@@ -1,7 +1,7 @@
 *.o
 *.dat
 run*
-tests/
+test*
 *.xyz
 *.m~
 pimd
@@ -14,3 +14,17 @@ mathematica/
 workstation_lab/
 backup/
 coulomb/
+ideal/
+three/
+to_send/
+presentation/
+perm_switch/
+.csync*
+.owncloud*
+*.zip
+ideal2D/
+sign_cv/
+*.pdf
+coulomb*
+masses/
+three*

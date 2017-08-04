@@ -9,7 +9,7 @@
 
 class Interaction{
 public:
-	Interaction(Parameters);
+	Interaction(Parameters,std::vector<Graph>);
 
 //	double potential(const Point&) const;
 	double ext_potential(const Point&) const;
@@ -30,6 +30,9 @@ public:
 	
 	double get_spring_const() const;
 	
+	void set_exchange_pairs(std::vector<std::pair<int,int>>);
+
+	
 private:
 	Point curvature; //=mw^2 for a harmonic oscillator
 	const double curvature_x;
@@ -37,11 +40,14 @@ private:
 	const double curvature_z;
 	const double spring_const;
 	const double electrost_factor;
+	const int num_beads;
 	//const double charge;
 	//const double diel_const;
 	
 	const int interaction_id;
 	const double lj_energy24;
+	const double lj_energy4;
+	const double lj_energy48;
 	const double lj_length_sq;
 	const double rcut2;
 	double vcut;
@@ -49,6 +55,8 @@ private:
 	const double dt_fast;
 	const double dt_slow;
 	double time_since_slow_update;
+	
+	std::vector<std::pair<int,int>> exchange_pairs;
 };
 
 #endif
