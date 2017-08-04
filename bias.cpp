@@ -162,6 +162,8 @@ double Bias::coll_var(const std::vector<Polymer>& pols) const
 			return 0.5*(1.1*s+20-(0.9*s-20)*std::tanh(0.2*(s-20)));*/
 		case 8:
 			return graphs[biased_graph].energy_diff(pols,graphs[reference_graph]);
+		case 9:
+			return std::log(1+neg_weight/pos_weight);
 		default:
 			std::cout << "Not a valid CV option" << std::endl;
 			return pols[0][0][0];
@@ -364,6 +366,15 @@ Force Bias::cv_grad(const std::vector<Polymer>& pols, int bead, int part) const
 			return (tmp*neg_weight - tmp2*pos_weight)/std::pow(pos_weight+neg_weight,2);
 		case 8:
 			return graphs[biased_graph].energy_diff_grad(pols,graphs[reference_graph],bead,part);
+		case 9:
+			for(const Graph& graph : graphs)
+			{
+				//pos_weight += graph.get_weight(pols,true);
+				//neg_weight += graph.get_weight(pols,false);
+				tmp += graph.get_grad_weight(pols,graphs[current_graph_id],true,bead,part);
+				tmp2 += graph.get_grad_weight(pols,graphs[current_graph_id],false,bead,part);
+			}
+			return (tmp2 - neg_weight/pos_weight * tmp)/(pos_weight + neg_weight);
 		default:
 			std::cout << "No gradCV is implemented!" << std::endl;
 			return tmp;
@@ -579,7 +590,7 @@ double Bias::wall_force_magn(double cv) const
 			return -wall_energy*(cv-wall_pos);
 	if(wall_id==2)
 		if(cv<wall_pos)
-			return -wall_energy*(wall_pos-cv);
+			return wall_energy*(wall_pos-cv);
 	return 0;
 }
 

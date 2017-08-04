@@ -136,7 +136,7 @@ private:
 	double hist_de_min=-100;
 	double hist_de_width;
 	double hist_de_num_bins;*/
-	double hist_c_min=-2;
+	double hist_c_min=-3;
 	double hist_c_max=0;
 	double hist_c_resolution=0.1;
 	double hist_c_num_bins;

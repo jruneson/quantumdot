@@ -966,15 +966,18 @@ def free_energy_diff_mass(f1,f2,f3,f4,fig_nr,beta=1.0):
     c_hist_oo_m2 = np.loadtxt(f2+'fsum_mass.dat')[:,1:]
     c_hist_O_m1 = np.loadtxt(f3+'fsum_mass.dat')[:,1:]
     c_hist_O_m2 = np.loadtxt(f4+'fsum_mass.dat')[:,1:]
-    dE_oo_m1 = np.loadtxt(f1+'Mass_diff_distributions.dat')[:,0:2]
-    dE_oo_m2 = np.loadtxt(f2+'Mass_diff_distributions.dat')[:,0:2]
-    dE_O_m1 = np.loadtxt(f3+'Mass_diff_distributions.dat')[:,0:2]
-    dE_O_m2 = np.loadtxt(f4+'Mass_diff_distributions.dat')[:,0:2]
+    dE_oo_m1 = np.loadtxt(f1+'Mass_diff_distributions.dat')
+    dE_oo_m2 = np.loadtxt(f2+'Mass_diff_distributions.dat')
+    dE_O_m1 = np.loadtxt(f3+'Mass_diff_distributions.dat')
+    dE_O_m2 = np.loadtxt(f4+'Mass_diff_distributions.dat')
 
     plt.figure(fig_nr)
     plt.clf()
-    s = dE_oo_m1[:,0]
-    ds = s[1]-s[0]
+    s_oo1 = dE_oo_m1[:,0]
+    s_oo2 = dE_oo_m2[:,0]
+    s_O1 = dE_O_m1[:,0]
+    s_O2 = dE_O_m2[:,0]
+    ds = s_oo1[1]-s_oo2[0]
     hist_oo_m1 = dE_oo_m1[:,1]
     hist_oo_m1 /= sum(hist_oo_m1)*ds
     hist_oo_m2 = dE_oo_m2[:,1]
@@ -983,10 +986,10 @@ def free_energy_diff_mass(f1,f2,f3,f4,fig_nr,beta=1.0):
     hist_O_m1 /= sum(hist_O_m1)*ds
     hist_O_m2 = dE_O_m2[:,1]
     hist_O_m2 /= sum(hist_O_m2)*ds
-    plt.plot(s, -np.log(hist_oo_m1), 'b', label='oo m1')
-    plt.plot(s, -np.log(hist_oo_m2), 'r', label='oo m2')
-    plt.plot(s, -np.log(hist_O_m1), 'g', label='O m1')
-    plt.plot(s, -np.log(hist_O_m2), 'c', label='O m2')
+    plt.plot(s_oo1, (hist_oo_m1), 'b', label='oo m1')
+    plt.plot(s_oo2, (hist_oo_m2), 'r', label='oo m2')
+    plt.plot(s_O1, (hist_O_m1), 'g', label='O m1')
+    plt.plot(s_O2, (hist_O_m2), 'c', label='O m2')
     plt.legend(loc='lower right',fontsize=24)
     
     cs = c_hist_oo_m1[0,:]    
@@ -1017,14 +1020,31 @@ def free_energy_diff_mass(f1,f2,f3,f4,fig_nr,beta=1.0):
         Czeros2[i-1]=C2
     dF = Czeros/beta
     dF2 = Czeros2/beta
-    dF_t = dF-dF2
-    print("dF_oo="+str(np.mean(dF/beta))+"+/-"+str(np.std(dF/beta)))
-    print("dF_O="+str(np.mean(dF2/beta))+"+/-"+str(np.std(dF2/beta)))
-    print("dF_masses="+str(np.mean(dF_t/beta))+"+/-"+str(np.std(dF_t/beta)))
+    dF_t = dF2-dF
+    print("dF_oo="+str(np.mean(dF))+"+/-"+str(np.std(dF)))
+    print("dF_O="+str(np.mean(dF2))+"+/-"+str(np.std(dF2)))
+    print("dF_masses="+str(np.mean(dF_t))+"+/-"+str(np.std(dF_t)))
     
+    """num=0
+    den=0
+    num2=0
+    den2=0
+    #avg=0
+    C = -2.7
+    C2 = -3.5
+    for i,S in enumerate(s):
+        num += f_FD(S+C)*hist_oo_m1[i]
+        den += f_FD(-S-C)*hist_oo_m2[i]
+        num2 += f_FD(S+C)*hist_O_m1[i]
+        den2 += f_FD(-S-C)*hist_O_m2[i]
+        #avg += np.exp(-S)*hist_O_m1[i]
+    dF = -np.log(num/den)/beta + C
+    dF2 = -np.log(num2/den2)/beta + C2
+    print(dF)
+    print(dF2)"""
             
             
-def free_energy_diff(f1,f2,fig_nr,beta=1.0,P=10,opt='FB',deg=1):
+def free_energy_diff(f1,f2,fig_nr,beta=1.0,P=10,opt='FB',deg=1,C=-0.04):
     if opt=='mass':
         c_hist_unconn = np.loadtxt(f1+'fsum_mass.dat')[:,1:]
         c_hist_conn = np.loadtxt(f2+'fsum_mass.dat')[:,1:]        
@@ -1042,14 +1062,15 @@ def free_energy_diff(f1,f2,fig_nr,beta=1.0,P=10,opt='FB',deg=1):
     ds = s[1]-s[0]
     hist_oo = dE_unconn[:,1]
     hist_oo /= sum(hist_oo)*ds
+    s2 = dE_conn[:,0]
     hist_O = dE_conn[:,1]
     hist_O /= sum(hist_O)*ds
     plt.plot(s, -np.log(hist_oo), 'b', label='Disc.')
-    plt.plot(s, -np.log(hist_O),'k--',label='Conn.' )
-    C = -0.041#-0.08
-    #plt.plot(s, hist_oo*f_FD(s+C)*50)
-    #plt.plot(s, hist_O*f_FD(-s-C)*50)
-    plt.xlim([-50,50])
+    plt.plot(s2, -np.log(hist_O),'k--',label='Conn.' )
+    #C = -0.041#-0.08
+    plt.plot(s, hist_oo*f_FD(s+C)*30)
+    plt.plot(s2, hist_O*f_FD(-s2-C)*30)
+    plt.xlim([-20,20])
     plt.ylim([0,16])
     plt.xlabel(r'$s$')
     plt.ylabel(r'$F(s) = - \log\,p(s)$')
@@ -1061,9 +1082,10 @@ def free_energy_diff(f1,f2,fig_nr,beta=1.0,P=10,opt='FB',deg=1):
     sq_O=0
     for i,S in enumerate(s):
         num += f_FD(S+C)*hist_oo[i]
+    for i,S in enumerate(s2):
         den += f_FD(-S-C)*hist_O[i]
-        sq_oo += f_FD(S+C)**2*hist_oo[i]
-        sq_O += f_FD(-S-C)**2*hist_O[i]
+        #sq_oo += f_FD(S+C)**2*hist_oo[i]
+        #sq_O += f_FD(-S-C)**2*hist_O[i]
     #print(num/den)
     dF =  np.log(num/den) + C
     ds = s[1]-s[0]
@@ -1074,18 +1096,18 @@ def free_energy_diff(f1,f2,fig_nr,beta=1.0,P=10,opt='FB',deg=1):
     sq_O *= ds
     #n=200000
     #err = ((sq_O - avg_O**2)/avg_O**2 + (sq_oo-avg_oo**2)/avg_O**2)/n
-    print("F_O-F_oo with f_FD:\t"+str(dF))
 
     #dF_p = -np.log(ds*sum(hist_oo*np.exp(-s)))
     #print("F_O-F_oo, only oo:\t"+str(dF_p))
     dF_FB = -np.log((1-np.exp(dF))/(1+np.exp(dF)))
-    print("F_F-F_B with f_FD:\t"+str(dF_FB/beta))
     #dF_FBp = -np.log((1-np.exp(-dF_p))/(1+np.exp(-dF)))
     #print("F_F-F_B, only oo:\t"+str(dF_FBp))
     #print("Error in DeltaF:\t"+str(np.sqrt(err)))
+
+    print("F_O-F_oo with f_FD:\t"+str(-dF/beta))
+    #print("F_F-F_B with f_FD:\t"+str(dF_FB/beta))
     
-    cs = c_hist_unconn[0,:]
-    
+    cs = c_hist_unconn[0,:]    
     plt.figure(fig_nr+2)        
     plt.clf()
     #Cs = np.linspace(-2,1)
@@ -1120,11 +1142,11 @@ def free_energy_diff(f1,f2,fig_nr,beta=1.0,P=10,opt='FB',deg=1):
         dF = -Czeros/beta
         dF_a = -np.mean(Czeros)/beta
     print("Option: "+opt)
-    print("F_O-F_oo="+str(np.mean(Czeros))+"+/-"+str(np.std(Czeros)/np.sqrt(numblocks)))
-    print("dF="+str(np.mean(dF/beta))+"+/-"+str(np.std(dF/beta)/np.sqrt(numblocks)))
+    print("F_O-F_oo="+str(np.mean(-Czeros/beta))+"+/-"+str(np.std(Czeros/beta)))
+    print("dF="+str(np.mean(dF/beta))+"+/-"+str(np.std(dF/beta)))
     print("dF_alternative_mean="+str(dF_a/beta))    
     avg_sign = (1-np.exp(Czeros))/(1+np.exp(Czeros))
-    print("<sign>="+str(np.mean(avg_sign))+"+/-"+str(np.std(avg_sign)/np.sqrt(numblocks))+'\n')
+    print("<sign>="+str(np.mean(avg_sign))+"+/-"+str(np.std(avg_sign))+'\n')
     
 def free_energy_diff_3p(f,fig_nr,beta=1.0,P=10,opt='FB',deg=1):    
     c01 = np.loadtxt(f+'diag0-1/fsum_N2_P'+str(P)+'.dat')[:,1:]
@@ -1165,7 +1187,8 @@ def free_energy_diff_3p(f,fig_nr,beta=1.0,P=10,opt='FB',deg=1):
         dF = -np.log((1-3*np.exp(Czeros1)+2*np.exp(Czeros2))/(1+3*np.exp(Czeros1)+2*np.exp(Czeros2))/deg)/beta
         #dF = -np.log((1-np.exp(Czeros1)+np.exp(Czeros2))/(1+np.exp(Czeros1)+np.exp(Czeros2)))/beta
         dF2 = -np.log((1-3*np.exp(Czeros1))/(1+3*np.exp(Czeros1))/deg)/beta
-        print((1-3*np.exp(np.mean(Czeros1))+2*np.exp(np.mean(Czeros2)))/(1+3*np.exp(np.mean(Czeros1))+2*np.exp(np.mean(Czeros2)))/deg)
+        sign = (1-3*np.exp((Czeros1))+2*np.exp((Czeros2)))/(1+3*np.exp((Czeros1))+2*np.exp((Czeros2)))/deg
+        print("sign="+str(np.mean(sign))+"+/-"+str(np.std(sign)))
         dF_a = -np.log((1-3*np.exp(np.mean(Czeros1))+2*np.exp(np.mean(Czeros2)))/(1+3*np.exp(np.mean(Czeros1))+2*np.exp(np.mean(Czeros2)))/deg)/beta
     if(opt=='FD'):
         dF = -np.log((1-3*np.exp(Czeros1)+2*np.exp(Czeros2))/6)/beta
@@ -2222,11 +2245,20 @@ if __name__=="__main__":
         #x = np.linspace(0,1.0)
         #plt.plot(x,2+x*np.sqrt(np.pi/2.0),'--')
         
-    #free_energy_diff('../test2/','../test4/',7,beta=1.0,P=10,opt='FB',deg=1)
-    #free_energy_diff_mass('../test/','../test2/','../test3/','../test4/',5,beta=10)  
+    #free_energy_diff('../test/','../test3/',4,beta=1.0,P=10,opt='FB',deg=1,C=-0.101)
+    #free_energy_diff('../test2/','../test4/',7,beta=1.0,P=10,opt='FB',deg=1,C=-0.488)
+    free_energy_diff('../masses/oo_m1/','../masses/O_m1/',1,beta=1.0,P=10,opt='FB',deg=1,C=-0.101)
+    free_energy_diff('../masses/oo_m2/','../masses/O_m2/',2,beta=1.0,P=10,opt='FB',deg=1,C=-0.5)
+    free_energy_diff_mass('../masses/oo_m1/','../masses/oo_m2/','../masses/O_m1/','../masses/O_m2/',5,beta=1)  
     #print('\n')      
-    free_energy_diff_3p(f3p,2,beta=0.5,P=5,opt='spin1half',deg=1)    
+    #free_energy_diff_3p('../three_remote_done/beta1/',2,beta=1.0,P=10,opt='FB',deg=1)    
     
+    """cv = np.loadtxt('../test6/cv.dat')
+    #cv = np.loadtxt('../three/spin3half/beta0-5/woMetaD_CV5/cv.dat')
+    plt.figure(0)
+    plt.clf()
+    plt.plot(cv[:,0],cv[:,1])
+    print(np.std(cv[:,1]))"""
     
     if 1:
         plot_energies('../three/distinguish/Energy_vs_T/',1,1,'beta',color='r',linestyle='-',label='Dist')
