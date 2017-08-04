@@ -87,14 +87,12 @@ private:
 	double sum_exp(const std::vector<Polymer>&, int) const;
 	double sum_exp_distcorr(const std::vector<Polymer>&) const;
 	Force two_terms(const std::vector<Polymer>&, int, int) const;
-	//Force two_terms_conn(const std::vector<Polymer>&, int, int, int) const;
 	double sq_distAB(const std::vector<Polymer>&) const;
 	void create_splines();
 	void update_transient(double);
 	double wall_force_magn(double) const;
 	double wall_potential(double) const;
 	
-	//std::ofstream heights_file;
 	std::ofstream cv_centers_file;
 	
 	const double wall_id;

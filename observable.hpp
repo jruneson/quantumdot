@@ -55,8 +55,6 @@ private:
 	const double virial_offset;
 	const double exc_const;
 	const double exc_der_const;
-	//const int sign;
-
 	
 	double potential_energy(const std::vector<Polymer>&, const Interaction&) const;
 	double kinetic_energy(const std::vector<Polymer>&, const Interaction&) const;
@@ -71,8 +69,7 @@ private:
 	double exc_der(const std::vector<Polymer>&) const;
 	double virial_terms(const std::vector<Polymer>&, const std::vector<Graph>&,int) const;
 	double scalar_product(const std::vector<Polymer>&, int) const;
-	//double scalar_product_conn(const std::vector<Polymer>&, int, int) const;
-	
+
 	Point calc_centroid(const std::vector<Polymer>&,const std::vector<int>&) const;
 	Force calc_total_force(const std::vector<Polymer>&,const std::vector<int>&) const;
 	

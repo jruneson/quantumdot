@@ -54,9 +54,6 @@ public:
 	double m_hbar2 = 0.013234213;//3.674932248e-5; //m/hbar^2 in  nm^{-2} meV^{-1}
 	double hbar = 0.65821195; //in meV ps
 	double mass; //in kg
-	double first_mass; //The mass for the springs being simulated
-	double second_mass; //The other mass in a Bennett calculation with different masses
-	bool mass_reversed;
 	double charge; //in e
 	double diel_const; // 4\pi\eps0\eps_r in meV^{-1} e^2 a0^{-1}
 	double screening_factor;

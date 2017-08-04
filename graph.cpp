@@ -232,61 +232,6 @@ Force Graph::energy_diff_grad(const std::vector<Polymer>& pols, const Graph& gra
 	return grad_exponent(pols,graph,bead,part);
 }
 
-double Graph::energy_diff_masses(const std::vector<Polymer>& pols) const
-{
-	return energy_absolute(pols)*mass_factor;
-}
-
-/*Force Graph::grad_exponent(const std::vector<Polymer>& pols, const Graph& current_graph, 
-						   int bead, int part) const
-{
-	Force tmp(pols[0][0].size());
-	int other_bead;
-	int other_part;
-	if(bead==exc_bead)
-		other_bead = cyclic(exc_bead+1,pols[0].num_beads);
-	else if(bead==cyclic(exc_bead+1,pols[0].num_beads))
-		other_bead = exc_bead;
-	else
-		return tmp;
-	
-	auto it = std::find_if(exchange_pairs.begin(), exchange_pairs.end(), [&](const std::pair<int,int>& p){return p.first == part;});
-	if(it == exchange_pairs.end())
-	{	
-		it = std::find_if(list.begin(), list.end(), [&](const std::pair<int,int>& p){return p.second == part;});
-		if(it == list.end())
-			return tmp;
-		other_part = it->first;
-	}
-	else
-		other_part = it->second;
-	return pols[part][other_bead]-pols[other_part][other_bead];
-}*/
-
-/*
-double Graph::get_energy_diff(const std::vector<Polymer>& pols,const Graph&) const
-{
-	double tmp = 0;
-	//for(const auto& list : exchange_pairs)
-	tmp += calc_exponent(pols,current_graph);
-	return tmp;
-}*/
-
-/*Force Graph::get_energy_diff_grad(const std::vector<Polymer>& pols, int bead, int part) const
-{
-	Force tmp(pols[0][0].size());*/
-	/*int other_bead;
-	if(bead==pols[0].num_beads-1)
-		other_bead = 0;
-	else if(bead==0)
-		other_bead = pols[0].num_beads-1;*/
-	//return (pols[part][other_bead] - pols[pols.size()-1-part][other_bead])*exc_const;
-	
-	/*for(const auto& list : exchange_pairs)
-		tmp += grad_exponent(pols,list,bead,part);
-	return tmp*exc_const;
-}*/
-
 int Graph::get_id() const
 {
 	return id;

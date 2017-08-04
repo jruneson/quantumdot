@@ -64,7 +64,6 @@ private:
 	bool printed_warning;
 	const bool allow_perm_switch;
 	const double wigner_parameter;
-	const bool mass_reversed;
 	
 	const double beta;
 	const double tau;
@@ -114,28 +113,15 @@ private:
 	std::vector<double> cv_hist;
 	std::vector<double> exc_fac_hist;
 	std::vector<double> weight_en_hist;
-	std::vector<double> mdiff_hist;
-	//std::vector<double> cv_hist;
 	const double cv_hist_min;
 	const double cv_hist_max;
 	double cv_hist_width;
 	const double cv_hist_res; //resolution, i.e. bin size
 	int cv_hist_num_bins;
-	const double mdiff_hist_min;
-	const double mdiff_hist_max;
-	double mdiff_hist_width;
-	const double mdiff_hist_res;
-	int mdiff_hist_num_bins;
 	std::vector<double> histogram_delta_e;
 	std::vector<double> hist_c;
-	std::vector<double> hist_c_mass;
 	const double hist_1d_min;
 	const double hist_size_1d;
-	/*double hist_de_resolution=0.05;
-	double hist_de_max=100;
-	double hist_de_min=-100;
-	double hist_de_width;
-	double hist_de_num_bins;*/
 	double hist_c_min=-3;
 	double hist_c_max=0;
 	double hist_c_resolution=0.1;
@@ -156,7 +142,6 @@ private:
 	std::ofstream vmd_file;
 	std::ofstream vmd_file2;
 	std::ofstream file_fsum;
-	std::ofstream file_fsum2;
 	
 	std::random_device rd;
 	std::mt19937 mt;
@@ -171,12 +156,10 @@ private:
 	void run_wo_sampling();
 	void run_block();
 	void verlet_step();
-	//void reset_obs();
 	void measure();
 	void update_avgs();
 	void update_histogram();
 	int calc_bin(double,int,double);
-	//int calc_bin_1p(double);
 	void update_screen();
 	void print_to_logfile();
 	double fermi_dirac(double);
@@ -189,9 +172,6 @@ private:
 	double weighted_uncertainty(double,double) const;
 	void try_permutation_change();
 		
-	//double coll_var() const;
-	//Force grad_coll_var() const;
-
 };
 
 

@@ -66,7 +66,7 @@ int main(int argc, char* argv[])
 
 	std::vector<Graph> graphs;
 	
-	if(0)
+	if(0) //If you want to do several beta in the same simulation
 	{
 		std::vector<double> betas = {0.2,0.3,0.5,1.0,2.0,3.0,4.0};
 		for(auto beta : betas)
@@ -79,7 +79,7 @@ int main(int argc, char* argv[])
 			sim.run();
 		}
 	}
-	if(0)
+	if(0) //If several tau in the same simulation
 	{
 		std::vector<double> taus = {1.0,0.3,0.2,0.15,0.1,0.067,0.05};
 		for(auto tau : taus)
@@ -91,7 +91,7 @@ int main(int argc, char* argv[])
 			sim.run();
 		}
 	}
-	if(1)
+	if(1) //Standard option: pick beta and tau from the configuration file
 	{
 		graphs = generate_graphs(params);
 		Simulation sim(params, results_file, continue_sim, graphs);
@@ -101,50 +101,9 @@ int main(int argc, char* argv[])
 	results_file.close();
 	return 0;
 }
-
-
-
-/*
- x Point 
- x Polymer
- x Simulation
- x Interaction, basic
- x Observable class
- x Test
- x print certain observables to separate files
- x probability distribution (1D)
- x read parameters from file 
- x Thermostat
- x Timer
- x Test
- x write project description
- x Potential + kinetic energy (virial)
- x fix reading in vector of obs to print every turn
- x turn missing Amatrix into an error
- x centroid virial
- x fermion and boson
- x make P depend on beta
- x units
- x maybe separate out error estimation from exchange factor
- x read config.xyz in/out
- x check conv with tau 
- x clean up logfiles
- x use python instead of matlab, to also run program from there
- x Bias
- x Test
- x Spline
- x Test
- x replace gle ptr with static obj
- x Interaction, several particles
- x Check LJ is reasonable
- x Run LJ with+wo metad B, then F
- * histogram in 2d
- * Bennett method
- */
  
  /*
   * Note that mass must be the same of all particles. Otherwise things have to be 
-  * updated in GLE and force calculation (curvature is different)
-  * 
+  * updated in the GLE and force calculation (curvature is different)
   * 
   */
